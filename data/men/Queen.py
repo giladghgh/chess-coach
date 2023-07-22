@@ -15,7 +15,7 @@ class Queen(Man):
 		self.image = pygame.transform.scale(self.image , (board.tile_width-20 , board.tile_height-20))
 
 
-	def _legal_moves(self, board):
+	def legal_moves(self, board):
 		from data.men.Bishop import Bishop
 		from data.men.Rook import Rook
 		out = []

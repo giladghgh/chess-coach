@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 
 from data.Constants import C
@@ -129,10 +130,19 @@ class Board:
 				if (man.creed == 'K') and (man.colour == colour):
 					king = man
 		if all([
-			king.valid_moves(self) == [],
-			self.is_in_check(colour)
+			self.is_in_check(colour),
+			king.valid_moves(self) == []
 		]):
-			validity = True
+			# ... and no other man can save you:
+			savable = False
+			for man in [t.occupant for t in self.tiles if t.occupant is not None and t.occupant.colour == colour]:
+				for move in man.valid_moves(self):
+					if savable: break
+					if move.pgn:
+						savable = True
+
+			if not savable:
+				validity = True
 
 		return validity
 

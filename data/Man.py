@@ -23,6 +23,7 @@ class Man:
 			t.highlight = False
 
 		if forced or (tile in self.valid_moves(board)):
+			print(self.creed)
 			print("origin: " + board.tile_of(self.position).pgn)
 			print("target: " + tile.pgn)
 

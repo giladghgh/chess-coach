@@ -22,4 +22,4 @@ class C:
 		1:'Classic',
 		2:'Tutorial',
 		3:'Staunton'
-	}[2]
+	}[1]

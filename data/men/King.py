@@ -15,7 +15,7 @@ class King(Man):
 		self.image = pygame.transform.scale(self.image , (board.tile_width-20 , board.tile_height-20))
 
 
-	def legal_moves(self , board):
+	def legal_moves(self, board):
 		out = []
 
 		moves = [
