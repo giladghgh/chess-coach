@@ -1,0 +1,4 @@
+-	For compatibility, this code uses what I've called Internal Game Notation (IGN, similar to PGN) throughout.
+	>	Pieces are described using two letters, one colour (miniscule) and one class (majiscule): 'bR' black rook, 'wP' white pawn, etc.
+	>	Tiles are described identically to PGN: 'a1', 'b2', etc.
+
