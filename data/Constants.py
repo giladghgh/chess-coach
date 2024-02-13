@@ -59,9 +59,10 @@ class C:
 		2:'Tutorial',
 		3:'3D'
 	}[1]
-	DIR       = os.getcwd()
-	DIR_MEDIA = DIR + "\\media"
-	DIR_SETS  = DIR_MEDIA + "\\Sets\\" + PIECE_STYLE + "\\"
+	#DIR       = os.getcwd()
+	DIR		  = "/home/giladgh/GitHub/chess-coach"
+	DIR_MEDIA = DIR + "/media"
+	DIR_SETS  = DIR_MEDIA + "/Sets/" + PIECE_STYLE + "/"
 
 	# OPENINGS
 	EXAMPLE_MOVETEXT = "1. b4 a5 2. bxa5 Nc6 3. a6 Rb8 4. a7 Nb4 5. a8=Q Na6 6. e4 f5 7. Qxb8 g5 8. Qe2 Nxb8 9. Qf3 fxe4 10. Qg4 e3 11. dxe3 Na6 12. Bxa6 bxa6 13. Qh5"

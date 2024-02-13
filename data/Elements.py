@@ -152,7 +152,7 @@ class Button:
 			*C.BUTTON_SIZE,
 		)
 
-		self.image_path = C.DIR_MEDIA + "\\Icons\\" + self.action.lower() + ".png"
+		self.image_path = C.DIR_MEDIA + "/Icons/" + self.action.lower() + ".png"
 		self.image = pygame.transform.scale(
 			pygame.image.load(self.image_path).convert_alpha(),
 			self.size
@@ -204,7 +204,7 @@ class Button:
 		elif "ECO" in self.action:
 			if self.active:
 				self.colour = (100,110,100)
-				self.coach.eco = ECOdata(self.coach, C.DIR + "\\ECO Catalogue.xlsm")
+				self.coach.eco = ECOdata(self.coach, C.DIR + "/ECO Catalogue.xlsm")
 				print("ECO loaded!")
 			else:
 				self.colour = C.BUTTON_COLOUR

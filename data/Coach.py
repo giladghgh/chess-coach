@@ -275,10 +275,10 @@ class Coach:
 						else:
 							raise Exception("Imported move not recognised!")
 
-						self.force_click(origin_pos , target_pos , special)
+						self.force_move(origin_pos , target_pos , special)
 
 
-	def force_click(self , origin , target , special):
+	def force_move(self , origin , target , special):
 		for tile in (origin,target):
 			self.board.handle_click(force=(tile,special))
 

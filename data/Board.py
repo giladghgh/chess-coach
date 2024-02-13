@@ -117,7 +117,7 @@ class Board:
 	def animate(self , origin , target):
 		dx = target.x - origin.x
 		dy = target.y - origin.y
-		speed = 10                  # frames per square (fps is determined by computing power)
+		speed = 5                  # frames per square (fps is determined by computing power)
 
 		sprite = pygame.Surface.convert_alpha(self.agent.image)
 		rect   = sprite.get_rect()
