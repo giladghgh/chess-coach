@@ -71,7 +71,10 @@ class Board:
 		if colour is not None:
 			out = [man for man in out if man.colour == colour]
 		if creed is not None:
-			out = [man for man in out if man.creed  == creed]
+			if type(creed) is not tuple:
+				creed = (str(creed),)
+			
+			out = [man for man in out if man.creed in creed]
 
 		return out
 
@@ -119,9 +122,8 @@ class Board:
 		speed = 5                  # frames per square (fps is determined by computing power)
 
 		sprite = pygame.Surface.convert_alpha(self.agent.image)
-		rect   = sprite.get_rect()
-		rect.center = origin.rect.center
-		ox,oy  = rect.x , rect.y
+		rect   = sprite.get_rect(center=origin.rect.center)
+		ox,oy  = rect.x,rect.y
 
 		self.agent = None
 

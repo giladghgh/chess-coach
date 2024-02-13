@@ -8,6 +8,7 @@ from data.Board import Board
 from data.Engine import Engine
 from data.Settings import Settings
 from data.Elements import Button,Writer,Reader,Dropdown
+from data.Man import Man
 
 
 
@@ -306,7 +307,8 @@ class Coach:
 
 
 	def board_export_FEN(self):
-		fen = ''
+		# Board
+		board = ''
 		for r in range(8):
 			r = 8 - r
 
@@ -317,22 +319,61 @@ class Coach:
 				tile = self.board.tile_of(f,r)
 				if tile.occupant:
 					if empty_streak:
-						fen += str(empty_streak)
+						board += str(empty_streak)
 						empty_streak = 0
 					
 					if tile.occupant.colour == "w":
-						fen += tile.occupant.creed.upper() or "P"
+						board += tile.occupant.creed.upper() or "P"
 					else:
-						fen += tile.occupant.creed.lower() or "p"
+						board += tile.occupant.creed.lower() or "p"
 				else:
 					empty_streak += 1
 
 			if empty_streak:
-				fen += str(empty_streak)
+				board += str(empty_streak)
 		
-			fen += "/"
+			if r > 1:
+				board += "/"
 		
-		print(fen[:-1])
+		fen = board[:-1]
+
+		# Config
+		config = []
+
+		### active colour
+		config.append( self.board.ply )
+
+		### castlability
+		castlability = ''
+		for colour in ("w","b"):
+			[king] = self.board.all_men(colour=colour,creed="K")
+			if not king.has_moved:
+				for rook in self.board.all_men(colour=colour,creed="R"):
+					if not rook.has_moved:
+						can_castle = "K" if rook.f > king.f else "Q"
+						castlability += {
+							"w" : can_castle.upper(),
+							"b" : can_castle.lower()
+						}[king.colour]
+		
+		config.append( "".join(sorted(castlability)) if castlability else "-" )
+		
+		### en passant availability
+		epability = None
+		for pawn in self.board.all_men(creed=""):
+			if pawn.just_moved_double:
+				epability = C.FILES[pawn.f] + str(pawn.r-1 if pawn.colour == "w" else pawn.r+1)
+		
+		config.append( epability or "-" )
+
+		### halfmove clock
+		# ...
+
+		### fullmove clock
+		# ...
+
+		fen += " " + " ".join(config)
+		print(fen)
 
 
 	def board_import_FEN(self , fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
@@ -340,8 +381,22 @@ class Coach:
 		fen_board  = fen[0]
 		fen_config = fen[1:]
 
+		# Board
+		Man.all.clear()
+
 		model = self.board_model_FEN(fen_board)
 		self.board.setup(model)
+
+		# Config
+		### active colour
+		self.board.ply = fen_config[0]
+
+		### castlability
+		# rook.has_moved if rook doesn't appear in string
+
+		### en passant availability
+		# ditto but pawns
+
 
 
 	def board_model_FEN(self , fen_board):

@@ -32,23 +32,11 @@ class King(Man):
 
 
 	def can_castle(self , board):
-		castles = []
+		castles = ''
 		if not self.has_moved:
 			backrank = 1 if self.colour == "w" else 8
 			qside_rook = board.tile_of((1,backrank)).occupant
 			kside_rook = board.tile_of((8,backrank)).occupant
-
-			if qside_rook is not None:
-				if not qside_rook.has_moved:
-					qside_path = [board.tile_of((i,backrank)) for i in range(2,5)]
-					if (
-						# CLEAR
-						not any([t.occupant for t in qside_path])
-					) and (
-						# SAFE
-						not any([board.is_in_check(self.colour , movement=[self.position,t.position]) for t in qside_path])
-					):
-						castles.append("q")
 
 			if kside_rook is not None:
 				if not kside_rook.has_moved:
@@ -60,8 +48,20 @@ class King(Man):
 						# SAFE
 						not any([board.is_in_check(self.colour, movement=[self.position,t.position]) for t in kside_path])
 					):
-						castles.append("k")
-		
+						castles += "k"
+
+			if qside_rook is not None:
+				if not qside_rook.has_moved:
+					qside_path = [board.tile_of((i,backrank)) for i in range(2,5)]
+					if (
+						# CLEAR
+						not any([t.occupant for t in qside_path])
+					) and (
+						# SAFE
+						not any([board.is_in_check(self.colour , movement=[self.position,t.position]) for t in qside_path])
+					):
+						castles += "q"
+
 		return castles
 
 
@@ -71,7 +71,7 @@ class King(Man):
 			if not board.is_in_check(self.colour , movement=[self.position,tile.position]):
 				out.append(tile)
 
-		castles = self.can_castle(board) or ""
+		castles = self.can_castle(board)
 		if "q" in castles:
 			out.append(board.tile_of(
 				(self.f-2 , self.r)

@@ -213,7 +213,8 @@ class Button:
 			# 	print("ECO unloaded!")
 
 		elif "FLIP" in self.action:
-			self.coach.board_flip()
+			self.coach.board_import_FEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBN b KQkq e3 3 2")
+			#self.coach.board_flip()
 
 		elif "EXPORT" in self.action:
 			self.coach.board_export()
