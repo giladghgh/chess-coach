@@ -1,0 +1,16 @@
+[Event "EventTitle"]
+[Date "2023-12-31"]
+[Time "16:00:40"]
+[White "White"]
+[Black "Black"]
+[Result "1-0"]
+
+1. Nf3 Na6
+2. e4 Nb8
+3. Bc4 Na6
+4. Ng5 Nb8
+5. Nxf7 Na6
+6. Nxd8 Nb8
+7. Qf3 Kxd8
+8. Qxf8#
+1-0
