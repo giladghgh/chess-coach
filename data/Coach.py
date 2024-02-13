@@ -144,9 +144,36 @@ class Coach:
 					else:
 						writer.text += event.unicode
 			elif event.type == pygame.MOUSEBUTTONDOWN:
-				writer.active = False
-				if writer.rect.collidepoint(event.pos):
-					writer.active = True
+				writer.active = writer.rect.collidepoint(event.pos)
+
+
+	def is_game_over(self):
+		game_over = False
+		whites = [man.creed or "P" for man in self.board.all_men("w")]
+		blacks = [man.creed or "P" for man in self.board.all_men("b")]
+
+		if len(whites) > 2 or len(blacks) > 2:
+			game_over = self.board.is_in_checkmate()
+
+		if any([
+			set(whites) == {"K"} and not all([
+				set(blacks) - {"K"},
+				set(blacks) - {"K","B"},
+				set(blacks) - {"K","N"}
+			]),
+			set(blacks) == {"K"} and not all([
+				set(whites) - {"K"},
+				set(whites) - {"K","B"},
+				set(whites) - {"K","N"}
+			]),
+		]):
+			self.finish = (
+				"Draw",
+				"Insufficient material"
+			)
+			game_over = True
+
+		return game_over
 
 
 	def board_flip(self):
@@ -208,7 +235,7 @@ class Coach:
 				file.write("\n" + result)
 
 
-	def board_import(self , filename=C.DIR+"\\games\\EventTitle__ImportExample.pgn" , multiline=True):
+	def board_import_PGN(self , filename , multiline=True):
 		import re
 
 		self.board.agent = None
@@ -277,6 +304,65 @@ class Coach:
 
 						self.force_move(origin_pos , target_pos , special)
 
+
+	def board_export_FEN(self):
+		fen = ''
+		for r in range(8):
+			r = 8 - r
+
+			empty_streak = 0
+			for f in range(8):
+				f = 1 + f
+				
+				tile = self.board.tile_of(f,r)
+				if tile.occupant:
+					if empty_streak:
+						fen += str(empty_streak)
+						empty_streak = 0
+					
+					if tile.occupant.colour == "w":
+						fen += tile.occupant.creed.upper() or "P"
+					else:
+						fen += tile.occupant.creed.lower() or "p"
+				else:
+					empty_streak += 1
+
+			if empty_streak:
+				fen += str(empty_streak)
+		
+			fen += "/"
+		
+		print(fen[:-1])
+
+
+	def board_import_FEN(self , fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"):
+		fen        = fen.split(" ")
+		fen_board  = fen[0]
+		fen_config = fen[1:]
+
+		model = self.board_model_FEN(fen_board)
+		self.board.setup(model)
+
+
+	def board_model_FEN(self , fen_board):
+		model = [[]]
+		x,y   = 0,0
+		for s in fen_board:
+			if s == "/":
+				model.append([])
+				x  = 0
+				y += 1
+			else:
+				if s.isnumeric():
+					s = int(s)
+					for xx in range(s):
+						model[y].append("  ")
+				else:
+					c = "w" if s.isupper() else "b"
+					model[y].append(c + s.upper())
+		
+		return model
+	
 
 	def force_move(self , origin , target , special):
 		for tile in (origin,target):

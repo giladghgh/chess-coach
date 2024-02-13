@@ -29,7 +29,6 @@ class Engine:
 			if moves:
 				catalogue.append((man,moves))
 
-		# TODO: restructure main.py so this is no longer necessary:
 		if not catalogue: return None
 
 		scheme = self.player_scheme[self.board.ply == "b"]
@@ -38,7 +37,7 @@ class Engine:
 			"Materialistic" : self.choose_materialistic(catalogue)
 		}[scheme]
 
-		self.coach.force_click(origin=play[0].position , target=play[1].position , special=play[2])
+		self.coach.force_move(origin=play[0].position , target=play[1].position , special=play[2])
 
 
 	def choose_random(self , catalogue):

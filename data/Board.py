@@ -32,14 +32,13 @@ class Board:
 		self.movenum  = 1
 		self.opening  = None
 
+		self.setup(model=C.INIT_CONFIG)
+
+
+	def setup(self , model , settings=None):
 		self.all_tiles = []
 		self.flipped   = False
 
-		self.model = C.INIT_CONFIG
-		self.setup(self.model)
-
-
-	def setup(self , model):
 		for r,rank in enumerate(model):
 			r = 8 - r
 			for f,man in enumerate(rank):
@@ -238,34 +237,6 @@ class Board:
 			)
 
 		return True
-
-
-	def is_game_over(self):
-		whites = [man.creed or "P" for man in self.all_men("w")]
-		blacks = [man.creed or "P" for man in self.all_men("b")]
-
-		if len(whites) > 2 or len(blacks) > 2:
-			return False
-
-		if any([
-			set(whites) == {"K"} and not all([
-				set(blacks) - {"K"},
-				set(blacks) - {"K","B"},
-				set(blacks) - {"K","N"}
-			]),
-			set(blacks) == {"K"} and not all([
-				set(whites) - {"K"},
-				set(whites) - {"K","B"},
-				set(whites) - {"K","N"}
-			]),
-		]):
-			self.finish = (
-				"Draw",
-				"Insufficient material"
-			)
-			return True
-
-		return self.is_in_checkmate()
 
 
 	def scribe(self , piece , origin , target , capture , attackers , special=None):

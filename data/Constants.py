@@ -59,8 +59,7 @@ class C:
 		2:'Tutorial',
 		3:'3D'
 	}[1]
-	#DIR       = os.getcwd()
-	DIR		  = "/home/giladgh/GitHub/chess-coach"
+	DIR       = os.getcwd()
 	DIR_MEDIA = DIR + "/media"
 	DIR_SETS  = DIR_MEDIA + "/Sets/" + PIECE_STYLE + "/"
 

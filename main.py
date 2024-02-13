@@ -35,13 +35,13 @@ if __name__ == "__main__":
 				else:
 					coach.handle_click(event)
 
-		if not done and board.is_game_over():
+		if not done and coach.is_game_over():
 			done = True
 			coach.board_export()
 			if board.finish[0] == "Draw":
 				print("The game is a draw by " + board.finish[1].lower() + "!")
 			elif board.finish[1] == "Checkmate":
-				print(board.finish[0] + " wins!")
+				print(board.finish[0] + " wins by checkmate!")
 
 		coach.display.fill(C.BG_COLOUR)
 		coach.render()

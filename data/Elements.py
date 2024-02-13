@@ -202,14 +202,15 @@ class Button:
 					print(self.coach.engine.player_scheme)
 
 		elif "ECO" in self.action:
-			if self.active:
-				self.colour = (100,110,100)
-				self.coach.eco = ECOdata(self.coach, C.DIR + "/ECO Catalogue.xlsm")
-				print("ECO loaded!")
-			else:
-				self.colour = C.BUTTON_COLOUR
-				self.coach.eco = None
-				print("ECO unloaded!")
+			self.coach.board_export_FEN()
+			# if self.active:
+			# 	self.colour = (100,110,100)
+			# 	self.coach.eco = ECOdata(self.coach, C.DIR + "/ECO Catalogue.xlsm")
+			# 	print("ECO loaded!")
+			# else:
+			# 	self.colour = C.BUTTON_COLOUR
+			# 	self.coach.eco = None
+			# 	print("ECO unloaded!")
 
 		elif "FLIP" in self.action:
 			self.coach.board_flip()
@@ -221,7 +222,7 @@ class Button:
 			from tkinter import Tk,filedialog
 			base = Tk()
 			base.withdraw()
-			self.coach.board_import(filename=filedialog.askopenfilename(parent=base , title="Select PGN file"))
+			self.coach.board_import_PGN(filename=filedialog.askopenfilename(parent=base , title="Select PGN file"))
 
 
 	def render(self , display):
