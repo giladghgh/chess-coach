@@ -1,8 +1,8 @@
 import pygame
 
-from source.Constants import C
+from src.Constants import C
 
-from source.Man import Man
+from src.Man import Man
 
 
 

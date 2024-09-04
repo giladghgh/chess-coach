@@ -1,7 +1,7 @@
 import time
 # import openpyxl as pyxl
 
-from source.Constants import C
+from src.Constants import C
 
 
 
@@ -20,11 +20,11 @@ class ECO:
 	def load(self):
 		# wb = pyxl.load_workbook(self.filepath)
 
-		# source = {}
+		# src = {}
 		print("loading...")
 		print("ECO loaded!")
 
-		#self.catalogue = source
+		#self.catalogue = src
 		self.catalogue = C.OPENINGS
 
 

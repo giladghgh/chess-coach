@@ -2,12 +2,12 @@ import time
 
 from datetime import datetime
 
-from source.Constants import C
-from source.Gameplay import Board,Move
-from source.Engine import Engine
-from source.Settings import Settings
-from source.Analysis import Analysis
-from source.Elements import *
+from src.Constants import C
+from src.Gameplay import Board,Move
+from src.Engine import Engine
+from src.Settings import Settings
+from src.Analysis import Analysis
+from src.Elements import *
 
 
 

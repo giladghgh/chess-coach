@@ -1,15 +1,15 @@
 import time
 import pygame
 
-from source.Constants import C
-from source.Tile import Tile
+from src.Constants import C
+from src.Tile import Tile
 
-from source.men.Pawn import Pawn
-from source.men.Knight import Knight
-from source.men.Bishop import Bishop
-from source.men.Rook import Rook
-from source.men.Queen import Queen
-from source.men.King import King
+from src.men.Pawn import Pawn
+from src.men.Knight import Knight
+from src.men.Bishop import Bishop
+from src.men.Rook import Rook
+from src.men.Queen import Queen
+from src.men.King import King
 
 
 
@@ -195,7 +195,7 @@ class Board:
 		self.halfmovenum += 1
 
 		# Movelog
-		### unrestricted time control
+		### unrestricted prev/next
 		del self.movelog[self.halfmovenum - 2:]
 
 		### handover
@@ -462,28 +462,28 @@ class Move:
 		if force:
 			# Reading movetext
 			if force == "Q":
-				from source.men.Queen import Queen
+				from src.men.Queen import Queen
 				self.promo = Queen(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
 			elif force == "R":
-				from source.men.Rook import Rook
+				from src.men.Rook import Rook
 				self.promo = Rook(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
 			elif force == "B":
-				from source.men.Bishop import Bishop
+				from src.men.Bishop import Bishop
 				self.promo = Bishop(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
 			elif force == "N":
-				from source.men.Knight import Knight
+				from src.men.Knight import Knight
 				self.promo = Knight(
 					self.board,
 					self.colour,
@@ -530,7 +530,7 @@ class Move:
 					if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 						cursor = (event.pos[0] - C.SIDEBAR_WIDTH , event.pos[1])
 						if promo_rects[0].collidepoint(cursor):
-							from source.men.Queen import Queen
+							from src.men.Queen import Queen
 							self.promo = Queen(
 								self.board,
 								self.colour,
@@ -538,7 +538,7 @@ class Move:
 							)
 							paused = False
 						elif promo_rects[1].collidepoint(cursor):
-							from source.men.Rook import Rook
+							from src.men.Rook import Rook
 							self.promo = Rook(
 								self.board,
 								self.colour,
@@ -546,7 +546,7 @@ class Move:
 							)
 							paused = False
 						elif promo_rects[2].collidepoint(cursor):
-							from source.men.Bishop import Bishop
+							from src.men.Bishop import Bishop
 							self.promo = Bishop(
 								self.board,
 								self.colour,
@@ -554,7 +554,7 @@ class Move:
 							)
 							paused = False
 						elif promo_rects[3].collidepoint(cursor):
-							from source.men.Knight import Knight
+							from src.men.Knight import Knight
 							self.promo = Knight(
 								self.board,
 								self.colour,

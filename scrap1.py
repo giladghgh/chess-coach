@@ -2,8 +2,8 @@ import os.path
 import pygame
 import time
 
-from source.Gameplay import Board
-from source.Constants import C
+from src.Gameplay import Board
+from src.Constants import C
 
 path = 'D:\\Gilad\\Documents\\Projects\\Personal\\Chess Coach\\media\\sets\\Classic\\'
 myimg = pygame.image.load(path + 'b_pawn.png')

@@ -1,4 +1,4 @@
-from source.Constants import C
+from src.Constants import C
 
 
 
@@ -93,7 +93,7 @@ class Man:
 					move.castle = "k"
 
 				if move.castle:
-					from source.Gameplay import Move
+					from src.Gameplay import Move
 
 					move.submove = Move(self.board)
 

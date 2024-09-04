@@ -1,8 +1,8 @@
 import os
 import pygame
 
-from source.Coach import Coach
-from source.Constants import C
+from src.Coach import Coach
+from src.Constants import C
 
 
 

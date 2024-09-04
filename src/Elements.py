@@ -3,7 +3,7 @@ import pygame
 
 import tkinter as tk
 
-from source.Constants import C
+from src.Constants import C
 
 
 
@@ -790,7 +790,7 @@ class ButtonECO(Button):
 		self.active = not self.active
 
 		if self.active:
-			from source.ECO import ECO
+			from src.ECO import ECO
 
 			self.colour = C.BUTTON_COLOUR_ACTIVE
 			self.coach.eco = ECO(self.coach)

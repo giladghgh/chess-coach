@@ -1,7 +1,7 @@
 import pygame
 
-from source.Man import Man
-from source.Constants import C
+from src.Man import Man
+from src.Constants import C
 
 
 

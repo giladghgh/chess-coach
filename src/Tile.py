@@ -1,6 +1,6 @@
 import pygame
 
-from source.Constants import C
+from src.Constants import C
 
 
 

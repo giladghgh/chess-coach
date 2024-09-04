@@ -1,9 +1,9 @@
 import chess
 import time,random
 
-from source.Constants import C,E
+from src.Constants import C,E
 
-from source.Gameplay import Move,Line
+from src.Gameplay import Move,Line
 
 
 
