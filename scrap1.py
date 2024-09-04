@@ -2,15 +2,15 @@ import os.path
 import pygame
 import time
 
-from data.Board import Board
-from data.Constants import C
+from source.Gameplay import Board
+from source.Constants import C
 
-path = 'D:\\Gilad\\Documents\\Projects\\Personal\\Chess Coach\\media\\Sets\\Classic\\'
+path = 'D:\\Gilad\\Documents\\Projects\\Personal\\Chess Coach\\media\\sets\\Classic\\'
 myimg = pygame.image.load(path + 'b_pawn.png')
-myimg = pygame.transform.scale(myimg, (75,75))
+myimg = pygame.transform.scale(myimg,(75,75))
 myrec = myimg.get_rect()
 
-color = (255, 0, 0)
+color = (255,0,0)
 run = True
 
 pygame.init()

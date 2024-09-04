@@ -1,0 +1,18 @@
+[Event "EventTitle"]
+[Date "2024-03-29"]
+[White "White"]
+[Black "Black"]
+
+1. b4 a5
+2. bxa5 Nc6
+3. a6 Rb8
+4. a7 Nb4
+5. axb8=Q Na6
+6. Qxb7 Nb8
+7. Qxb8 Bb7
+8. Qxd8+ Kxd8
+9. Ba3 Bd5
+10. c4 Bxc4
+11. Qa4 Bd5
+12. Qa7 Bc6
+13. Qb8#

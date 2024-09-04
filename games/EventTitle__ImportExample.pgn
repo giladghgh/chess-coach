@@ -1,7 +1,7 @@
 [Event "EventTitle__ImportExample"]
 [Date "2024-01-04"]
-[White "White"]
-[Black "Black"]
+[White "Bot 1"]
+[Black "Bot 2"]
 [Result "1-0"]
 [Comment "Example movetext including: promotion, castling, checkmate, (check), (en passant) ...?"]
 
