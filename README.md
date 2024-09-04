@@ -1,6 +1,6 @@
 # Chess Coach
 
-#### My attempt at a simple chess platform, intended to help explore openings.
+#### My attempt at a simple chess platform, meant to help explore openings and endgames.
 
 <p align="center">
   <img src="media/coach.png" width="600"/>
@@ -20,8 +20,6 @@ Includes:
 - [ ]  ECO interpreter
 - [ ]  Stockfish bot with variable skill
 - [ ]  My own chess bot
-
-<br>
 
 The GUI is *unbelievably* simple to use. Not much else to say here, just give it a whirl.
 
