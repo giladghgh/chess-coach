@@ -21,7 +21,7 @@ Includes:
 - [ ]  Stockfish bot with variable skill
 - [ ]  My own chess bot
 
-The GUI is *unbelievably* simple to use. Not much else to say here, just give it a whirl.
+It is *unbelievably* simple to use. Not much else to say here, just give it a whirl.
 
 
 #### Dependencies
