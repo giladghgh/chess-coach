@@ -1,0 +1,3 @@
+Creator:	Lucas312
+Source:		https://opengameart.org/content/pixel-chess-pieces
+License:	https://creativecommons.org/licenses/by-sa/4.0/

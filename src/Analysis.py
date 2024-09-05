@@ -32,67 +32,62 @@ class Analysis:
 		}
 
 		# Buttons
-		self.btn_show_analysis = ButtonShowSettings(
-			self.coach,
-			"SHOW_SETTINGS",
-			C.SIDEBAR_X_MARGIN,
-			C.SIDEBAR_Y_MARGIN,
-			self
-		)
-		self.btn_shut = ButtonShut(
-			self.coach,
-			"SHUT_ANALYSIS",
-			C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP + 0.05*C.BUTTON_WIDTH,
-			C.SIDEBAR_Y_MARGIN + 0.05*C.BUTTON_HEIGHT,
-			self,
-			[0.9*L for L in C.BUTTON_SIZE]
-		)
-		self.btn_prev = ButtonPrevious(
-			self.coach,
-			"PREVIOUS",
-			C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 1.6*C.BUTTON_WIDTH,
-			C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
-			self,
-			[0.8*L for L in C.BUTTON_SIZE]
-		)
-		self.btn_next = ButtonNext(
-			self.coach,
-			"NEXT",
-			C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 0.8*C.BUTTON_WIDTH,
-			C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
-			self,
-			[0.8*L for L in C.BUTTON_SIZE]
-		)
-		self.buttons = [
-			self.btn_shut,
-			self.btn_show_analysis,
-			self.btn_prev,
-			self.btn_next,
-		]
+		self.buttons = {
+			### header
+			"NEXT"				: ButtonNext(
+				self.coach,
+				"NEXT",
+				C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 0.8*C.BUTTON_WIDTH,
+				C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
+				self,
+				[0.8*L for L in C.BUTTON_SIZE]
+			),
+			"PREV"				: ButtonPrevious(
+				self.coach,
+				"PREVIOUS",
+				C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 1.6*C.BUTTON_WIDTH,
+				C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
+				self,
+				[0.8*L for L in C.BUTTON_SIZE]
+			),
+			"SHOW_ANALYSIS"		: ButtonShowAnalysis(
+				self.coach,
+				"SHOW_ANALYSIS",
+				C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
+				C.SIDEBAR_Y_MARGIN,
+				self
+			),
+			"SHUT_SETTINGS"		: ButtonShut(
+				self.coach,
+				"SHUT_SETTINGS",
+				C.SIDEBAR_X_MARGIN + 0.05*C.BUTTON_WIDTH,
+				C.SIDEBAR_Y_MARGIN + 0.05*C.BUTTON_HEIGHT,
+				self,
+				[0.9*L for L in C.BUTTON_SIZE]
+			),
+		}
 
 		# Counters
-		self.ctr_fifty_move = Counter(
-			self.coach,
-			"Fifty Move Rule",
-			0,
-			self.font,
-			C.SIDEBAR_X_MARGIN,
-			self.banners["COUNTERS"].y + 25,
-			self.pane
-		)
-		self.ctr_three_reps = Counter(
-			self.coach,
-			"Threefold Repetition Rule",
-			1,
-			self.font,
-			C.SIDEBAR_X_MARGIN,
-			self.banners["COUNTERS"].y + 55,
-			self.pane
-		)
-		self.counters = [
-			self.ctr_fifty_move,
-			self.ctr_three_reps,
-		]
+		self.counters = {
+			"RULE_FIFTYMOVES"	: Counter(
+				self.coach,
+				"Fifty Move Rule",
+				0,
+				self.font,
+				C.SIDEBAR_X_MARGIN,
+				self.banners["COUNTERS"].y + 25,
+				self.pane
+			),
+			"RULE_THREEREPS"	: Counter(
+				self.coach,
+				"Threefold Repetition Rule",
+				1,
+				self.font,
+				C.SIDEBAR_X_MARGIN,
+				self.banners["COUNTERS"].y + 55,
+				self.pane
+			),
+		}
 
 
 	def render(self):
@@ -108,8 +103,8 @@ class Analysis:
 			)
 			self.pane.blit(text , text.get_rect(center=banner.center))
 
-		for button in self.buttons:
+		for button in self.buttons.values():
 			button.render()
 
-		for counter in self.counters:
+		for counter in self.counters.values():
 			counter.render()

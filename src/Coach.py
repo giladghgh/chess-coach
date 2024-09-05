@@ -41,10 +41,54 @@ class Coach:
 		### annotations
 		self.anchor = None
 
-		### fonts
-		self.font = pygame.font.SysFont("Consolas", 14, bold=True)
+		### buttons
+		self.buttons = {							##### ordered right->left, top->bottom so tooltips aren't obscured.
+			"SHOW_ANALYSIS"	: ButtonShowAnalysis(
+				self,
+				"SHOW_ANALYSIS",
+				C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
+				C.SIDEBAR_Y_MARGIN
+			),
+			"SHOW_SETTINGS"	: ButtonShowSettings(
+				self,
+				"SHOW_SETTINGS",
+				C.SIDEBAR_X_MARGIN,
+				C.SIDEBAR_Y_MARGIN
+			),
+			"NEXT"			: ButtonNext(
+				self,
+				"NEXT",
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
+				self.reader.rect.bottom + C.GRID_GAP
+			),
+			"PREV"			: ButtonPrevious(
+				self,
+				"PREVIOUS",
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
+				self.reader.rect.bottom + C.GRID_GAP
+			),
+			"RESET"			: ButtonReset(
+				self,
+				"RESET",
+				C.SIDEBAR_X_MARGIN,
+				self.reader.rect.bottom + C.GRID_GAP
+			),
+			"EXPORT"		: ButtonExport(
+				self,
+				"EXPORT",
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
+				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
+			),
+			"IMPORT"		: ButtonImport(
+				self,
+				"IMPORT",
+				C.SIDEBAR_X_MARGIN,
+				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
+			),
+		}
 
 		### writers
+		self.font	 = pygame.font.SysFont("Consolas" , 14 , bold=True)
 		self.writers = {
 			"TITLE" : Writer(
 				self,
@@ -72,59 +116,6 @@ class Coach:
 			),
 		}
 
-		### buttons
-		self.btn_show_settings = ButtonShowSettings(
-			self,
-			"SHOW_SETTINGS",
-			C.SIDEBAR_X_MARGIN,
-			C.SIDEBAR_Y_MARGIN
-		)
-		self.btn_show_analysis = ButtonShowAnalysis(
-			self,
-			"SHOW_ANALYSIS",
-			C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
-			C.SIDEBAR_Y_MARGIN
-		)
-		self.btn_reset = ButtonReset(
-			self,
-			"RESET",
-			C.SIDEBAR_X_MARGIN,
-			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + (2/5)*C.BOARD_HEIGHT + 2*C.GRID_GAP
-		)
-		self.btn_prev = ButtonPrevious(
-			self,
-			"PREVIOUS",
-			C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
-			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + (2/5)*C.BOARD_HEIGHT + 2*C.GRID_GAP
-		)
-		self.btn_next = ButtonNext(
-			self,
-			"NEXT",
-			C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
-			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + (2/5)*C.BOARD_HEIGHT + 2*C.GRID_GAP
-		)
-		self.btn_import = ButtonImport(
-			self,
-			"IMPORT",
-			C.SIDEBAR_X_MARGIN,
-			C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
-		)
-		self.btn_export = ButtonExport(
-			self,
-			"EXPORT",
-			C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
-			C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
-		)
-		self.buttons = [                ### ordered such that tooltips aren't obscured
-			self.btn_reset,
-			self.btn_next,
-			self.btn_prev,
-			self.btn_show_analysis,
-			self.btn_show_settings,
-			self.btn_import,
-			self.btn_export
-		]
-
 		# Assemble
 		### board  (assembling on black's turn will cause movelog issues... button import instead)
 		self.import_FEN(C.INIT_FEN)
@@ -140,7 +131,7 @@ class Coach:
 			self.black_first 	   = True
 
 		# Movetext
-		self.reader.update(self.board.movelog)
+		self.reader.update()
 
 		# Movelog (as this might be different to C.INIT_FEN)
 		self.board.this_move = Move(self.board,fen)
@@ -169,7 +160,7 @@ class Coach:
 			for element in [
 				self.reader,
 				*self.writers.values(),
-				*self.buttons,
+				*self.buttons.values(),
 			]:
 				element.render()
 
@@ -203,7 +194,7 @@ class Coach:
 			else:
 				### buttons
 				if self.settings.show:
-					for button in self.settings.buttons:
+					for button in self.settings.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 						elif button.active:
@@ -213,12 +204,12 @@ class Coach:
 							button.active = False
 
 				elif self.analysis.show:
-					for button in self.analysis.buttons:
+					for button in self.analysis.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 
 				else:
-					for button in self.buttons:
+					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 
@@ -306,6 +297,7 @@ class Coach:
 			return True
 
 
+	# TODO: OVERHAUL I/O
 	def export_PGN(self):
 		import re
 
@@ -359,6 +351,8 @@ class Coach:
 			[king] = self.board.all_men(colour=colour,creed="K")
 			if not king.has_moved and king.position in ((5,1),(5,8)):
 				for rook in self.board.all_men(colour=colour,creed="R"):
+					# print(rook.position,rook.has_moved)
+					# print()
 					if not rook.has_moved and rook.position in ((1,1),(1,8),(8,1),(8,8)):
 						can_castle = "K" if rook.f > king.f else "Q"
 						castlability += {
@@ -390,7 +384,6 @@ class Coach:
 		return fen
 
 
-	# TODO: READ TAGS BEFORE MOVETEXT ON IMPORT
 	def import_PGN(self , filename , multiline=True):
 		import re
 
@@ -463,6 +456,9 @@ class Coach:
 
 
 	def PGN_to_move(self , ply , movetextraw):
+		if "..." in movetextraw:
+			return None
+
 		move = Move(self.board)
 		move.forced = True
 		move.text 	= movetextraw
@@ -472,16 +468,14 @@ class Coach:
 
 		if movetextraw.count("#"):
 			san = san.replace("#","")
+			move.in_checkmate = True
 		elif movetextraw.count("+"):
 			san = san.replace("+","")
-			move.check = True
+			move.in_check = True
 
 		if movetextraw.count("x"):
-			# san = san.replace("x","")
+			san = san.replace("x","")
 			move.capture = True
-
-		if "..." in san:
-			return None
 
 		elif "=" in san:
 			# axb8=R
@@ -553,7 +547,7 @@ class Coach:
 			)
 
 			if show and tile == move.target:
-				self.reader.update(self.board.movelog)
+				self.reader.update()
 				self.board.render()
 				self.render()
 
@@ -563,16 +557,16 @@ class Coach:
 			time.sleep(1/8)
 
 
-	def gridify(self , coords):
+	def gridify(self , mouseclick):
 		if self.flipped:
 			return (
-				8 - ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
-				1 + (coords[1] // C.TILE_HEIGHT)
+				8 - ((mouseclick[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				1 + (mouseclick[1] // C.TILE_HEIGHT)
 			)
 		else:
 			return (
-				1 + ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
-				8 - (coords[1] // C.TILE_HEIGHT)
+				1 + ((mouseclick[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				8 - (mouseclick[1] // C.TILE_HEIGHT)
 			)
 
 

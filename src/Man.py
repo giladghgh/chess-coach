@@ -29,28 +29,32 @@ class Man:
 		self.id = self.colour + self.creed + self.pgn
 
 
-	def go(self , move , tile , special=None , show=True , speak=True):
+	def go(self , move , tile , special=None , show=True , tell=True):
 		if special or (tile in self.legal_moves()):
+			# Move mechanics
+			move.agent = None
+			move.agent , self.board.agent = self.board.agent , move.agent
+
+			move.number = self.board.movenum
+			move.colour = self.board.ply
+
+			move.origin = self.board.tile_of(*self.position)
+			move.target = tile
+
+			move.capture = tile.occupant or False
+
 			# Board Mechanics
 			self.push(tile)
 
 			self.has_moved = True
 			self.has_taken = bool(tile.occupant)
 
-			# Move mechanics
-			move.agent , self.board.agent = self.board.agent , move.agent
-
-			move.number = self.board.movenum
-			move.colour = self.board.ply
-
-			move.target  = tile
-			move.capture = tile.occupant or False
-
 			### pick up the pieces ...
 			move.origin.occupant = None
 			move.target.occupant = move.capture
 			### ...
 
+			# TODO: TURN THESE INTO METHODS IN THEIR RESPECTIVE CLASSES
 			# Special Mechanics
 			if not self.creed:
 				### promotion
@@ -131,7 +135,7 @@ class Man:
 			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
 
 			# Movenoise
-			if speak:
+			if tell:
 				move.vocalise()
 
 			return True

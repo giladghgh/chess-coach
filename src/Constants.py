@@ -17,11 +17,14 @@ class C:
 	# INIT_FEN = "8/8/8/8/8/8/8/k3K2R w K - 0 1"              # castle into check
 	# INIT_FEN = "1q5k/8/8/5Q2/1p6/8/P7/1K6 w - - 0 1"        # e.p. into check
 
-	IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
+	# IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
+	IMPORT_FEN_DEFAULT = "rnbqk2r/pppppp1p/5npb/8/8/5NPB/PPPPPP1P/RNBQK2R w Qkq - 0 1"
 	# DEFAULT_FEN_IMPORT = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 0 1"              # engine search practice
 
 
 	# INTERFACE
+	MOVE_SPEED = 1.8
+
 	GRID_GAP = 10
 
 	BOARD_WIDTH = BOARD_HEIGHT = 800        # NO LOWER THAN 600
@@ -38,7 +41,6 @@ class C:
 	TEXTBOX_WIDTH  = 225
 	TEXTBOX_HEIGHT = 18
 
-	# SIDEBAR_X_MARGIN = (SIDEBAR_WIDTH - TEXTBOX_WIDTH)/2
 	SIDEBAR_X_MARGIN = TEXTBOX_WIDTH / 15
 	SIDEBAR_Y_MARGIN = 20
 
@@ -100,18 +102,17 @@ class C:
 
 	# PIECE STYLE
 	PIECE_STYLE = (
-		"CLASSIC",
-		"TUTORIAL",
-		"3D"
+		"Classic",
+		"Tutorial",
+		"3D",
+		"FontAwesome"
 	)[0]
 
 	DIR         = os.getcwd()
 	DIR_MEDIA   = DIR + "\\media"
+	DIR_ICONS   = DIR_MEDIA + "\\icons\\"
 	DIR_SETS    = DIR_MEDIA + "\\sets\\" + PIECE_STYLE + "\\"
-	DIR_SOUNDS  = DIR_MEDIA + "\\sounds"
-	DIR_ICONS   = DIR_MEDIA + "\\icons"
-	DIR_BUTTONS = DIR_ICONS + "\\buttons"
-	DIR_BOTS    = DIR_ICONS + "\\bots"
+	DIR_SOUNDS  = DIR_MEDIA + "\\sounds\\"
 
 
 	# ECO Interpreter

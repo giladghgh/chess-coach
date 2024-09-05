@@ -33,6 +33,8 @@ class Board:
 		self.movenum     = 1
 		self.halfmovenum = 1
 
+		self.all_tiles = []
+
 		self.last_move = None
 		self.this_move = Move(self,fen=C.INIT_FEN)
 		self.movelog   = [self.this_move,]
@@ -52,7 +54,7 @@ class Board:
 
 
 	def compose(self , model):
-		self.all_tiles = []
+		self.all_tiles.clear()
 		for r,rank in enumerate(model):
 			r = 8 - r
 			for f,man in enumerate(rank):
@@ -112,6 +114,7 @@ class Board:
 		return attackers
 
 
+	# TODO: TRANSFER TILES WHEN IMPORTING FEN? TO AVOID ALL THIS self.tile_of(*self.last_move.origin.position) NONSENSE
 	def render(self):
 		# Fresh tiles
 		if self.agent:
@@ -139,6 +142,7 @@ class Board:
 			self.tile_of(*tile.position).is_legal = False
 
 
+	#
 	def handle_click(self , file , rank , promo=None , show=True):
 		chosen_tile = self.tile_of(file,rank)
 
@@ -150,10 +154,8 @@ class Board:
 
 			# Select agent:
 			elif chosen_tile.occupant.colour == self.ply:
-				self.agent = chosen_tile.occupant
-
-				self.this_move.clear()
-				self.this_move.origin = chosen_tile
+				self.agent 			= chosen_tile.occupant
+				self.agent.position = chosen_tile.position
 
 		# Continue move:
 		else:
@@ -179,8 +181,7 @@ class Board:
 				self.movelog.append(self.this_move)
 
 				# Movetext
-				self.coach.reader.update(self.movelog)
-				self.opening = self.coach.reader.interpret() or self.opening
+				self.coach.reader.update()
 
 				# Statistics
 				self.refresh_stats()
@@ -188,16 +189,14 @@ class Board:
 			# Switch agent:
 			elif chosen_tile.occupant and chosen_tile.occupant.colour == self.ply:
 				if chosen_tile.occupant is self.agent:
-					self.agent 			  = None
-					self.this_move.origin = None
+					self.agent = None
 				else:
-					self.agent 			  = chosen_tile.occupant
-					self.this_move.origin = chosen_tile
+					self.agent 			= chosen_tile.occupant
+					self.agent.position = chosen_tile.position
 
 			# Deselect agent:
 			else:
-				self.agent 			  = None
-				self.this_move.origin = None
+				self.agent = None
 				self.this_move.rinse()
 
 
@@ -212,7 +211,7 @@ class Board:
 			# Threefold repetition rule
 			fenlog = [tuple(move.fen.split()[:3]) for move in self.movelog[:self.halfmovenum+1]]
 			self.rulecount_threereps = {fen : fenlog.count(fen) for fen in fenlog}[
-				tuple(self.coach.export_FEN().split()[:3])
+				tuple(self.this_move.fen.split()[:3])
 			]
 
 			# Movelog
@@ -223,8 +222,8 @@ class Board:
 			self.rulecount_threereps  = 1
 
 		# Counters
-		self.coach.analysis.ctr_fifty_move.text = str(self.rulecount_fiftymoves)
-		self.coach.analysis.ctr_three_reps.text = str(self.rulecount_threereps)
+		self.coach.analysis.counters["RULE_FIFTYMOVES"].text = str(self.rulecount_fiftymoves)
+		self.coach.analysis.counters["RULE_THREEREPS"].text  = str(self.rulecount_threereps)
 
 
 	def is_in_check(self , colour , movement=None):
@@ -280,12 +279,6 @@ class Board:
 			)
 
 		return True
-
-
-	def peek(self , t=5):
-		self.render()
-		pygame.display.update()
-		time.sleep(t)
 
 
 	@property
@@ -411,7 +404,8 @@ class Move:
 		return self.text
 
 
-	def animate(self , brake=8):
+	# TODO: VARIABLE SPEED
+	def animate(self):
 		dx = self.target.x - self.origin.x
 		dy = self.target.y - self.origin.y
 
@@ -430,14 +424,18 @@ class Move:
 			rect_rook   = sprite.get_rect(center=self.submove.origin.rect.center)
 			ox_rook,oy_rook = rect_rook.x,rect_rook.y
 
-		total_frames = brake * round( (abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r))**(2/3) )
+		# 0.5 - 1.8
+		# 1 - 10
+		manhattan 	 = abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r)
+		# total_frames = round( manhattan**(2/3) * (10/C.MOVE_SPEED) )
+		total_frames = round( 8*manhattan**(2/3) )
 		for frame in range(total_frames):
-			rect.x = ox + dx*(frame/total_frames)
-			rect.y = oy - dy*(frame/total_frames)
-
 			self.origin.is_fresh = self.target.is_fresh = True
 
 			self.board.render()
+
+			rect.x = ox + dx*(frame/total_frames)
+			rect.y = oy - dy*(frame/total_frames)
 			self.board.coach.display.blit(sprite,rect)
 
 			if self.castle:

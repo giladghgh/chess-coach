@@ -35,7 +35,7 @@ These are fully specified in the `dependencies.txt` file, surprisingly. Just run
 My openings database is based on the Encyclopedia of Chess Openings.
 To ensure coach works offline, I cleaned & converted the entire ECO catalogue to CSV format.
 
-ETL details to come.
+ETL details soon.
 
 
 #### Coachbot
