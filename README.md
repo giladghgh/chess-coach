@@ -7,7 +7,6 @@
 </p>
 
 
-<br>
 
 ## Briefing
 
@@ -30,6 +29,7 @@ These are fully specified in the `dependencies.txt` file, surprisingly. Just run
 - `pip install pygame`
 - `pip install chess`
 
+
 #### ECO Interpreter
 
 My openings database is based on the Encyclopedia of Chess Openings.
@@ -37,11 +37,12 @@ To ensure coach works offline, I cleaned & converted the entire ECO catalogue to
 
 ETL details to come.
 
+
 #### Coachbot
 
 Soon.
 
-<br>
+
 
 ## License
 
