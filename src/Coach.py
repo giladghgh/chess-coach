@@ -26,8 +26,12 @@ class Coach:
 		self.settings = Settings(self)
 		self.analysis = Analysis(self)
 
-		# Encyclopedia of Chess Openings
-		self.eco = None
+		# Reader
+		self.reader = Reader(
+			self,
+			(2/5)*C.BOARD_HEIGHT,
+			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + C.GRID_GAP
+		)
 
 		# Interface
 		### gameplay
@@ -38,41 +42,31 @@ class Coach:
 		self.anchor = None
 
 		### fonts
-		self.writer_font  = pygame.font.SysFont("Consolas" , 14 , bold=True)
-		self.reader_font  = pygame.font.SysFont("Consolas" , 13)
-		self.opening_font = pygame.font.SysFont("Consolas" , 13 , bold=True)
-
-		### reader
-		self.reader = Reader(
-			self,
-			self.reader_font,
-			(2/5)*C.BOARD_HEIGHT,
-			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + C.GRID_GAP
-		)
+		self.font = pygame.font.SysFont("Consolas", 14, bold=True)
 
 		### writers
 		self.writers = {
 			"TITLE" : Writer(
 				self,
-				self.writer_font,
+				self.font,
 				(20/30)*C.BOARD_HEIGHT,
 				'EventTitle'
 			),
 			"DATE"  : Writer(
 				self,
-				self.writer_font,
+				self.font,
 				(21.5/30)*C.BOARD_HEIGHT,
 				datetime.today().strftime("%Y-%m-%d")
 			),
 			"WHITE" : Writer(
 				self,
-				self.writer_font,
+				self.font,
 				(23/30)*C.BOARD_HEIGHT,
 				'White'
 			),
 			"BLACK" : Writer(
 				self,
-				self.writer_font,
+				self.font,
 				(25/30)*C.BOARD_HEIGHT,
 				'Black'
 			),
@@ -136,36 +130,21 @@ class Coach:
 		self.import_FEN(C.INIT_FEN)
 
 
-	def gridify(self , coords):
-		if self.flipped:
-			return (
-				8 - ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
-				1 + (coords[1] // C.TILE_HEIGHT)
-			)
-		else:
-			return (
-				1 + ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
-				8 - (coords[1] // C.TILE_HEIGHT)
-			)
-
-
 	def reset(self , fen=C.INIT_FEN):
 		# Mechanics
 		self.board.__init__(self)
 		self.import_FEN(fen)
 
 		if self.board.ply == "b":
-			self.black_first = True
-
 			self.board.halfmovenum = 1
-			# self.board.movetext   += str(self.board.movenum) + ". ... "
+			self.black_first 	   = True
+
+		# Movetext
+		self.reader.update(self.board.movelog)
 
 		# Movelog (as this might be different to C.INIT_FEN)
 		self.board.this_move = Move(self.board,fen)
 		self.board.movelog = [self.board.this_move,]
-
-		# Movetext
-		self.reader.update(self.board.movelog)
 
 		# Stats
 		self.board.refresh_stats()
@@ -196,21 +175,11 @@ class Coach:
 
 			# Idle text
 			self.display.blit(
-				self.writer_font.render("vs" , True , (255,255,255)),
+				self.font.render("vs", True, (255, 255, 255)),
 				(
 					C.SIDEBAR_X_MARGIN + 10,
 					(24/30)*C.BOARD_HEIGHT
 				)
-			)
-
-			# ECO
-			self.display.blit(
-				self.opening_font.render(
-					self.eco.interpret(self.board.movelog) if self.eco else self.board.opening,
-					True,
-					(255,255,255)
-				),
-				(C.SIDEBAR_X_MARGIN + 5 , 35)
 			)
 
 		############# SIDEBAR MIDLINE #############
@@ -592,6 +561,19 @@ class Coach:
 
 		if show:
 			time.sleep(1/8)
+
+
+	def gridify(self , coords):
+		if self.flipped:
+			return (
+				8 - ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				1 + (coords[1] // C.TILE_HEIGHT)
+			)
+		else:
+			return (
+				1 + ((coords[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				8 - (coords[1] // C.TILE_HEIGHT)
+			)
 
 
 	@staticmethod

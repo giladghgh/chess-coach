@@ -30,12 +30,12 @@ class Tile:
 			self.rgb_basic = C.BOARD_STYLE[0]
 			self.rgb_fresh = C.BOARD_STYLE[1]
 			self.rgb_focus = C.TILE_FOCUS_LIGHT
-			# self.image_path = C.DIR_MEDIA + "/tile_light.png"
+			# self.image_path = C.DIR_MEDIA + "\\tile_light.png"
 		else:
 			self.rgb_basic = C.BOARD_STYLE[2]
 			self.rgb_fresh = C.BOARD_STYLE[3]
 			self.rgb_focus = C.TILE_FOCUS_DARK
-			# self.image_path = C.DIR_MEDIA + "/tile_dark.png"
+			# self.image_path = C.DIR_MEDIA + "\\tile_dark.png"
 
 		# self.image = pygame.transform.scale(
 		# 	pygame.image.load(self.image_path),

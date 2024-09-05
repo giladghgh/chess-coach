@@ -49,24 +49,28 @@ class Writer:
 
 
 class Reader:
-	def __init__(self , coach , font , height , y_offset):
+	def __init__(self , coach , height , y_offset):
 		self.coach 	  = coach
-		self.font     = font
 		self.y_offset = y_offset
 		self.height   = height
 
-		# Properties
-		self.columns = (
-			(1/35)*C.TEXTBOX_WIDTH,
-			(5/20)*C.TEXTBOX_WIDTH,
-			(12.5/20)*C.TEXTBOX_WIDTH
-		)
+		# Interpreter
+		self.filepath  = ''
+		self.catalogue = {}
 
 		# Mechanics
 		self.first_line = 0
 		self.lineparts  = []
 
 		# Rendering
+		self.columns = (
+			(1/35)*C.TEXTBOX_WIDTH,
+			(5/20)*C.TEXTBOX_WIDTH,
+			(12.5/20)*C.TEXTBOX_WIDTH
+		)
+
+		self.title_font = pygame.font.SysFont("Consolas" , 13 , bold=True)
+		self.text_font  = pygame.font.SysFont("Consolas" , 13)
 		self.rect = pygame.Rect(
 			C.SIDEBAR_X_MARGIN,
 			self.y_offset,
@@ -74,16 +78,38 @@ class Reader:
 			self.height
 		)
 
+		self.load()
+
+
+	def unload(self):
+		self.catalogue.clear()
+
+
+	def load(self , filepath=C.DIR+"\\data\\catalogue.csv"):
+		import csv
+
+		with open(filepath,"r") as file:
+			for row in csv.reader(file):
+				if self.movetext in row[1]:
+					self.catalogue[ row[1] ] = row[2]
+
+
+	def interpret(self):
+		try:
+			return self.catalogue[self.movetext.replace(". ",".")]
+		except KeyError:
+			return
+
 
 	def imprint(self , part , floodlight=False):
-		text = self.font.render(
+		text = self.text_font.render(
 			part,
 			True,
 			(255,255,255)
 		)
 
 		if floodlight:
-			sz = self.font.size(part)
+			sz = self.text_font.size(part)
 			bg = pygame.Surface((
 				sz[0] + 8,
 				sz[1] + 4
@@ -93,55 +119,6 @@ class Reader:
 			return bg,text
 		else:
 			return text
-
-
-	def render(self):
-		# Movetext box
-		pygame.draw.rect(
-			self.coach.display,
-			(80,80,80),
-			self.rect
-		)
-
-		# Title box
-		pygame.draw.rect(
-			self.coach.display,
-			(50,50,50),
-			pygame.Rect(
-				C.SIDEBAR_X_MARGIN,
-				self.y_offset - C.TEXTBOX_HEIGHT - 3,
-				C.TEXTBOX_WIDTH,
-				C.TEXTBOX_HEIGHT + 3
-			)
-		)
-
-		# Multiline movetext and floodlight
-		for i,moveparts in enumerate(self.lineparts):
-			if self.first_line <= i <= self.first_line + 20:
-				for j,part in enumerate(moveparts):
-					notation = self.imprint(
-						part.rjust(4) if not j else part,
-						(
-							i == self.coach.board.movenum - (self.coach.board.ply == "w") - 1
-							and
-							j == (self.coach.board.ply == "w") + 1
-						)
-					)
-					position = (
-						5 + self.rect.x + self.columns[j],
-						5 + self.rect.y - 16.5*(self.first_line - i)
-					)
-					if type(notation) is tuple:
-						self.coach.display.blit(
-							notation[0],
-							(
-								position[0] - 4,
-								position[1] - 2
-							)
-						)
-						self.coach.display.blit(notation[1],position)
-					else:
-						self.coach.display.blit(notation,position)
 
 
 	def update(self , movelog=None):
@@ -175,6 +152,67 @@ class Reader:
 		self.first_line = max(len(self.lineparts)-20 , 0)
 
 
+	def render(self):
+		# Movetext box
+		pygame.draw.rect(
+			self.coach.display,
+			(80,80,80),
+			self.rect
+		)
+
+		# Title box
+		pygame.draw.rect(
+			self.coach.display,
+			(50,50,50),
+			pygame.Rect(
+				C.SIDEBAR_X_MARGIN,
+				self.y_offset - C.TEXTBOX_HEIGHT - 3,
+				C.TEXTBOX_WIDTH,
+				C.TEXTBOX_HEIGHT + 3
+			)
+		)
+		self.coach.display.blit(
+			self.title_font.render(
+				self.coach.board.opening,
+				True,
+				(255,255,255)
+			),
+			(
+				C.SIDEBAR_X_MARGIN + 7,
+				C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.GRID_GAP + 2
+			)
+		)
+
+
+		# Multiline movetext and floodlight
+		for i,moveparts in enumerate(self.lineparts):
+			if self.first_line <= i <= self.first_line + 20:
+				for j,part in enumerate(moveparts):
+					notation = self.imprint(
+						part.rjust(4) if not j else part,
+						(
+							i == self.coach.board.movenum - (self.coach.board.ply == "w") - 1
+							and
+							j == (self.coach.board.ply == "w") + 1
+						)
+					)
+					position = (
+						5 + self.rect.x + self.columns[j],
+						5 + self.rect.y - 16.5*(self.first_line - i)
+					)
+					if type(notation) is tuple:
+						self.coach.display.blit(
+							notation[0],
+							(
+								position[0] - 4,
+								position[1] - 2
+							)
+						)
+						self.coach.display.blit(notation[1],position)
+					else:
+						self.coach.display.blit(notation,position)
+
+
 	def scroll(self , nudge):
 		if len(self.lineparts) < 4:
 			self.first_line = 0
@@ -192,10 +230,9 @@ class Reader:
 	def movetext(self):
 		text = ''
 		for line in self.lineparts:
-			text += " ".join(line)
-			text += "\n"
+			text += " ".join(line) + " "
 
-		return text
+		return text[:-1]
 
 
 
@@ -263,7 +300,7 @@ class ButtonBot(Button):
 		super().__init__(*kw)
 		self.player = player
 
-		self.image_path = C.DIR_ICONS + "/bot_" + self.player.lower() + "_"
+		self.image_path = C.DIR_BOTS + "\\bot_" + self.player.lower() + "_"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
@@ -357,7 +394,7 @@ class ButtonPieceStylist(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/pstyle_"
+		self.image_path = C.DIR_BUTTONS + "\\pstyle_"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
@@ -424,7 +461,7 @@ class ButtonPieceStyleOption(Button):
 		super().__init__(*kw)
 		self.trigger = trigger
 
-		self.image_path = self.trigger.image_path + self.name.lower() + ".png"
+		self.image_path = C.DIR_SETS + "\\b_knight.png"
 		self.image = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -465,7 +502,7 @@ class ButtonBoardStylist(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/bstyle_"
+		self.image_path = C.DIR_BUTTONS + "\\bstyle_"
 		image_raw  = pygame.image.load(self.image_path+".png")
 		self.image = pygame.transform.rotozoom(
 			image_raw,
@@ -615,7 +652,7 @@ class ButtonShowSettings(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/show_settings.png"
+		self.image_path = C.DIR_BUTTONS + "\\show_settings.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -633,7 +670,7 @@ class ButtonShowAnalysis(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/show_analysis.png"
+		self.image_path = C.DIR_BUTTONS + "\\show_analysis.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -652,7 +689,7 @@ class ButtonShut(Button):
 		super().__init__(*kw)
 		self.colour = (85,75,75)
 
-		self.image_path = C.DIR_ICONS + "/shut.png"
+		self.image_path = C.DIR_BUTTONS + "\\shut.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -669,7 +706,7 @@ class ButtonPrevious(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/prev.png"
+		self.image_path = C.DIR_BUTTONS + "\\prev.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -695,12 +732,11 @@ class ButtonPrevious(Button):
 			self.coach.import_FEN(last_move.fen)
 			self.coach.board.this_move = last_move
 			self.coach.board.last_move = past_move
-			self.coach.board.movetext  = last_move.text
 
 			# Move mechanics
 			unmove = last_move.rewind()
 
-			cache          = self.coach.board.tile_of(*unmove.target.position).occupant
+			cache = self.coach.board.tile_of(*unmove.target.position).occupant
 			cache.position = unmove.target.position
 			self.coach.board.tile_of(*unmove.target.position).occupant = None
 
@@ -723,7 +759,7 @@ class ButtonNext(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/next.png"
+		self.image_path = C.DIR_BUTTONS + "\\next.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -746,10 +782,9 @@ class ButtonNext(Button):
 			self.coach.import_FEN(next_move.fen)
 			self.coach.board.this_move = next_move
 			self.coach.board.last_move = this_move
-			self.coach.board.movetext  = this_move.text
 
 			# Move mechanics
-			cache          = self.coach.board.tile_of(*this_move.target.position).occupant
+			cache = self.coach.board.tile_of(*this_move.target.position).occupant
 			cache.position = this_move.target.position
 			if this_move.ep:
 				self.coach.board.tile_of(*this_move.target.position).occupant = None
@@ -774,34 +809,32 @@ class ButtonNext(Button):
 
 
 
-class ButtonECO(Button):
+class ButtonECOI(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/eco.png"
+		self.image_path = C.DIR_BUTTONS + "\\ecoi.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
 		)
 
-		self.tooltip = "Interpret opening"
+		self.tooltip = "ECO Interpreter active!" if self.active else "Interpret opening"
 
 	def click(self):
-		self.active = not self.active
-
 		if self.active:
-			from src.ECO import ECO
-
-			self.colour = C.BUTTON_COLOUR_ACTIVE
-			self.coach.eco = ECO(self.coach)
-
-			self.tooltip = "ECO active!"
-
-		else:
-			self.colour = C.BUTTON_COLOUR_NEUTRAL
-			self.coach.eco = None
-
+			self.active  = False
+			self.colour  = C.BUTTON_COLOUR_NEUTRAL
 			self.tooltip = "Interpret opening"
+
+			self.coach.reader.unload()
+		else:
+			self.active  = True
+			self.colour  = C.BUTTON_COLOUR_ACTIVE
+			self.tooltip = "ECO Interpreter active!"
+
+			self.coach.reader.load()
+
 
 
 
@@ -809,7 +842,7 @@ class ButtonFlip(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/flip.png"
+		self.image_path = C.DIR_BUTTONS + "\\flip.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -835,7 +868,7 @@ class ButtonImport(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/import.png"
+		self.image_path = C.DIR_BUTTONS + "\\import.png"
 		image_raw  = pygame.image.load(self.image_path)
 		self.image = pygame.transform.rotozoom(
 			image_raw,
@@ -874,12 +907,12 @@ class ButtonImport(Button):
 		elif D.choice == "FEN":
 			from tkinter import simpledialog
 
-			if fen_raw := simpledialog.askstring(
+			if fen_in := simpledialog.askstring(
 				parent=root,
 				title="Import FEN",
 				prompt="\t"*8
 			) or C.IMPORT_FEN_DEFAULT:
-				self.coach.reset(fen=fen_raw)
+				self.coach.reset(fen=fen_in)
 
 		# Refocus pygame window
 		root.destroy()
@@ -890,7 +923,7 @@ class ButtonExport(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/export.png"
+		self.image_path = C.DIR_BUTTONS + "\\export.png"
 		image_raw  = pygame.image.load(self.image_path)
 		self.image = pygame.transform.rotozoom(
 			image_raw,
@@ -947,7 +980,7 @@ class ButtonCoords(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/coordinates.png"
+		self.image_path = C.DIR_BUTTONS + "\\coordinates.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size
@@ -967,7 +1000,7 @@ class ButtonLegalMoves(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/legal_moves.png"
+		self.image_path = C.DIR_BUTTONS + "\\legal_moves.png"
 		image_raw  = pygame.image.load(self.image_path)
 		self.image = pygame.transform.rotozoom(
 			image_raw,
@@ -989,7 +1022,7 @@ class ButtonReset(Button):
 	def __init__(self , *kw):
 		super().__init__(*kw)
 
-		self.image_path = C.DIR_ICONS + "/reset.png"
+		self.image_path = C.DIR_BUTTONS + "\\reset.png"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path),
 			self.size

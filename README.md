@@ -11,27 +11,35 @@
 
 ## Briefing
 
-I built everything from the ground up, using minimal dependencies and even creating many of the icons myself.
-
-Includes:
+Coach comes fully equipped with:
 - [x]  Basic UI settings
 - [x]  Import/export functionality
 - [x]  Board annotations
-- [ ]  ECO interpreter
+- [x]  ECO interpreter
+- [ ]  Syzygy interpreter
 - [ ]  Stockfish bot with variable skill
-- [ ]  My own chess bot
+- [ ]  Coach's own chess bot!
 
-The GUI is *unbelievably* simple to use. Not much else to say here, just give it a whirl.
+The GUI is *unspeakably* simple. Give it a whirl.
 
 
 #### Dependencies
 
-Fully specified in the `.txt` file, run these CLI commands first:
+These are fully specified in the `dependencies.txt` file, surprisingly. Just run these:
 
 - `pip install pygame`
 - `pip install chess`
 
+#### ECO Interpreter
 
+My openings database is based on the Encyclopedia of Chess Openings.
+To ensure coach works offline, I cleaned & converted the entire ECO catalogue to CSV format.
+
+ETL details to come.
+
+#### Coachbot
+
+Soon.
 
 <br>
 
@@ -41,4 +49,4 @@ Everything here is [unlincensed](LICENSE).
 
 ---
 
-[Back Up Top](#project-name)
+[Back Up Top](#chess-coach)

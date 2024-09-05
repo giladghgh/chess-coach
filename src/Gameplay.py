@@ -30,16 +30,15 @@ class Board:
 		self.ply   = "w"
 		self.agent = None
 
-		# self.movetext    = ''
 		self.movenum     = 1
 		self.halfmovenum = 1
 
-		self.this_move = Move(self,fen=C.INIT_FEN)
 		self.last_move = None
+		self.this_move = Move(self,fen=C.INIT_FEN)
 		self.movelog   = [self.this_move,]
 
 		# Gameplay
-		self.opening = None
+		self.opening = ''
 		self.outcome = (None,None)
 
 		# Stats
@@ -47,9 +46,9 @@ class Board:
 		self.rulecount_threereps  = 1
 
 		# Audio
-		self.sound_move_quiet   = pygame.mixer.Sound(C.DIR_SOUNDS + "/move_quiet.wav")
-		self.sound_move_check   = pygame.mixer.Sound(C.DIR_SOUNDS + "/move_check.wav")
-		self.sound_move_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "/move_capture.wav")
+		self.sound_move_quiet   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_quiet.wav")
+		self.sound_move_check   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_check.wav")
+		self.sound_move_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_capture.wav")
 
 
 	def compose(self , model):
@@ -145,28 +144,45 @@ class Board:
 
 		# Initiate move:
 		if self.agent is None:
-			# Empty tile
+			# Rinse annotations:
 			if not chosen_tile.occupant:
 				self.this_move.rinse()
 
 			# Select agent:
 			elif chosen_tile.occupant.colour == self.ply:
-				self.agent 			  = chosen_tile.occupant
+				self.agent = chosen_tile.occupant
 
-				self.this_move.clean()
+				self.this_move.clear()
 				self.this_move.origin = chosen_tile
 
-		# Progress move:
+		# Continue move:
 		else:
 			# Complete move:
 			if self.agent.go(self.this_move , chosen_tile , promo , show):
-				### mechanics
-				self.turnover()
+				# Mechanics
+				### unrestricted prev/next
+				del self.movelog[self.halfmovenum - 1:]
 
-				### movetext
+				### handover
+				if self.ply == "w":
+					self.ply = "b"
+				else:
+					self.ply = "w"
+					self.movenum += 1
+				self.halfmovenum += 1
+
+				self.last_move = self.this_move
+				self.this_move = Move(self,fen=self.coach.export_FEN())
+
+				### movelog
+				self.movelog.append(self.last_move)
+				self.movelog.append(self.this_move)
+
+				# Movetext
 				self.coach.reader.update(self.movelog)
+				self.opening = self.coach.reader.interpret() or self.opening
 
-				### stats
+				# Statistics
 				self.refresh_stats()
 
 			# Switch agent:
@@ -183,28 +199,6 @@ class Board:
 				self.agent 			  = None
 				self.this_move.origin = None
 				self.this_move.rinse()
-
-
-	def turnover(self):
-		# Mechanics
-		if self.ply == "w":
-			self.ply = "b"
-		else:
-			self.ply = "w"
-			self.movenum += 1
-		self.halfmovenum += 1
-
-		# Movelog
-		### unrestricted prev/next
-		del self.movelog[self.halfmovenum - 2:]
-
-		### handover
-		self.last_move = self.this_move
-		self.this_move = Move(self,fen=self.coach.export_FEN())
-
-		### log
-		self.movelog.append(self.last_move)
-		self.movelog.append(self.this_move)
 
 
 	def refresh_stats(self):
@@ -582,7 +576,7 @@ class Move:
 		self.quiver.clear()
 
 
-	def clean(self):
+	def clear(self):
 		# Basics
 		self.target = None
 		self.agent  = None

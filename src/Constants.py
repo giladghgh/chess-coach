@@ -105,14 +105,16 @@ class C:
 		"3D"
 	)[0]
 
-	DIR        = os.getcwd()
-	DIR_MEDIA  = DIR + "\\media"
-	DIR_ICONS  = DIR_MEDIA + "\\icons"
-	DIR_SETS   = DIR_MEDIA + "\\sets\\" + PIECE_STYLE + "\\"
-	DIR_SOUNDS = DIR_MEDIA + "\\sounds"
+	DIR         = os.getcwd()
+	DIR_MEDIA   = DIR + "\\media"
+	DIR_SETS    = DIR_MEDIA + "\\sets\\" + PIECE_STYLE + "\\"
+	DIR_SOUNDS  = DIR_MEDIA + "\\sounds"
+	DIR_ICONS   = DIR_MEDIA + "\\icons"
+	DIR_BUTTONS = DIR_ICONS + "\\buttons"
+	DIR_BOTS    = DIR_ICONS + "\\bots"
 
 
-	# ECO
+	# ECO Interpreter
 	EXAMPLE_MOVETEXT = "1. b4 a5 2. bxa5 Nc6 3. a6 Rb8 4. a7 Nb4 5. a8=Q Na6 6. e4 f5 7. Qxb8 g5 8. Qe2 Nxb8 9. Qf3 fxe4 10. Qg4 e3 11. dxe3 Na6 12. Bxa6 bxa6 13. Qh5"
 	OPENINGS = {
 		"1. d4 d5"       : "Queen's Pawn Game",

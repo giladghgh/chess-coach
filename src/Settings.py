@@ -97,12 +97,14 @@ class Settings:
 			self.banners["UI"].y + 100,
 			self
 		)
-		self.btn_eco = ButtonECO(
+		self.btn_ecoi = ButtonECOI(
 			self.coach,
-			"ECO",
+			"ECOI",
 			C.SIDEBAR_X_MARGIN + 100,
 			self.banners["UI"].y + 175,
-			self
+			self,
+			C.BUTTON_SIZE,
+			True
 		)
 		self.btn_bot_black = ButtonBot(
 			self.coach,
@@ -130,7 +132,7 @@ class Settings:
 			self.btn_legals,
 			self.btn_bstyle,
 			self.btn_pstyle,
-			self.btn_eco,
+			self.btn_ecoi,
 			self.btn_bot_black,
 			self.btn_bot_white,
 		]
