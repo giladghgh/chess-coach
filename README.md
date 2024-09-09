@@ -3,7 +3,7 @@
 #### My attempt at a simple chess platform, meant to help explore openings and endgames.
 
 <p align="center">
-  <img src="media/coach.png" width="600"/>
+  <img src="media/coach_poster.png" width="600"/>
 </p>
 
 

@@ -2,6 +2,8 @@ import time
 
 from datetime import datetime
 
+import pygame
+
 from src.Constants import C
 from src.Gameplay import Board,Move
 from src.Engine import Engine
@@ -16,7 +18,99 @@ from src.Elements import *
 class Coach:
 	def __init__(self):
 		self.display = pygame.display.set_mode(C.WINDOW_SIZE)
-		pygame.display.set_caption("Chess Coach")
+
+		# Interface
+		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
+
+		### annotation
+		self.anchor = None
+
+		### reader
+		self.reader = Reader(
+			self,
+			C.SIDEBAR_X_MARGIN,
+			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + C.GRID_GAP,
+			(2/5)*C.BOARD_HEIGHT
+		)
+
+		### buttons
+		self.buttons = {							##### ordered right->left so tooltips aren't obscured.
+			"SHOW_ANALYSIS"	: ButtonShowAnalysis(
+				self.pane,
+				C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
+				C.SIDEBAR_Y_MARGIN,
+				coach=self
+			),
+			"SHOW_SETTINGS"	: ButtonShowSettings(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				C.SIDEBAR_Y_MARGIN,
+				coach=self
+			),
+			"NEXT"			: ButtonNext(
+				self.pane,
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
+				self.reader.rect.bottom + C.GRID_GAP,
+				coach=self
+			),
+			"PREV"			: ButtonPrevious(
+				self.pane,
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
+				self.reader.rect.bottom + C.GRID_GAP,
+				coach=self
+			),
+			"RESET"			: ButtonReset(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				self.reader.rect.bottom + C.GRID_GAP,
+				coach=self
+			),
+			"EXPORT"		: ButtonExport(
+				self.pane,
+				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
+				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT,
+				coach=self
+			),
+			"IMPORT"		: ButtonImport(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT,
+				coach=self
+			),
+		}
+
+		### writers
+		self.font	 = pygame.font.SysFont("Consolas" , 14 , bold=True)
+		self.writers = {
+			"TITLE" : Writer(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				(20/30)*C.BOARD_HEIGHT,
+				self.font,
+				'EventTitle'
+			),
+			"DATE"  : Writer(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				(21.5/30)*C.BOARD_HEIGHT,
+				self.font,
+				datetime.today().strftime("%Y-%m-%d")
+			),
+			"WHITE" : Writer(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				(23/30)*C.BOARD_HEIGHT,
+				self.font,
+				'White'
+			),
+			"BLACK" : Writer(
+				self.pane,
+				C.SIDEBAR_X_MARGIN,
+				(25/30)*C.BOARD_HEIGHT,
+				self.font,
+				'Black'
+			),
+		}
 
 		# Faculties
 		self.board  = Board(self)
@@ -26,99 +120,8 @@ class Coach:
 		self.settings = Settings(self)
 		self.analysis = Analysis(self)
 
-		# Reader
-		self.reader = Reader(
-			self,
-			(2/5)*C.BOARD_HEIGHT,
-			C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + C.GRID_GAP
-		)
-
-		# Interface
-		### gameplay
-		self.black_first = False
-		self.flipped 	 = False
-
-		### annotations
-		self.anchor = None
-
-		### buttons
-		self.buttons = {							##### ordered right->left, top->bottom so tooltips aren't obscured.
-			"SHOW_ANALYSIS"	: ButtonShowAnalysis(
-				self,
-				"SHOW_ANALYSIS",
-				C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
-				C.SIDEBAR_Y_MARGIN
-			),
-			"SHOW_SETTINGS"	: ButtonShowSettings(
-				self,
-				"SHOW_SETTINGS",
-				C.SIDEBAR_X_MARGIN,
-				C.SIDEBAR_Y_MARGIN
-			),
-			"NEXT"			: ButtonNext(
-				self,
-				"NEXT",
-				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
-				self.reader.rect.bottom + C.GRID_GAP
-			),
-			"PREV"			: ButtonPrevious(
-				self,
-				"PREVIOUS",
-				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
-				self.reader.rect.bottom + C.GRID_GAP
-			),
-			"RESET"			: ButtonReset(
-				self,
-				"RESET",
-				C.SIDEBAR_X_MARGIN,
-				self.reader.rect.bottom + C.GRID_GAP
-			),
-			"EXPORT"		: ButtonExport(
-				self,
-				"EXPORT",
-				C.SIDEBAR_X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
-				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
-			),
-			"IMPORT"		: ButtonImport(
-				self,
-				"IMPORT",
-				C.SIDEBAR_X_MARGIN,
-				C.BOARD_HEIGHT - 2*C.BUTTON_HEIGHT
-			),
-		}
-
-		### writers
-		self.font	 = pygame.font.SysFont("Consolas" , 14 , bold=True)
-		self.writers = {
-			"TITLE" : Writer(
-				self,
-				self.font,
-				(20/30)*C.BOARD_HEIGHT,
-				'EventTitle'
-			),
-			"DATE"  : Writer(
-				self,
-				self.font,
-				(21.5/30)*C.BOARD_HEIGHT,
-				datetime.today().strftime("%Y-%m-%d")
-			),
-			"WHITE" : Writer(
-				self,
-				self.font,
-				(23/30)*C.BOARD_HEIGHT,
-				'White'
-			),
-			"BLACK" : Writer(
-				self,
-				self.font,
-				(25/30)*C.BOARD_HEIGHT,
-				'Black'
-			),
-		}
-
-		# Assemble
-		### board  (assembling on black's turn will cause movelog issues... button import instead)
-		self.import_FEN(C.INIT_FEN)
+		# Assemble!
+		self.import_FEN(C.INIT_FEN)		### assembling on black's turn will cause movelog issues... button import instead
 
 
 	def reset(self , fen=C.INIT_FEN):
@@ -128,7 +131,7 @@ class Coach:
 
 		if self.board.ply == "b":
 			self.board.halfmovenum = 1
-			self.black_first 	   = True
+			self.board.black_first 	   = True
 
 		# Movetext
 		self.reader.update()
@@ -142,20 +145,21 @@ class Coach:
 
 
 	def render(self):
-		# Board
-		for arrow in self.board.this_move.quiver:
-			arrow.shoot()
-
 		# CONTEXT:	Settings
 		if self.settings.show:
 			self.settings.render()
+			self.display.blit(self.settings.pane,(0,0))
 
-		# CONTEXT:  Analysis
+		# CONTEXT:	Analysis
 		elif self.analysis.show:
 			self.analysis.render()
+			self.display.blit(self.analysis.pane,(0,0))
 
 		# NO CONTEXT
 		else:
+			self.pane.fill((0,0,0,0))
+			self.pane.fill(C.BACKGR_COLOUR , (0,0,C.SIDEBAR_WIDTH,C.BOARD_HEIGHT))
+
 			# Elements
 			for element in [
 				self.reader,
@@ -165,13 +169,15 @@ class Coach:
 				element.render()
 
 			# Idle text
-			self.display.blit(
-				self.font.render("vs", True, (255, 255, 255)),
+			self.pane.blit(
+				self.font.render("vs",True,(255,255,255)),
 				(
 					C.SIDEBAR_X_MARGIN + 10,
 					(24/30)*C.BOARD_HEIGHT
 				)
 			)
+
+			self.display.blit(self.pane,(0,0))
 
 		############# SIDEBAR MIDLINE #############
 		# pygame.draw.line(
@@ -184,7 +190,7 @@ class Coach:
 
 
 	def handle_click(self , event):
-		# Regular left click
+		# Single left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 			# Board
 			if event.pos[0] > C.SIDEBAR_WIDTH:
@@ -192,29 +198,39 @@ class Coach:
 
 			# Sidebar
 			else:
-				### buttons
+				# CONTEXT:	Settings
 				if self.settings.show:
+					### buttons
 					for button in self.settings.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 						elif button.active:
+							### dropdowns
 							for option in button.dropdown:
 								if option.rect.collidepoint(event.pos):
 									option.click()
-							button.active = False
+								button.active = False
 
+				# CONTEXT:	Analysis
 				elif self.analysis.show:
+					### buttons
 					for button in self.analysis.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 
+				# NO CONTEXT
 				else:
+					### buttons
 					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
 
+					### writers
+					for writer in self.writers.values():
+						writer.active = writer.rect.collidepoint(event.pos)
+
 		# Annotations
-		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3 and event.pos[0] > C.SIDEBAR_WIDTH:
+		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3:
 			f,r = self.gridify(event.pos)
 
 			### anchor down
@@ -247,19 +263,25 @@ class Coach:
 		elif event.type == pygame.MOUSEWHEEL:
 			self.reader.scroll(event.y)
 
-		# Writers
-		for writer in self.writers.values():
-			if event.type == pygame.KEYDOWN:
-				if writer.active:
-					if event.key == pygame.K_BACKSPACE:
-						writer.text = writer.text[:-1]
-					else:
-						writer.text += event.unicode
-			elif event.type == pygame.MOUSEBUTTONDOWN and not any([
-				self.settings.show,
-				self.analysis.show,
-			]):
-				writer.active = writer.rect.collidepoint(event.pos)
+		else:
+			# Writers
+			for writer in self.writers.values():
+				if event.type == pygame.KEYDOWN:
+					if writer.active:
+						if event.key == pygame.K_BACKSPACE:
+							writer.text = writer.text[:-1]
+						else:
+							writer.text += event.unicode
+
+		# Sliders
+		if (
+			event.type == pygame.MOUSEMOTION and event.buttons[0]
+		) or (
+			event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
+		):
+			for slider in self.settings.sliders.values():
+				if slider.context.show and slider.hitbox.collidepoint(event.pos):
+					slider.hold(event.pos[0])
 
 
 	def is_game_over(self):
@@ -439,7 +461,7 @@ class Coach:
 		# Other (internals)
 		### halfmoves
 		#####   last term accounts for FENs imported at black's turn; without it, prev/next buttons loop.
-		self.board.halfmovenum = 2*self.board.movenum - (self.board.ply == "w") - bool(self.black_first)
+		self.board.halfmovenum = 2*self.board.movenum - (self.board.ply == "w") - bool(self.board.black_first)
 
 		### pawn double moves
 		for pawn in self.board.all_men(creed=""):
@@ -558,7 +580,7 @@ class Coach:
 
 
 	def gridify(self , mouseclick):
-		if self.flipped:
+		if self.board.flipped:
 			return (
 				8 - ((mouseclick[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
 				1 + (mouseclick[1] // C.TILE_HEIGHT)

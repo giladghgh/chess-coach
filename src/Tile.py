@@ -21,6 +21,8 @@ class Tile:
 		self.font = pygame.font.SysFont("Consolas",12)
 
 		# Decor
+		self.veil = pygame.Surface(C.TILE_SIZE,pygame.SRCALPHA)
+
 		self.is_fresh = False
 		self.is_focus = False
 		self.is_legal = False
@@ -60,29 +62,26 @@ class Tile:
 			self.rect
 		)
 
-
 		# Fresh / Focus / Legal decor
 		if any([
 			self.is_fresh,
 			self.is_focus,
 			self.is_legal,
 		]):
-			veil = pygame.Surface(C.TILE_SIZE,pygame.SRCALPHA)
-
 			if self.is_focus:
-				veil.fill((*self.rgb_focus,130))
+				self.veil.fill((*self.rgb_focus,130))
 			elif self.is_fresh:
-				veil.fill((*self.rgb_fresh,180))
-			self.board.coach.display.blit(veil,self.rect)		# blit twice so doubled decor doesn't look like shit
+				self.veil.fill((*self.rgb_fresh,180))
+			self.board.coach.display.blit(self.veil,self.rect)		# blit twice so doubled decor doesn't look like shit
 
 			if self.is_legal:
 				pygame.draw.circle(
-					veil,
+					self.veil,
 					(50,50,50,75),
-					veil.get_rect().center,
+					self.veil.get_rect().center,
 					40 if self.occupant else 10
 				)
-			self.board.coach.display.blit(veil,self.rect)
+			self.board.coach.display.blit(self.veil,self.rect)
 
 		# Occupant / PGN coordinate
 		if self.occupant:
@@ -91,11 +90,11 @@ class Tile:
 				self.occupant.image.get_rect(center=self.rect.center)
 			)
 		elif self.board.show_coords:
-			text = self.font.render(self.pgn,True,(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150))
-			text.set_alpha(150)
+			prose = self.font.render(self.pgn,True,(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150))
+			prose.set_alpha(150)
 			self.board.coach.display.blit(
-				text,
-				text.get_rect(center=self.rect.center).move(0,1)
+				prose,
+				prose.get_rect(center=self.rect.center).move(0,1)
 			)
 
 
@@ -112,14 +111,14 @@ class Tile:
 	@property
 	def x(self):
 		return self.w * (
-			(8-self.f) if self.board.coach.flipped else (self.f-1)
+			(8-self.f) if self.board.flipped else (self.f-1)
 		)
 
 
 	@property
 	def y(self):
 		return self.h * (
-			(8-self.r) if self.board.coach.flipped else (self.r-1)
+			(8-self.r) if self.board.flipped else (self.r-1)
 		)
 
 

@@ -54,37 +54,34 @@ class Man:
 			move.target.occupant = move.capture
 			### ...
 
-			# TODO: TURN THESE INTO METHODS IN THEIR RESPECTIVE CLASSES
 			# Special Mechanics
 			if not self.creed:
 				### promotion
 				move.promo = False
 				if special or (
-					self.colour == "w"
+					move.colour   == "w"
 					and
-					self.r == 8
+					move.target.r == 8
 				) or (
-					self.colour == "b"
+					move.colour   == "b"
 					and
-					self.r == 1
+					move.target.r == 1
 				):
 					move.promote(special)
 
 				### en passant
 				move.ep = False
-				for man in self.board.all_men(
-						colour=("w","b")[self.colour == "w"],
+				for pawn in self.board.all_men(
+						colour=("w","b")[move.colour == "w"],
 						creed=""
 				):
 					if all([
-						abs(man.f - move.origin.f) == 1,
-						man.r == move.origin.r,
-						man.f == move.target.f,
-						man.just_moved_double,
+						abs(pawn.f - move.origin.f) == 1,
+						pawn.r == move.origin.r,
+						pawn.just_moved_double,
 					]):
-						move.ep = move.capture = man
+						move.ep = move.capture = pawn
 						self.has_taken = True
-
 
 			### castling
 			if self.creed == "K":
@@ -127,10 +124,10 @@ class Man:
 
 			# Reset board attributes
 			for pawn in self.board.all_men(creed=""):
-				pawn.just_moved_double = pawn is self
+				pawn.just_moved_double = pawn is self and abs(move.origin.r - move.target.r) == 2
 
 			# Other
-			move.scribe()
+			move.describe()
 			move.in_checkmate = self.board.is_in_checkmate("w" if move.colour == "b" else "b")
 			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
 

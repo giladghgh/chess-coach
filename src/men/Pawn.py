@@ -18,7 +18,7 @@ class Pawn(Man):
 		self.image = pygame.image.load(self.image_path)
 		self.image = pygame.transform.scale(self.image , (C.TILE_WIDTH-35 , C.TILE_HEIGHT-35))
 
-		# Unique Pawn attribute
+		# Unique pawn attribute
 		self.just_moved_double = False
 
 
@@ -44,14 +44,14 @@ class Pawn(Man):
 
 
 	def pseudolegal_moves(self):
-		out = []
+		moves = []
 
 		# Stop at obstacles:
 		for direction in self.stencil_moves():
 			for pos in direction:
 				tile = self.board.tile_of(*pos)
 				if not tile.occupant:
-					out.append(tile)
+					moves.append(tile)
 				else:
 					break
 
@@ -64,7 +64,7 @@ class Pawn(Man):
 				)
 				if tile.occupant:
 					if tile.occupant.colour != self.colour:
-						out.append(tile)
+						moves.append(tile)
 			if (self.f-1 > 0) and (self.r+1 < 9):
 				tile = self.board.tile_of(
 					self.f-1,
@@ -72,7 +72,7 @@ class Pawn(Man):
 				)
 				if tile.occupant:
 					if tile.occupant.colour != self.colour:
-						out.append(tile)
+						moves.append(tile)
 
 		elif self.colour == "b":
 			if (self.f+1 < 9) and (self.r-1 > 0):
@@ -82,7 +82,7 @@ class Pawn(Man):
 				)
 				if tile.occupant:
 					if tile.occupant.colour != self.colour:
-						out.append(tile)
+						moves.append(tile)
 			if (self.f-1 > 0) and (self.r-1 > 0):
 				tile = self.board.tile_of(
 					self.f-1,
@@ -90,32 +90,29 @@ class Pawn(Man):
 				)
 				if tile.occupant:
 					if tile.occupant.colour != self.colour:
-						out.append(tile)
+						moves.append(tile)
 
 		# En Passant
 		if self.r == (5 if self.colour == "w" else 4):
-			for t in self.board.all_tiles:
-				if t.occupant and not t.occupant.creed:
-					if all([
-						t.occupant.just_moved_double,
-						self.colour != t.occupant.colour,
-						abs(self.f - t.f) == 1,
-						self.r == t.r,
-					]):
-						ep_victim_pos = (t.f , t.r + (1 if self.colour == "w" else -1))
+			for pawn in self.board.all_men(
+					colour=("w","b")[self.colour == "w"],
+					creed=""
+			):
+				if all([
+					abs(pawn.f - self.f) == 1,
+					pawn.r == self.r,
+					pawn.just_moved_double,
+				]):
+					ep_victim_pos = (pawn.f , pawn.r + (1 if self.colour == "w" else -1))
 
-						### cannot e.p. into a check:
-						cache = None
-						t.occupant , cache = cache , t.occupant
-						if not self.board.is_in_check(
+					### cannot e.p. into a check:
+					if not self.board.is_in_check(
 							self.colour,
 							movement=(
-								self.position,
-								ep_victim_pos
+									self.position,
+									ep_victim_pos
 							)
-						):
-							out.append(self.board.tile_of(*ep_victim_pos))
+					):
+						moves.append(self.board.tile_of(*ep_victim_pos))
 
-						t.occupant , cache = cache , t.occupant
-
-		return out
+		return moves

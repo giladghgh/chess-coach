@@ -10,6 +10,8 @@ from src.Constants import C
 
 if __name__ == "__main__":
 	pygame.init()
+	pygame.display.set_caption("Chess Coach")
+	pygame.display.set_icon(pygame.image.load(C.DIR_MEDIA + "coach_icon.png"))
 
 	# C.MONITOR_SIZE = (
 	# 	pygame.display.Info().current_w,

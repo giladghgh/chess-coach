@@ -26,9 +26,13 @@ class Board:
 		self.show_coords = False
 		self.show_legals = True
 
+		self.flipped = False
+
 		# Mechanics
 		self.ply   = "w"
 		self.agent = None
+
+		self.black_first = False
 
 		self.movenum     = 1
 		self.halfmovenum = 1
@@ -114,7 +118,6 @@ class Board:
 		return attackers
 
 
-	# TODO: TRANSFER TILES WHEN IMPORTING FEN? TO AVOID ALL THIS self.tile_of(*self.last_move.origin.position) NONSENSE
 	def render(self):
 		# Fresh tiles
 		if self.agent:
@@ -134,15 +137,18 @@ class Board:
 			for tile in self.agent.legal_moves():
 				self.tile_of(*tile.position).is_legal = True
 
-		# Render then reset decor
+		# Render then reset
 		for tile in self.all_tiles:
 			self.tile_of(*tile.position).render()
 			self.tile_of(*tile.position).is_fresh = False
 			self.tile_of(*tile.position).is_focus = False
 			self.tile_of(*tile.position).is_legal = False
 
+		# Annotations
+		for arrow in self.this_move.quiver:
+			arrow.shoot()
 
-	#
+
 	def handle_click(self , file , rank , promo=None , show=True):
 		chosen_tile = self.tile_of(file,rank)
 
@@ -150,7 +156,7 @@ class Board:
 		if self.agent is None:
 			# Rinse annotations:
 			if not chosen_tile.occupant:
-				self.this_move.rinse()
+				self.this_move.wash()
 
 			# Select agent:
 			elif chosen_tile.occupant.colour == self.ply:
@@ -197,7 +203,7 @@ class Board:
 			# Deselect agent:
 			else:
 				self.agent = None
-				self.this_move.rinse()
+				self.this_move.wash()
 
 
 	def refresh_stats(self):
@@ -322,27 +328,6 @@ class Move:
 		self.quiver = []
 
 
-	def __str__(self):
-		attributes = vars(self).copy()
-
-		attributes["promo"]  = self.promo
-		attributes["origin"] = self.origin.position if self.origin else None
-		attributes["target"] = self.target.position if self.target else None
-		attributes["origin occupant"] = self.origin.occupant if self.origin else None
-		attributes["target occupant"] = self.target.occupant if self.target else None
-
-		### push "submove" to the end
-		if self.castle:
-			attributes["submove"] = attributes.pop("submove")
-
-		rep = ["---------------"]
-		for k,v in attributes.items():
-			rep.append(k + ":\t" + str(v))
-		rep.append("---------------")
-
-		return "\n".join(rep)
-
-
 	def vocalise(self):
 		if self.board.is_in_check(("w","b")[self.board.ply == "w"]):
 			pygame.mixer.Sound.play(self.board.sound_move_check)
@@ -364,7 +349,7 @@ class Move:
 		return unmove
 
 
-	def scribe(self):
+	def describe(self):
 		self.text = ''
 
 		# Castling
@@ -404,7 +389,6 @@ class Move:
 		return self.text
 
 
-	# TODO: VARIABLE SPEED
 	def animate(self):
 		dx = self.target.x - self.origin.x
 		dy = self.target.y - self.origin.y
@@ -424,11 +408,8 @@ class Move:
 			rect_rook   = sprite.get_rect(center=self.submove.origin.rect.center)
 			ox_rook,oy_rook = rect_rook.x,rect_rook.y
 
-		# 0.5 - 1.8
-		# 1 - 10
 		manhattan 	 = abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r)
-		# total_frames = round( manhattan**(2/3) * (10/C.MOVE_SPEED) )
-		total_frames = round( 8*manhattan**(2/3) )
+		total_frames = round(C.MOVE_SPEED * manhattan ** (1 / 2))
 		for frame in range(total_frames):
 			self.origin.is_fresh = self.target.is_fresh = True
 
@@ -450,7 +431,7 @@ class Move:
 			self.submove.agent.push(self.submove.target)
 
 
-	def promote(self, force=None):
+	def promote(self , force=None):
 		if force:
 			# Reading movetext
 			if force == "Q":
@@ -569,7 +550,7 @@ class Move:
 				pygame.display.update()
 
 
-	def rinse(self):
+	def wash(self):
 		self.lights.clear()
 		self.quiver.clear()
 

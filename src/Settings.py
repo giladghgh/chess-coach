@@ -1,3 +1,5 @@
+import pygame
+
 from src.Elements import *
 
 
@@ -10,7 +12,7 @@ class Settings:
 
 		self.show = False
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
-		self.pane = pygame.Surface((C.SIDEBAR_WIDTH,C.BOARD_HEIGHT))
+		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 
 		# Banners
 		self.banners = {
@@ -22,125 +24,141 @@ class Settings:
 			),
 			"BOTS"  : pygame.Rect(
 				C.SIDEBAR_X_MARGIN,
-				415,
+				125 + 5*(C.BUTTON_HEIGHT + 3*C.GRID_GAP),
 				C.SIDEBAR_WIDTH - 3*C.SIDEBAR_X_MARGIN,
 				C.TEXTBOX_HEIGHT
+			),
+		}
+
+		# Sliders
+		self.sliders = {
+			"SPEDOMETER"	: Slider(
+				self,
+				self.banners["UI"].left + C.BUTTON_WIDTH + C.GRID_GAP,
+				self.banners["UI"].bottom + 3*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + 0.075*C.BUTTON_HEIGHT + C.GRID_GAP,
+				(
+					3*C.BUTTON_WIDTH,
+					0.85*C.BUTTON_HEIGHT
+				),
+				metric="C.MOVE_SPEED",
+				domain=(1,10),
+				nparts=10
 			),
 		}
 
 		# Buttons
 		self.buttons = {
 			### header
-			"NEXT"				: ButtonNext(
-				self.coach,
-				"NEXT",
+			"NEXT"			: ButtonNext(
+				self.pane,
 				C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 0.8*C.BUTTON_WIDTH,
 				C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
-				self,
-				[0.8*L for L in C.BUTTON_SIZE]
+				[0.8*L for L in C.BUTTON_SIZE],
+				coach=self.coach
 			),
-			"PREV"				: ButtonPrevious(
-				self.coach,
-				"PREVIOUS",
+			"PREV"			: ButtonPrevious(
+				self.pane,
 				C.SIDEBAR_WIDTH - 2*C.SIDEBAR_X_MARGIN - 1.6*C.BUTTON_WIDTH,
 				C.SIDEBAR_Y_MARGIN + 0.1*C.BUTTON_HEIGHT,
-				self,
-				[0.8*L for L in C.BUTTON_SIZE]
+				[0.8*L for L in C.BUTTON_SIZE],
+				coach=self.coach
 			),
-			"SHOW_ANALYSIS"		: ButtonShowAnalysis(
-				self.coach,
-				"SHOW_ANALYSIS",
+			"SHOW_ANALYSIS"	: ButtonShowAnalysis(
+				self.pane,
 				C.SIDEBAR_X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
 				C.SIDEBAR_Y_MARGIN,
-				self
+				coach=self.coach
 			),
-			"SHUT_SETTINGS"		: ButtonShut(
-				self.coach,
-				"SHUT_SETTINGS",
-				C.SIDEBAR_X_MARGIN + 0.05*C.BUTTON_WIDTH,
-				C.SIDEBAR_Y_MARGIN + 0.05*C.BUTTON_HEIGHT,
-				self,
-				[0.9*L for L in C.BUTTON_SIZE]
+			"SHUT"			: ButtonShut(
+				self.pane,
+				C.SIDEBAR_X_MARGIN + 0.075*C.BUTTON_WIDTH,
+				C.SIDEBAR_Y_MARGIN + 0.075*C.BUTTON_HEIGHT,
+				[0.85*L for L in C.BUTTON_SIZE],
+				coach=self.coach
 			),
 			### UI
-			"B_STYLIST"			: ButtonBoardStylist(
-				self.coach,
-				"BSTYLE_",
-				C.SIDEBAR_X_MARGIN + 100,
+			"B_STYLIST"		: ButtonBoardStylist(
+				self.pane,
+				self.banners["UI"].left + C.BUTTON_WIDTH + 5*C.GRID_GAP,
 				self.banners["UI"].bottom + C.GRID_GAP,
-				self
+				board=self.coach.board
 			),
-			"FLIP"				: ButtonFlip(
-				self.coach,
-				"FLIP",
-				C.SIDEBAR_X_MARGIN,
+			"ECOI"			: ButtonECOI(
+				self.pane,
+				self.banners["UI"].left,
 				self.banners["UI"].bottom + C.GRID_GAP,
-				self
-			),
-			"P_STYLIST"			: ButtonPieceStylist(
-				self.coach,
-				"PSTYLE_",
-				C.SIDEBAR_X_MARGIN + 100,
-				self.banners["UI"].y + 100,
-				self
-			),
-			"COORDS"			: ButtonCoords(
-				self.coach,
-				"COORDS",
-				C.SIDEBAR_X_MARGIN,
-				self.banners["UI"].y + 100,
-				self
-			),
-			"LEGAL_MOVES"		: ButtonLegalMoves(
-				self.coach,
-				"LEGAL_MOVES",
-				C.SIDEBAR_X_MARGIN,
-				self.banners["UI"].y + 175,
-				self,
 				C.BUTTON_SIZE,
-				True
+				True,
+				reader=self.coach.reader
 			),
-			"ECO_INTERPRETER"	: ButtonECOI(
-				self.coach,
-				"ECOI",
-				C.SIDEBAR_X_MARGIN + 100,
-				self.banners["UI"].y + 175,
-				self,
+			"P_STYLIST"		: ButtonPieceStylist(
+				self.pane,
+				self.banners["UI"].left + C.BUTTON_WIDTH + 5*C.GRID_GAP,
+				self.banners["UI"].bottom + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
+				board=self.coach.board
+			),
+			"LEGAL_MOVES"	: ButtonLegalMoves(
+				self.pane,
+				self.banners["UI"].left,
+				self.banners["UI"].bottom + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
 				C.BUTTON_SIZE,
-				True
+				True,
+				board=self.coach.board
+			),
+			"FLIP"			: ButtonFlip(
+				self.pane,
+				self.banners["UI"].left + C.BUTTON_WIDTH + 5*C.GRID_GAP,
+				self.banners["UI"].bottom + 2*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				board=self.coach.board
+			),
+			"COORDS"		: ButtonCoords(
+				self.pane,
+				self.banners["UI"].left,
+				self.banners["UI"].bottom + 2*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				board=self.coach.board
+			),
+			"SPEDOMETER"	: ButtonSpedometer(
+				self.pane,
+				self.banners["UI"].left,
+				self.banners["UI"].bottom + 3*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				slider=self.sliders["SPEDOMETER"]
 			),
 			### bots
-			"BOT_BLACK"			: ButtonBot(
-				self.coach,
-				"BOT_BLACK_",
-				C.SIDEBAR_X_MARGIN + 100,
-				self.banners["BOTS"].y + 25,
-				self,
+			"BOT_BLACK"		: ButtonBot(
+				self.pane,
+				self.banners["BOTS"].left + C.BUTTON_WIDTH + 5*C.GRID_GAP,
+				self.banners["BOTS"].bottom + C.GRID_GAP,
+				engine=self.coach.engine,
 				player="BLACK"
 			),
-			"BOT_WHITE"			: ButtonBot(
-				self.coach,
-				"BOT_WHITE_",
-				C.SIDEBAR_X_MARGIN,
-				self.banners["BOTS"].y + 25,
-				self,
+			"BOT_WHITE"		: ButtonBot(
+				self.pane,
+				self.banners["BOTS"].left,
+				self.banners["BOTS"].bottom + C.GRID_GAP,
+				engine=self.coach.engine,
 				player="WHITE"
 			),
 		}
 
 
 	def render(self):
-		self.coach.display.blit(self.pane,(0,0))
-		self.pane.fill(C.BACKGR_COLOUR_SETTINGS)
+		self.pane.fill((0,0,0,0))
+		self.pane.fill(C.BACKGR_COLOUR_SETTINGS , (0,0,C.SIDEBAR_WIDTH,C.BOARD_HEIGHT))
+
 
 		for subtitle,banner in self.banners.items():
 			text = self.font.render(subtitle,True,C.BUTTON_COLOUR_NEUTRAL)
 			pygame.draw.rect(
 				self.pane,
-				(75,75,75),
+				C.BANNER_COLOUR,
 				banner
 			)
 			self.pane.blit(text , text.get_rect(center=banner.center))
 
 		for button in self.buttons.values():
 			button.render()
+			if not button.dropdown and button is not self.buttons["SHUT"]:
+				button.colour = C.BUTTON_COLOUR_ACTIVE if button.active else C.BUTTON_COLOUR_NEUTRAL
+
+		for slider in self.sliders.values():
+			slider.render()

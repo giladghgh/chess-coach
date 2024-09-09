@@ -1,4 +1,3 @@
-import time
 import pygame
 
 import tkinter as tk
@@ -10,27 +9,28 @@ from src.Constants import C
 
 
 class Writer:
-	def __init__(self , coach , font , y_offset , pretext=''):
-		self.coach    = coach
-		self.font 	  = font
-		self.text     = pretext
-		self.y_offset = y_offset
+	def __init__(self , pane , x , y , font , pretext=''):
+		self.pane = pane
+		self.x	  = x
+		self.y	  = y
+		self.font = font
+		self.text = pretext
 
 		self.active = False
 		self.rect   = pygame.Rect(
-			C.SIDEBAR_X_MARGIN,
-			self.y_offset,
+			self.x,
+			self.y,
 			C.TEXTBOX_WIDTH,
 			C.TEXTBOX_HEIGHT
 		)
 
 	def render(self):
 		pygame.draw.rect(
-			self.coach.display,
+			self.pane,
 			C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK,
 			self.rect
 		)
-		self.coach.display.blit(
+		self.pane.blit(
 			self.prose,
 			(
 				self.rect.x + 5,
@@ -49,10 +49,11 @@ class Writer:
 
 
 class Reader:
-	def __init__(self , coach , height , y_offset):
-		self.coach 	  = coach
-		self.height   = height
-		self.y_offset = y_offset
+	def __init__(self , coach , x , y , height):
+		self.coach 	= coach
+		self.x		= x
+		self.y		= y
+		self.height = height
 
 		# Interpreter
 		self.movetext  = ''
@@ -72,9 +73,10 @@ class Reader:
 
 		self.title_font = pygame.font.SysFont("Consolas" , 13 , bold=True)
 		self.text_font  = pygame.font.SysFont("Consolas" , 13)
+
 		self.rect = pygame.Rect(
-			C.SIDEBAR_X_MARGIN,
-			self.y_offset + C.TEXTBOX_HEIGHT,
+			self.x,
+			self.y + C.TEXTBOX_HEIGHT,
 			C.TEXTBOX_WIDTH,
 			self.height
 		)
@@ -93,6 +95,7 @@ class Reader:
 			for row in csv.reader(file,delimiter="\t"):
 				if self.movetext in row[2]:
 					self.catalogue[ row[2] ] = row[1]
+
 
 	def imprint(self , part , floodlight=False):
 		text = self.text_font.render(
@@ -117,7 +120,7 @@ class Reader:
 	def update(self):
 		self.lineparts = self.factorise(
 			self.coach.board.movelog,
-			self.coach.black_first
+			self.coach.board.black_first
 		)
 
 		self.first_line = max(len(self.lineparts)-20 , 0)
@@ -138,11 +141,11 @@ class Reader:
 		# Boxes
 		### title
 		pygame.draw.rect(
-			self.coach.display,
+			self.coach.pane,
 			(50,50,50),
 			pygame.Rect(
-				C.SIDEBAR_X_MARGIN,
-				self.y_offset - C.TEXTBOX_HEIGHT,
+				self.x,
+				self.y - C.TEXTBOX_HEIGHT,
 				C.TEXTBOX_WIDTH,
 				2*C.TEXTBOX_HEIGHT + 3
 			)
@@ -150,7 +153,7 @@ class Reader:
 
 		### movetext
 		pygame.draw.rect(
-			self.coach.display,
+			self.coach.pane,
 			(80,80,80),
 			self.rect
 		)
@@ -162,14 +165,14 @@ class Reader:
 			if len(titleparts) > i+1:
 				part += ","
 
-			self.coach.display.blit(
+			self.coach.pane.blit(
 				self.title_font.render(
 					part[:30],				# Character limit based on C.TEXTBOX_WIDTH
 					True,
 					(255,255,255)
 				),
 				(
-					C.SIDEBAR_X_MARGIN + 7.5,
+					C.SIDEBAR_X_MARGIN + 5,
 					C.SIDEBAR_Y_MARGIN + C.BUTTON_HEIGHT + C.GRID_GAP + i*C.TEXTBOX_HEIGHT + 3
 				)
 			)
@@ -191,16 +194,16 @@ class Reader:
 						5 + self.rect.y - 17.5*(self.first_line - i)
 					)
 					if type(notation) is tuple:
-						self.coach.display.blit(
+						self.coach.pane.blit(
 							notation[0],
 							(
 								position[0] - 4,
 								position[1] - 2
 							)
 						)
-						self.coach.display.blit(notation[1],position)
+						self.coach.pane.blit(notation[1],position)
 					else:
-						self.coach.display.blit(notation,position)
+						self.coach.pane.blit(notation,position)
 
 
 	def scroll(self , nudge):
@@ -247,17 +250,10 @@ class Reader:
 
 
 class Button:
-	def __init__(self , coach , name , x , y , context=None , size=C.BUTTON_SIZE , preactive=False):
-		self.coach   = coach
-		self.name    = name
+	def __init__(self , pane , x , y , size=C.BUTTON_SIZE , preactive=False):
+		self.pane	 = pane
 		self.x       = x
 		self.y       = y
-		if context is not None:
-			self.context = context
-			self.pane 	 = context.pane
-		else:
-			self.context = coach
-			self.pane 	 = coach.display
 		self.size    = size
 		self.active  = preactive
 
@@ -293,7 +289,7 @@ class Button:
 		if self.tooltip:
 			mouse_pos = pygame.mouse.get_pos()
 			if self.rect.collidepoint(mouse_pos):
-				self.coach.display.blit(            # must blit from coach not pane so it renders above other buttons and board.
+				self.pane.blit(					### can only render on coach.display to avoid overlap
 					self.font.render(
 						self.tooltip,
 						False,
@@ -306,11 +302,12 @@ class Button:
 
 
 class ButtonBot(Button):
-	def __init__(self , *kw , player):
+	def __init__(self , *kw , engine , player):
 		super().__init__(*kw)
+		self.engine = engine
 		self.player = player
 
-		self.image_path = C.DIR_ICONS + "btn_" + self.name.lower()
+		self.image_path = C.DIR_ICONS + "btn_bot_" + self.player.lower()
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
@@ -318,74 +315,54 @@ class ButtonBot(Button):
 
 		self.dropdown = [
 			ButtonBotOption(
-				self.coach,
-				"MATERIALISTIC",
-				self.x + C.BUTTON_WIDTH,
+				self.pane,
+				self.x,
 				self.y + C.BUTTON_HEIGHT + 5,
-				self.context,
+				philosophy="RANDOM",
 				trigger=self
 			),
 			ButtonBotOption(
-				self.coach,
-				"POSITIONAL",
+				self.pane,
 				self.x,
 				self.y + 2*C.BUTTON_HEIGHT + 5,
-				self.context,
+				philosophy="BASIC",
 				trigger=self
 			),
-			ButtonBotOption(
-				self.coach,
-				"RANDOM",
-				self.x,
-				self.y + C.BUTTON_HEIGHT + 5,
-				self.context,
-				trigger=self
-			),
-			# ButtonBotOption(
-			# 	self.player,
-			# 	self.coach,
-			# 	"BASIC",
-			# 	self.x + 105,
-			# 	self.y + 50,
-			# 	self.pane
-			# )
 		]
 		### initial conditions
 		for option in self.dropdown:
-			if self.coach.engine.player_scheme[self.player=="BLACK"] == option.name.upper():
+			if self.engine.player_scheme[self.player=="BLACK"] == option.philosophy.upper():
 				option.active = True
 
 		self.tooltip = self.player.title() + " bot"
 
 	def click(self):
 		self.active = not self.active
-		# for button in self.context.buttons:
-		# 	if button.active and button.dropdown and button is not self:
-		# 		button.active = False
 
 	def render(self):
-		super().render()
 		if self.active:
 			for option in self.dropdown:
 				option.render()
+		super().render()
 
 
 
 class ButtonBotOption(Button):
-	def __init__(self , *kw , trigger):
+	def __init__(self , *kw , philosophy , trigger):
 		super().__init__(*kw)
-		self.trigger = trigger
+		self.philosophy = philosophy
+		self.trigger 	= trigger
 
-		self.image_path = self.trigger.image_path + self.name.lower()
+		self.image_path = self.trigger.image_path + "_" + self.philosophy.lower()
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
 		)
 
-		self.tooltip = self.name.title()
+		self.tooltip = self.philosophy.title()
 
 	def click(self):
-		# Board Mechanics
+		# Mechanics
 		self.trigger.active = False
 
 		### single-select voluntary dropdown
@@ -394,17 +371,18 @@ class ButtonBotOption(Button):
 			option.colour = C.BUTTON_COLOUR_ACTIVE if option.active else C.BUTTON_COLOUR_NEUTRAL
 
 		# Function
-		# scheme = self.coach.engine.player_scheme[self.trigger.player.upper() == "BLACK"]
-		# choice = self.name.upper()
-		# self.coach.engine.player_scheme[self.trigger.player.upper() == "BLACK"] = choice if scheme != choice else None
+		scheme = self.trigger.engine.player_scheme[self.trigger.player.upper() == "BLACK"]
+		choice = self.philosophy.upper()
+		self.trigger.engine.player_scheme[self.trigger.player.upper() == "BLACK"] = choice if scheme != choice else None
 
 
 
 class ButtonPieceStylist(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , board):
 		super().__init__(*kw)
+		self.board = board
 
-		self.image_path = C.DIR_ICONS + "btn_" + self.name.lower()
+		self.image_path = C.DIR_ICONS + "btn_pstyle"
 		self.image      = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
@@ -412,41 +390,37 @@ class ButtonPieceStylist(Button):
 
 		self.dropdown = [
 			ButtonPieceStyleOption(
-				self.coach,
-				"3D",
-				self.x + C.BUTTON_WIDTH + 55,
-				self.y,
-				self.context,
-				trigger=self
-			),
-			ButtonPieceStyleOption(
-				self.coach,
-				"Classic",
-				self.x + C.BUTTON_WIDTH + 5,
-				self.y,
-				self.context,
-				trigger=self
-			),
-			ButtonPieceStyleOption(
-				self.coach,
-				"FontAwesome",
-				self.x + C.BUTTON_WIDTH + 5,
-				self.y + 50,
-				self.context,
-				trigger=self
-			),
-			ButtonPieceStyleOption(
-				self.coach,
-				"8-Bit",
+				self.pane,
 				self.x + C.BUTTON_WIDTH + 55,
 				self.y + 50,
-				self.context,
+				style="8-Bit",
+				trigger=self
+			),
+			ButtonPieceStyleOption(
+				self.pane,
+				self.x + C.BUTTON_WIDTH + 5,
+				self.y + 50,
+				style="FontAwesome",
+				trigger=self
+			),
+			ButtonPieceStyleOption(
+				self.pane,
+				self.x + C.BUTTON_WIDTH + 55,
+				self.y,
+				style="3D",
+				trigger=self
+			),
+			ButtonPieceStyleOption(
+				self.pane,
+				self.x + C.BUTTON_WIDTH + 5,
+				self.y,
+				style="Classic",
 				trigger=self
 			),
 		]
 		### initial conditions
 		for option in self.dropdown:
-			if C.PIECE_STYLE == option.name.upper():
+			if C.PIECE_STYLE == option.style:
 				option.active = True
 				option.colour = C.BUTTON_COLOUR_ACTIVE
 
@@ -454,54 +428,52 @@ class ButtonPieceStylist(Button):
 
 	def click(self):
 		self.active = not self.active
-		# for button in self.context.buttons:
-		# 	if button.active and button.dropdown and button is not self:
-		# 		button.active = False
 
 	def render(self):
-		super().render()
 		if self.active:
 			for option in self.dropdown:
 				option.render()
+		super().render()
 
 
 
 class ButtonPieceStyleOption(Button):
-	def __init__(self , *kw , trigger):
+	def __init__(self , *kw , style , trigger):
 		super().__init__(*kw)
+		self.style	 = style
 		self.trigger = trigger
 
-		self.image_path = self.trigger.image_path + self.name.lower()
+		self.image_path = self.trigger.image_path + "_" + self.style.lower()
 		self.image = pygame.transform.scale(
 			pygame.image.load(self.image_path+".png"),
 			self.size
 		)
 
-		self.tooltip = self.name + " set"
+		self.tooltip = self.style + " set"
 
 	def click(self):
-		# Board Mechanics
+		# Mechanics
 		self.trigger.active = False
 
 		### single-select mandatory dropdown
-		if (style := self.name.upper()) == C.PIECE_STYLE:
+		if (style := self.style.upper()) == C.PIECE_STYLE:
 			return
 
 		for option in self.trigger.dropdown:
-			option.active = not option.active if option is self else False
+			option.active = option is self
 			option.colour = C.BUTTON_COLOUR_ACTIVE if option.active else C.BUTTON_COLOUR_NEUTRAL
 
 		# Function
 		C.PIECE_STYLE = style
-		C.DIR_SETS    = C.DIR_MEDIA + "\\sets\\" + C.PIECE_STYLE + "\\"
-		for tile in self.coach.board.all_tiles:
+		C.DIR_SETS    = C.DIR_MEDIA + "sets\\" + C.PIECE_STYLE + "\\"
+		for tile in self.trigger.board.all_tiles:
 			if tile.occupant:
 				### scaling
 				squish = -35
 				if tile.occupant.creed:
-					squish += 10
-				if self.name == "8-Bit":
-					squish -= 10
+					squish += 15
+					if self.style == "8-Bit":
+						squish -= 10
 
 				image_size = [L+squish for L in C.TILE_SIZE]
 
@@ -513,12 +485,12 @@ class ButtonPieceStyleOption(Button):
 
 
 
-# TODO: ADD WALNUT BOARD STYLE (USES IMAGES)
 class ButtonBoardStylist(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , board):
 		super().__init__(*kw)
+		self.board = board
 
-		self.image_path = C.DIR_ICONS + "\\btn_bstyle_"
+		self.image_path = C.DIR_ICONS + "\\btn_bstyle"
 		image_raw  = pygame.image.load(self.image_path+".png")
 		self.image = pygame.transform.rotozoom(
 			image_raw,
@@ -528,31 +500,25 @@ class ButtonBoardStylist(Button):
 
 		self.dropdown = [
 			ButtonBoardStyleOption(
-				self.coach,
-				"HAZEL",
-				self.x + C.BUTTON_WIDTH + 5,
-				self.y,
-				self.context,
-				trigger=self,
-				style=C.BOARD_STYLE_HAZEL,
-		),
-			ButtonBoardStyleOption(
-				self.coach,
-				"BLEAK",
+				self.pane,
 				self.x + C.BUTTON_WIDTH + 5,
 				self.y + 50,
-				self.context,
+				style="BLEAK",
 				trigger=self,
-				style=C.BOARD_STYLE_BLEAK,
 			),
 			ButtonBoardStyleOption(
-				self.coach,
-				"CHEAP",
+				self.pane,
 				self.x + 2*C.BUTTON_WIDTH + 4,
 				self.y,
-				self.context,
+				style="CHEAP",
 				trigger=self,
-				style=C.BOARD_STYLE_CHEAP,
+			),
+			ButtonBoardStyleOption(
+				self.pane,
+				self.x + C.BUTTON_WIDTH + 5,
+				self.y,
+				style="HAZEL",
+				trigger=self,
 			),
 		]
 
@@ -560,28 +526,25 @@ class ButtonBoardStylist(Button):
 
 	def click(self):
 		self.active = not self.active
-		# for button in self.context.buttons:
-		# 	if button.active and button.dropdown and button is not self:
-		# 		button.active = False
 
 	def render(self):
-		super().render()
 		if self.active:
 			for option in self.dropdown:
 				option.render()
+		super().render()
 
 
 
 class ButtonBoardStyleOption(Button):
-	def __init__(self , *kw , trigger , style):
+	def __init__(self , *kw , style , trigger):
 		super().__init__(*kw)
+		self.style 	 = eval("C.BOARD_STYLE_" + style)
 		self.trigger = trigger
-		self.style   = style
 
-		self.tooltip = self.name.title() + " board"
+		self.tooltip = style.title() + " board"
 
 	def click(self):
-		# Board Mechanics
+		# Mechanics
 		self.trigger.active = False
 
 		### single-select mandatory dropdown
@@ -594,7 +557,7 @@ class ButtonBoardStyleOption(Button):
 
 		# Function
 		C.BOARD_STYLE = self.style
-		for tile in self.coach.board.all_tiles:
+		for tile in self.trigger.board.all_tiles:
 			if (tile.f + tile.r) % 2 == 1:
 				tile.rgb_basic = C.BOARD_STYLE[0]
 				tile.rgb_fresh = C.BOARD_STYLE[1]
@@ -652,7 +615,7 @@ class ButtonBoardStyleOption(Button):
 		if self.tooltip:
 			mouse_pos = pygame.mouse.get_pos()
 			if self.rect.collidepoint(mouse_pos):
-				self.coach.display.blit(            # must blit from coach so it renders above other buttons and the board.
+				self.pane.blit(            # must blit from coach so it renders above other buttons and the board.
 					self.font.render(
 						self.tooltip,
 						False,
@@ -665,8 +628,9 @@ class ButtonBoardStyleOption(Button):
 
 
 class ButtonShowSettings(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_show_settings.png"
 		self.image      = pygame.transform.scale(
@@ -677,14 +641,15 @@ class ButtonShowSettings(Button):
 		self.tooltip = "Settings"
 
 	def click(self):
-		self.coach.analysis.show = False
 		self.coach.settings.show = True
+		self.coach.analysis.show = False
 
 
 
 class ButtonShowAnalysis(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_show_analysis.png"
 		self.image      = pygame.transform.scale(
@@ -701,8 +666,10 @@ class ButtonShowAnalysis(Button):
 
 
 class ButtonShut(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
+
 		self.colour = (85,75,75)
 
 		self.image_path = C.DIR_ICONS + "\\btn_shut.png"
@@ -714,13 +681,15 @@ class ButtonShut(Button):
 		self.tooltip = "Close"
 
 	def click(self):
-		self.context.show = False
+		self.coach.settings.show = False
+		self.coach.analysis.show = False
 
 
 
 class ButtonPrevious(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_prev.png"
 		self.image      = pygame.transform.scale(
@@ -760,7 +729,7 @@ class ButtonPrevious(Button):
 
 			self.coach.board.tile_of(*unmove.target.position).occupant = cache
 
-			# Movetext
+			# Opening
 			self.coach.reader.update()
 
 			# Statistics
@@ -775,8 +744,9 @@ class ButtonPrevious(Button):
 
 
 class ButtonNext(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_next.png"
 		self.image      = pygame.transform.scale(
@@ -817,7 +787,7 @@ class ButtonNext(Button):
 			if this_move.ep:
 				self.coach.board.tile_of(*this_move.ep.position).occupant = None
 
-			# Movetext
+			# Opening
 			self.coach.reader.update()
 
 			# Statistics
@@ -832,8 +802,9 @@ class ButtonNext(Button):
 
 
 class ButtonECOI(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , reader):
 		super().__init__(*kw)
+		self.reader = reader
 
 		self.image_path = C.DIR_ICONS + "\\btn_ecoi.png"
 		self.image      = pygame.transform.scale(
@@ -841,28 +812,23 @@ class ButtonECOI(Button):
 			self.size
 		)
 
-		self.tooltip = "ECO Interpreter active!" if self.active else "Interpret opening"
+		self.tooltip = "Interpret opening"
 
 	def click(self):
 		if self.active:
-			self.active  = False
-			self.colour  = C.BUTTON_COLOUR_NEUTRAL
-			self.tooltip = "Interpret opening"
-
-			self.coach.reader.unload()
+			self.active = False
+			self.reader.unload()
 		else:
-			self.active  = True
-			self.colour  = C.BUTTON_COLOUR_ACTIVE
-			self.tooltip = "ECO Interpreter active!"
-
-			self.coach.reader.load()
-
+			self.active = True
+			self.reader.load()
+			self.reader.update()
 
 
 
 class ButtonFlip(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , board):
 		super().__init__(*kw)
+		self.board = board
 
 		self.image_path = C.DIR_ICONS + "\\btn_flip.png"
 		self.image      = pygame.transform.scale(
@@ -873,13 +839,14 @@ class ButtonFlip(Button):
 		self.tooltip = "Flip board"
 
 	def click(self):
-		self.coach.flipped = not self.coach.flipped
+		self.board.flipped = not self.board.flipped
 
 
 
 class ButtonImport(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_import.png"
 		image_raw  = pygame.image.load(self.image_path)
@@ -933,8 +900,9 @@ class ButtonImport(Button):
 
 
 class ButtonExport(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_export.png"
 		image_raw  = pygame.image.load(self.image_path)
@@ -947,51 +915,49 @@ class ButtonExport(Button):
 		self.tooltip = "Export"
 
 	def click(self):
-		print("--")
-		print(self.coach.reader.movetext)
-		print("--")
-		# # Information
-		# title = self.coach.writers["TITLE"].text
-		# date  = self.coach.writers["DATE"].text
-		# white = self.coach.writers["WHITE"].text
-		# black = self.coach.writers["BLACK"].text
-		#
-		# ### results
-		# result = None
-		# if self.coach.board.outcome[0] == "Checkmate":
-		# 	if self.coach.board.outcome[1] == "White":
-		# 		result = "1-0"
-		# 	else:
-		# 		result = "0-1"
-		# elif self.coach.board.outcome[0] == "Draw":
-		# 	result = ".5-.5"
-		#
-		# # File Handling
-		# filename = title + "__" + date
-		# gamedir  = C.DIR + "\\games\\" + filename + ".pgn"
-		# with open(gamedir,"w") as file:
-		# 	file.write("[Event \"" + title + "\"]\n")
-		# 	file.write("[Date \""  + date  + "\"]\n")
-		# 	file.write("[White \"" + white + "\"]\n")
-		# 	file.write("[Black \"" + black + "\"]\n")
-		# 	if result:
-		# 		file.write("[Result \"" + result + "\"]\n")
-		#
-		# 	for line in self.coach.export_PGN():
-		# 		file.write(line)
-		#
-		# 	if self.coach.board.outcome[1] in ("White","Black"):
-		# 		file.write("#")
-		# 	if result:
-		# 		file.write("\n" + result)
-		#
-		# print(filename + ".pgn exported!")
+		# Information
+		title = self.coach.writers["TITLE"].text
+		date  = self.coach.writers["DATE"].text
+		white = self.coach.writers["WHITE"].text
+		black = self.coach.writers["BLACK"].text
+
+		### results
+		result = None
+		if self.coach.board.outcome[0] == "Checkmate":
+			if self.coach.board.outcome[1] == "White":
+				result = "1-0"
+			else:
+				result = "0-1"
+		elif self.coach.board.outcome[0] == "Draw":
+			result = ".5-.5"
+
+		# File Handling
+		filename = title + "__" + date
+		gamedir  = C.DIR + "\\games\\" + filename + ".pgn"
+		with open(gamedir,"w") as file:
+			file.write("[Event \"" + title + "\"]\n")
+			file.write("[Date \""  + date  + "\"]\n")
+			file.write("[White \"" + white + "\"]\n")
+			file.write("[Black \"" + black + "\"]\n")
+			if result:
+				file.write("[Result \"" + result + "\"]\n")
+
+			for line in self.coach.export_PGN():
+				file.write(line)
+
+			if self.coach.board.outcome[1] in ("White","Black"):
+				file.write("#")
+			if result:
+				file.write("\n" + result)
+
+		print(filename + ".pgn exported!")
 
 
 
 class ButtonCoords(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , board):
 		super().__init__(*kw)
+		self.board = board
 
 		self.image_path = C.DIR_ICONS + "\\btn_coordinates.png"
 		self.image      = pygame.transform.scale(
@@ -1003,15 +969,16 @@ class ButtonCoords(Button):
 
 	def click(self):
 		self.active = not self.active
-		self.colour = C.BUTTON_COLOUR_ACTIVE if self.active else C.BUTTON_COLOUR_NEUTRAL
 
-		self.coach.board.show_coords = not self.coach.board.show_coords
-
+		self.board.show_coords = not self.board.show_coords
 
 
+
+# TODO: FRESH MOVE HIGHLIGHT TOGGLER
 class ButtonLegalMoves(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , board):
 		super().__init__(*kw)
+		self.board = board
 
 		self.image_path = C.DIR_ICONS + "\\btn_legal_moves.png"
 		image_raw  = pygame.image.load(self.image_path)
@@ -1025,15 +992,15 @@ class ButtonLegalMoves(Button):
 
 	def click(self):
 		self.active = not self.active
-		self.colour = C.BUTTON_COLOUR_ACTIVE if self.active else C.BUTTON_COLOUR_NEUTRAL
 
-		self.coach.board.show_legals = not self.coach.board.show_legals
+		self.board.show_legals = not self.board.show_legals
 
 
 
 class ButtonReset(Button):
-	def __init__(self , *kw):
+	def __init__(self , *kw , coach):
 		super().__init__(*kw)
+		self.coach = coach
 
 		self.image_path = C.DIR_ICONS + "\\btn_reset.png"
 		self.image      = pygame.transform.scale(
@@ -1044,8 +1011,114 @@ class ButtonReset(Button):
 		self.tooltip = "Reset"
 
 	def click(self):
-		if len(self.coach.board.movelog) > 1:
-			self.coach.reset()
+		self.coach.reset()
+
+
+
+class ButtonSpedometer(Button):
+	def __init__(self , *kw , slider):
+		super().__init__(*kw)
+		self.slider = slider
+
+		self.image_path = C.DIR_ICONS + "btn_spedometer" + str(int(self.slider.value))
+		self.image      = pygame.transform.scale(
+			pygame.image.load(self.image_path+".png"),
+			self.size
+		)
+
+		self.tooltip = "Animation speed"
+
+	def click(self):
+		pass
+
+	def render(self):
+		if pygame.mouse.get_pressed() and self.slider.hitbox.collidepoint(pygame.mouse.get_pos()):
+			self.image_path = C.DIR_ICONS + "btn_spedometer" + str(int(self.slider.value))
+			self.image      = pygame.transform.scale(
+				pygame.image.load(self.image_path+".png"),
+				self.size
+			)
+
+		super().render()
+
+
+
+class Slider:
+	def __init__(self , context , x , y , size , metric , domain , nparts):
+		self.context = context
+		self.x		 = x
+		self.y		 = y
+		self.size	 = size
+		self.metric  = metric
+		self.min_val = domain[0]
+		self.max_val = domain[1]
+		self.nparts	 = nparts
+
+		# Mechanics
+		self.ratio = (eval(self.metric) - self.min_val) / (self.max_val - self.min_val)
+		self.value = self.min_val + self.ratio*(self.max_val - self.min_val)
+
+		self.min_pos = 0.075*self.size[0]
+		self.max_pos = 0.925*self.size[0]
+
+		# Rendering
+		self.trackbed = pygame.Surface(self.size,pygame.SRCALPHA)
+		self.handle	  = pygame.Rect(
+				self.min_pos + (self.max_pos - self.min_pos)*self.ratio - 5,
+				(1/4)*self.size[1],
+				10,
+				(1/2)*self.size[1]
+		)
+		self.hitbox	  = pygame.Rect(
+			self.x + self.min_pos - 5,
+			self.y,
+			self.max_pos - self.min_pos + 10,
+			self.size[1]
+		)
+
+
+	def hold(self , x):
+		# Mechanics
+		self.ratio = round( (self.nparts-1) *
+			(x - self.hitbox.left) / (self.hitbox.right - self.hitbox.left)
+		) / (self.nparts-1)
+
+		self.value = self.min_val + self.ratio*(self.max_val - self.min_val)
+
+		self.handle.centerx = self.min_pos + self.ratio*(self.max_pos - self.min_pos)
+
+		# Function
+		exec(self.metric + " = 50/" + str(self.value))
+
+
+	def render(self):
+		# Railing
+		### trackbed
+		self.trackbed.fill(C.SLIDER_COLOUR)
+		### track
+		pygame.draw.line(
+			self.trackbed,
+			(0,0,0,15),
+			( self.min_pos , self.size[1]/2 ),
+			( self.max_pos , self.size[1]/2 )
+		)
+		### graduation
+		for i in range(self.nparts):
+			pygame.draw.line(
+				self.trackbed,
+				(0,0,0,1),
+				( self.min_pos + (i/(self.nparts-1))*(self.max_pos - self.min_pos) , (3/7)*self.size[1] ),
+				( self.min_pos + (i/(self.nparts-1))*(self.max_pos - self.min_pos) , (4/7)*self.size[1] )
+			)
+
+		# Handle
+		pygame.draw.rect(
+			self.trackbed,
+			C.BANNER_COLOUR,
+			self.handle
+		)
+
+		self.context.pane.blit(self.trackbed,(self.x,self.y))
 
 
 
@@ -1094,14 +1167,13 @@ class Dilemma(tk.Toplevel):
 
 
 class Counter:
-	def __init__(self , coach , title , text , font , x , y , context=None):
-		self.coach   = coach
+	def __init__(self , pane , title , text , font , x , y):
+		self.pane 	 = pane
 		self.title   = title
 		self.text    = str(text)
 		self.font    = font
 		self.x       = x
 		self.y       = y
-		self.context = context
 
 
 	def render(self):
@@ -1113,7 +1185,7 @@ class Counter:
 		bg.fill((0,0,0))
 
 		# Text
-		self.coach.display.blit(
+		self.pane.blit(
 			self.font.render(self.title , True , (255,255,255)),
 			(
 				self.x + (5*len(self.text)) + 20,
@@ -1122,11 +1194,11 @@ class Counter:
 		)
 
 		# Number
-		self.coach.display.blit(
+		self.pane.blit(
 			bg,
 			(self.x,self.y)
 		)
-		self.coach.display.blit(
+		self.pane.blit(
 			self.font.render(
 				self.text,
 				True,
@@ -1138,13 +1210,12 @@ class Counter:
 
 
 class Arrow:
-	def __init__(self , coach , base , roof , girth=25):
+	def __init__(self , coach , base , roof):
 		self.coach = coach
-		self.girth = girth
 		self.base  = base
 		self.roof  = roof
 
-		# Archery basics (needs to be recalculated every .shoot() so board can be flipped)
+		# Archery basics (recalculated every .shoot() so board can be flipped)
 		self.nock = None
 		self.head = None
 
@@ -1154,6 +1225,7 @@ class Arrow:
 
 		# Rendering
 		self.sprite = None
+		self.girth  = 25
 
 
 	def __str__(self):
@@ -1167,162 +1239,163 @@ class Arrow:
 		self.midline = self.head - self.nock
 		self.centre  = (self.head + self.nock)/2
 
+
+		def draw_knight():
+			width  = abs(self.midline.x) + C.TILE_WIDTH
+			height = abs(self.midline.y) + C.TILE_HEIGHT
+
+			upright = pygame.Surface(
+				(width,height),
+				pygame.SRCALPHA
+			)
+
+			# Draw as if upright ...
+			### shafts
+			pygame.draw.lines(
+				upright,
+				C.ARROW_COLOUR,
+				closed=False,
+				points=[
+					(
+						(5/6)*C.TILE_WIDTH,
+						C.TILE_HEIGHT/2
+					 ),
+					(
+						width - C.TILE_WIDTH/2,
+						C.TILE_HEIGHT/2
+					),
+					(
+						width - C.TILE_WIDTH/2,
+						height - (5/6)*C.TILE_HEIGHT
+					),
+				],
+				width=self.girth
+			)
+			### rounded corner
+			pygame.draw.circle(
+				upright,
+				C.ARROW_COLOUR,
+				(
+					width - C.TILE_WIDTH/2,
+					C.TILE_HEIGHT/2
+				),
+				self.girth/2
+			)
+
+			# ... then flip.
+			if abs(self.midline.x) > abs(self.midline.y):
+				pygame.draw.polygon(
+					upright,
+					C.ARROW_COLOUR,
+					points=[
+						(
+							width - (3/4)*C.TILE_WIDTH,
+							height - (5/6)*C.TILE_HEIGHT
+						),
+						(
+							width - (1/4)*C.TILE_WIDTH,
+							height - (5/6)*C.TILE_HEIGHT
+						),
+						(
+							width - (1/2)*C.TILE_WIDTH,
+							height - (1/2)*C.TILE_HEIGHT
+						)
+					]
+				)
+
+				return pygame.transform.flip(
+					upright,
+					self.midline.x < 0,
+					self.midline.y < 0
+				)
+
+			else:
+				pygame.draw.polygon(
+					upright,
+					C.ARROW_COLOUR,
+					points=[
+						(
+							(5/6)*C.TILE_WIDTH,
+							(3/4)*C.TILE_HEIGHT
+						),
+						(
+							(5/6)*C.TILE_WIDTH,
+							(1/4)*C.TILE_HEIGHT
+						),
+						(
+							(1/2)*C.TILE_WIDTH,
+							(1/2)*C.TILE_HEIGHT
+						)
+
+					]
+				)
+
+				return pygame.transform.flip(
+					upright,
+					self.midline.x > 0,
+					self.midline.y > 0
+				)
+
+
+		def draw_direct():
+			height = self.midline.magnitude()
+
+			upright = pygame.Surface(
+				(C.TILE_WIDTH,height),
+				pygame.SRCALPHA
+			)
+
+			# Draw as if upright ...
+			### shaft
+			pygame.draw.line(
+				upright,
+				C.ARROW_COLOUR,
+				(
+					C.TILE_WIDTH/2,
+					C.TILE_HEIGHT/3
+				),
+				(
+					C.TILE_WIDTH/2,
+					height - C.TILE_HEIGHT/3
+				),
+				self.girth
+			)
+			### arrowhead
+			pygame.draw.polygon(
+				upright,
+				C.ARROW_COLOUR,
+				points=[
+					(
+						(1/2)*C.TILE_WIDTH,
+						0
+					),
+					(
+						(1/4)*C.TILE_WIDTH,
+						(1/3)*C.TILE_HEIGHT
+					),
+					(
+						(3/4)*C.TILE_WIDTH,
+						(1/3)*C.TILE_HEIGHT
+					)
+				]
+			)
+
+			# ... then rotate.
+			return pygame.transform.rotate(
+				upright,
+				self.midline.angle_to((0,-1))
+			)
+
+
 		if abs(self.midline.elementwise()) in [
 			(100,200),
 			(200,100)
 		]:
-			self.draw_knight()
+			self.sprite = draw_knight()
 		else:
-			self.draw_direct()
+			self.sprite = draw_direct()
 
 		self.coach.display.blit(
 			self.sprite,
 			self.sprite.get_rect(center=self.centre)
-		)
-
-
-	def draw_knight(self):
-		width  = abs(self.midline.x) + C.TILE_WIDTH
-		height = abs(self.midline.y) + C.TILE_HEIGHT
-
-		self.sprite = pygame.Surface(
-			(width,height),
-			pygame.SRCALPHA
-		)
-
-		# Draw as if upright ...
-		### shafts
-		pygame.draw.lines(
-			self.sprite,
-			C.ARROW_COLOUR,
-			closed=False,
-			points=[
-				(
-					(5/6)*C.TILE_WIDTH,
-					C.TILE_HEIGHT/2
-				 ),
-				(
-					width - C.TILE_WIDTH/2,
-					C.TILE_HEIGHT/2
-				),
-				(
-					width - C.TILE_WIDTH/2,
-					height - (5/6)*C.TILE_HEIGHT
-				),
-			],
-			width=self.girth
-		)
-		### rounded corner
-		pygame.draw.circle(
-			self.sprite,
-			C.ARROW_COLOUR,
-			(
-				width - C.TILE_WIDTH/2,
-				C.TILE_HEIGHT/2
-			),
-			self.girth/2
-		)
-
-		# ... then flip.
-		if abs(self.midline.x) > abs(self.midline.y):
-			pygame.draw.polygon(
-				self.sprite,
-				C.ARROW_COLOUR,
-				points=[
-					(
-						width - (3/4)*C.TILE_WIDTH,
-						height - (5/6)*C.TILE_HEIGHT
-					),
-					(
-						width - (1/4)*C.TILE_WIDTH,
-						height - (5/6)*C.TILE_HEIGHT
-					),
-					(
-						width - (1/2)*C.TILE_WIDTH,
-						height - (1/2)*C.TILE_HEIGHT
-					)
-				]
-			)
-
-			self.sprite = pygame.transform.flip(
-				self.sprite,
-				self.midline.x < 0,
-				self.midline.y < 0
-			)
-
-		else:
-			pygame.draw.polygon(
-				self.sprite,
-				C.ARROW_COLOUR,
-				points=[
-					(
-						(5/6)*C.TILE_WIDTH,
-						(3/4)*C.TILE_HEIGHT
-					),
-					(
-						(5/6)*C.TILE_WIDTH,
-						(1/4)*C.TILE_HEIGHT
-					),
-					(
-						(1/2)*C.TILE_WIDTH,
-						(1/2)*C.TILE_HEIGHT
-					)
-
-				]
-			)
-
-			self.sprite = pygame.transform.flip(
-				self.sprite,
-				self.midline.x > 0,
-				self.midline.y > 0
-			)
-
-
-	def draw_direct(self):
-		height = self.midline.magnitude()
-
-		self.sprite = pygame.Surface(
-			(C.TILE_WIDTH,height),
-			pygame.SRCALPHA
-		)
-
-		# Draw as if upright ...
-		### shaft
-		pygame.draw.line(
-			self.sprite,
-			C.ARROW_COLOUR,
-			(
-				C.TILE_WIDTH/2,
-				C.TILE_HEIGHT/3
-			),
-			(
-				C.TILE_WIDTH/2,
-				height - C.TILE_HEIGHT/3
-			),
-			self.girth
-		)
-		### arrowhead
-		pygame.draw.polygon(
-			self.sprite,
-			C.ARROW_COLOUR,
-			points=[
-				(
-					(1/2)*C.TILE_WIDTH,
-					0
-				),
-				(
-					(1/4)*C.TILE_WIDTH,
-					(1/3)*C.TILE_HEIGHT
-				),
-				(
-					(3/4)*C.TILE_WIDTH,
-					(1/3)*C.TILE_HEIGHT
-				)
-			]
-		)
-
-		# ... then rotate.
-		self.sprite = pygame.transform.rotate(
-			self.sprite,
-			self.midline.angle_to((0,-1))
 		)
