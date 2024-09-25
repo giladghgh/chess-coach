@@ -9,14 +9,14 @@ from src.Man import Man
 
 
 class Pawn(Man):
-	def __init__(self , position , colour , board):
-		super().__init__(position , colour , board)
+	def __init__(self , *args):
+		super().__init__(*args)
 		self.creed = ""
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SETS + colour + "_pawn.png"
+		self.image_path = C.DIR_SET + self.colour + "_pawn.png"
 		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , (C.TILE_WIDTH-35 , C.TILE_HEIGHT-35))
+		self.image = pygame.transform.scale(self.image , self.image_size)
 
 		# Unique pawn attribute
 		self.just_moved_double = False
@@ -40,7 +40,7 @@ class Pawn(Man):
 				(0 , 2 if self.colour == "w" else -2)
 			)
 
-		return self.bound(stencil_moves)
+		return self.confine(stencil_moves)
 
 
 	def pseudolegal_moves(self):
@@ -49,7 +49,7 @@ class Pawn(Man):
 		# Stop at obstacles:
 		for direction in self.stencil_moves():
 			for pos in direction:
-				tile = self.board.tile_of(*pos)
+				tile = self.board.tile(*pos)
 				if not tile.occupant:
 					moves.append(tile)
 				else:
@@ -58,7 +58,7 @@ class Pawn(Man):
 		# Diagonal captures
 		if self.colour == "w":
 			if (self.f+1 < 9) and (self.r+1 < 9):
-				tile = self.board.tile_of(
+				tile = self.board.tile(
 					self.f+1,
 					self.r+1
 				)
@@ -66,7 +66,7 @@ class Pawn(Man):
 					if tile.occupant.colour != self.colour:
 						moves.append(tile)
 			if (self.f-1 > 0) and (self.r+1 < 9):
-				tile = self.board.tile_of(
+				tile = self.board.tile(
 					self.f-1,
 					self.r+1
 				)
@@ -76,7 +76,7 @@ class Pawn(Man):
 
 		elif self.colour == "b":
 			if (self.f+1 < 9) and (self.r-1 > 0):
-				tile = self.board.tile_of(
+				tile = self.board.tile(
 					self.f+1,
 					self.r-1
 				)
@@ -84,7 +84,7 @@ class Pawn(Man):
 					if tile.occupant.colour != self.colour:
 						moves.append(tile)
 			if (self.f-1 > 0) and (self.r-1 > 0):
-				tile = self.board.tile_of(
+				tile = self.board.tile(
 					self.f-1,
 					self.r-1
 				)
@@ -113,6 +113,6 @@ class Pawn(Man):
 									ep_victim_pos
 							)
 					):
-						moves.append(self.board.tile_of(*ep_victim_pos))
+						moves.append(self.board.tile(*ep_victim_pos))
 
 		return moves

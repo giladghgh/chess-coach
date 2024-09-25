@@ -1,5 +1,6 @@
-import chess
-import time,random
+import operator
+
+import chess,time,random
 
 from src.Constants import C,E
 
@@ -13,116 +14,146 @@ class Engine:
 	def __init__(self , coach):
 		self.coach = coach
 
-		self.player_scheme = E.INIT_SCHEME
-		self.board = None
+		# Mechanics
+		self.scheme = E.INIT_SCHEME
+		self.model	= chess.Board(fen=C.INIT_FEN)
+
+		# Convenience
+		chess.COLORS = (
+			chess.WHITE,
+			chess.BLACK
+		)
+		chess.PIECES = (
+			chess.PAWN,
+			chess.KNIGHT,
+			chess.BISHOP,
+			chess.ROOK,
+			chess.QUEEN,
+			chess.KING
+		)
+
+	def evaluate(self):
+		value = 0
+
+		for colour in chess.COLORS:
+			score = 0
+			for piece in chess.PIECES:
+				creed = chess.piece_symbol(piece).upper()
+
+				for square in self.model.pieces(piece,colour):
+					if colour == chess.WHITE:
+						f = chess.square_file(square)
+						r = 7-chess.square_rank(square)
+					else:
+						f = 7-chess.square_file(square)
+						r = chess.square_rank(square)
+
+					mat = E.SCOREBOARD_MATERIAL[creed]
+					pos = E.SCOREBOARD_POSITION[creed][r][f] / 100
+
+					score += mat + pos
+
+			if self.model.is_check() and self.model.turn == colour:
+				score += 5
+
+			### gain some perspective:
+			value += score * (1,-1)[colour == self.model.turn]
+
+		return round( value , 4 )
 
 
-	def evaluate(self , method=None):
-		if self.board.is_game_over() and self.board.outcome.termination in (
-			chess.Termination.STALEMATE,
-			chess.Termination.INSUFFICIENT_MATERIAL,
-			chess.Termination.FIFTY_MOVES,
-			chess.Termination.THREEFOLD_REPETITION
-		):
-			return 0
+	def play(self):
+		self.model.set_fen(self.coach.board.this_move.fen)
 
-		score = 0
-		if method is None:
-			for f in range(8):
-				for r in range(8):
-					man = self.board.piece_at(chess.parse_square(C.FILES[f+1] + str(r+1)))
+		# Theory
+		uci = {
+			"RANDOM" : self.play_random,
+			"SIMPLE" : self.play_simple,
+			"HAL90"  : self.play_random,
+		}[self.scheme[self.coach.board.ply == "b"]]()
 
-					if man is not None:
-						mat = self.score_material(man.symbol(),f+1,r+1)
-						pos = self.score_position(man.symbol(),f+1,r+1)
-						score += mat + pos
-
-		elif method.upper() == "STOCKFISH":
-			pass
-
-		return score
-
-
-	# TODO: STOP SEARCHING AT CHECKMATE, FOR BLACK AND WHITE, !!! BEFORE FULL DEPTH IS REACHED !!!
-	# Needs better escape logic
-	def search(self , depth , method=None , history=None):
-		if depth == 0:
-			print("eval:",history,self.evaluate(method))
-			return history , self.evaluate(method)
-
-		line = history or Line(self.board)
-
-		linescores = []
-		searching  = True
-		for i,move in enumerate(self.board.legal_moves):
-			if searching:
-				print()
-				print(depth,move)
-
-				line.append(move)
-				self.board.push(move)
-				if self.board.is_game_over() and self.board.outcome().termination is chess.Termination.CHECKMATE:
-					movescore = line.copy() , float("inf") * (1 - 2*bool(self.board.turn))
-					searching = False
-				else:
-					movescore = self.search(depth-1 , method , line.copy())
-
-				self.board.pop()
-
-				print(line)
-				print(depth,i,move,line,movescore)
-
-				linescores.append(movescore)
-
-				print(linescores)
-
-				line.pop()
-
-		# Returns every legal move and its evaluation, in descending order by evaluation, as if white.
-		#   i.e., a positive evaluation at any depth favours white and negative favours black. This is so that I don't have
-		#   to keep switching between "max()" and "min()".
-		print(linescores)
-		return max(linescores , key=lambda l:l[1])
-
-
-	def play(self , depth=3):
-		self.board = chess.Board(fen=self.coach.export_FEN())
-
-		print(self.search(depth))
-
-		print("ENGINE DONE!")
-
-		# scheme = self.player_scheme[self.coach.board.ply == "b"]
-		# move   = {
-		# 	"RANDOM"        : self.play_random(),
-		# 	"MATERIALISTIC" : self.play_materialistic(),
-		# 	"POSITIONAL"    : self.play_positional(),
-		# 	"BASIC"         : self.play_basic(),
-		# }[scheme]
-		#
-		# self.coach.force_move(move)
+		# Praxis
+		self.coach.force_move(
+			self.UCI_to_move(uci)
+		)
 
 
 	def play_random(self):
-		return
+		return random.choice( list(self.model.legal_moves) )
 
 
-	def play_materialistic(self):
-		return
+	def play_simple(self):
+		movescores = {}
+		for move in self.model.legal_moves:
+			self.model.push(move)
+
+			move.eval = self.evaluate()
+			branch = self.search(self.depth-1,Line(move))
+			movescores[move] = branch
+
+			self.model.pop()
 
 
-	def play_positional(self):
-		return
+		###########################################
+		# for step,line in movescores.items():
+		# 	print(step,end="")
+		# 	for branch in line:
+		# 		print("\t\t",branch)
+		###########################################
 
 
-	def play_basic(self):
-		# Translate for python-chess ...
+		best , main = max( movescores.items() , key=lambda m:m[1].eval )
+
+		# print()
+		# print("best:",type(best),best)
+		# print("main:",type(main),main)
+
+		return best
 
 
-		# ... Detranslate back for coach.
-		move = Move(self.board)
-		move.origin = None
-		move.agent  = None
-		move.target = None
+	def search(self , depth , history):
+		if not depth:
+			return history
+
+		lines = Line()
+		for move in self.model.legal_moves:
+			self.model.push(move)
+
+			move.eval = self.evaluate()
+			lines.append(
+				self.search(
+					depth-1,
+					history + [move]
+				)
+			)
+
+			self.model.pop()
+
+		return lines
+
+
+	def UCI_to_move(self , uci):
+		move = Move(
+			self.coach.board,
+			self.coach.board.this_move.fen
+		)
+
+		move.forced = True
+		move.origin = self.coach.board.tile(
+			1 + chess.square_file(uci.from_square),
+			1 + chess.square_rank(uci.from_square)
+		)
+		move.target = self.coach.board.tile(
+			1 + chess.square_file(uci.to_square),
+			1 + chess.square_rank(uci.to_square)
+		)
+
 		return move
 
+
+	@property
+	def depth(self):
+		return int((
+			E.BOT_DEPTH_WHITE,
+			E.BOT_DEPTH_BLACK
+		)[self.coach.board.ply == "b"])

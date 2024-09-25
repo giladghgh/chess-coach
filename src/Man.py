@@ -20,7 +20,7 @@ class Man:
 		self.has_moved = False
 
 
-	def push(self , tile):
+	def send(self , tile):
 		self.position = tile.position
 		self.f = tile.f
 		self.r = tile.r
@@ -35,16 +35,13 @@ class Man:
 			move.agent = None
 			move.agent , self.board.agent = self.board.agent , move.agent
 
-			move.number = self.board.movenum
-			move.colour = self.board.ply
-
-			move.origin = self.board.tile_of(*self.position)
+			move.origin = self.board.tile(*self.position)
 			move.target = tile
 
 			move.capture = tile.occupant or False
 
 			# Board Mechanics
-			self.push(tile)
+			self.send(tile)
 
 			self.has_moved = True
 			self.has_taken = bool(tile.occupant)
@@ -96,14 +93,14 @@ class Man:
 				if move.castle:
 					from src.Gameplay import Move
 
-					move.submove = Move(self.board)
+					move.submove = Move(self.board,None)
 
 					move.submove.forced = True
-					move.submove.origin = self.board.tile_of(
+					move.submove.origin = self.board.tile(
 						1 if move.castle == "q" else 8,
 						self.r
 					)
-					move.submove.target = self.board.tile_of(
+					move.submove.target = self.board.tile(
 						4 if move.castle == "q" else 6,
 						self.r
 					)
@@ -111,7 +108,7 @@ class Man:
 
 					move.submove.origin.occupant = None
 					move.submove.target.occupant = move.submove.agent
-					move.submove.agent.push(move.submove.target)
+					move.submove.agent.send(move.submove.target)
 
 			if show:
 				move.animate()
@@ -119,19 +116,27 @@ class Man:
 			### ...
 			move.target.occupant = move.promo or move.agent
 			if move.ep:
-				self.board.tile_of(*move.ep.position).occupant = None
+				self.board.tile(move.ep).occupant = None
 			### ... and put them down.
 
-			# Reset board attributes
-			for pawn in self.board.all_men(creed=""):
-				pawn.just_moved_double = pawn is self and abs(move.origin.r - move.target.r) == 2
-
 			# Other
-			move.describe()
+			### epability
+			if self.creed == "" and abs(move.origin.r - move.target.r) == 2:
+				for pawn in self.board.all_men(creed=""):
+					pawn.just_moved_double = pawn is self
+
+			### quiet move clock
+			if self.creed and not move.capture:
+				self.board.rulecount_fiftymoves += 1
+			else:
+				self.board.rulecount_fiftymoves = 0
+
+			### further details
 			move.in_checkmate = self.board.is_in_checkmate("w" if move.colour == "b" else "b")
 			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
+			move.inscribe()
 
-			# Movenoise
+			### make yaself heard
 			if tell:
 				move.vocalise()
 
@@ -144,7 +149,7 @@ class Man:
 		moves = []
 		for direction in self.stencil_moves():
 			for f,r in direction:
-				tile = self.board.tile_of(f,r)
+				tile = self.board.tile(f,r)
 				if tile.occupant:
 					if tile.occupant.colour != self.colour:
 						moves.append(tile)
@@ -164,13 +169,24 @@ class Man:
 		return moves
 
 
-	def bound(self , moves):
+	def confine(self , moves):
 		tiles = []
-		for direction in moves:
-			bdirection = []
-			for move in direction:
-				target_position = [sum(s) for s in zip(self.position,move)]
-				if all([1 <= coord <= 8 for coord in target_position]):
-					bdirection.append(target_position)
-			tiles.append(bdirection)
+		for stencil_direction in moves:
+			direction = []
+			for stencil_move in stencil_direction:
+				position = [sum(s) for s in zip(self.position,stencil_move)]
+				if all([1 <= coord <= 8 for coord in position]):
+					direction.append(position)
+			tiles.append(direction)
+
 		return tiles
+
+
+	@property
+	def image_size(self):
+		squish = -40
+		if self.creed:
+			squish += 15
+			if C.PIECE_STYLE.upper() in ("8-BIT","FONTAWESOME"):
+				squish -= 10
+		return [L + squish for L in C.TILE_SIZE]
