@@ -146,7 +146,7 @@ class C:
 
 	# DIRECTORIES
 	DIR         = os.getcwd()
-	DIR_MEDIA   = DIR + "\\media\\"
+	DIR_MEDIA   = DIR + "\\img\\"
 	DIR_ICONS   = DIR_MEDIA + "icons\\"
 	DIR_SETS    = DIR_MEDIA + "sets\\"
 	DIR_SET     = DIR_SETS + PIECE_STYLE + "\\"

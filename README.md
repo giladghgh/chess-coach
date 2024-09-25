@@ -1,6 +1,6 @@
 # Chess Coach
 
-#### My attempt at a simple chess platform, meant to help explore openings and endgames.
+#### My attempt at a simple chess platform, to help explore openings and endgames.
 
 <p align="center">
   <img src="media/coach_poster.png" width="600"/>
@@ -19,15 +19,16 @@ Coach comes fully equipped with:
 - [ ]  Stockfish bot with variable skill
 - [ ]  Coach's own chess bot!
 
-The GUI is *unspeakably* simple. Give it a whirl.
+The GUI is *unspeakably* simple, give it a whirl.
 
 
 #### Dependencies
 
-These are fully specified in the `dependencies.txt` file, surprisingly. Just run these:
+Fully specified in `dependencies.txt`, surpringly.
 
-- `pip install pygame`
-- `pip install chess`
+Nothing heavy.
+Only one of coach's many talents requires a live internet connection (Stockfish bot), but it's optional.
+
 
 
 #### ECO Interpreter
@@ -46,7 +47,7 @@ Soon.
 
 ## License
 
-Everything here is [unlincensed](LICENSE).
+[Unlincensed](LICENSE).
 
 ---
 

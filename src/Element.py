@@ -53,7 +53,7 @@ class Reader:
 		self.catalogue.clear()
 
 
-	def load(self , filepath=C.DIR+"\\data\\catalogue.csv"):
+	def load(self , filepath=C.DIR+"\\dat\\catalogue.csv"):
 		import csv
 
 		with open(filepath,"r") as file:
@@ -1491,7 +1491,7 @@ class ButtonExport(Button):
 		#
 		# # File Handling
 		# filename = title + "__" + date
-		# gamedir  = C.DIR + "\\games\\" + filename + ".pgn"
+		# gamedir  = C.DIR + "\\pgn\\" + filename + ".pgn"
 		# with open(gamedir,"w") as file:
 		# 	file.write("[Event \"" + title + "\"]\n")
 		# 	file.write("[Date \""  + date  + "\"]\n")
