@@ -23,31 +23,24 @@ class Board:
 		self.w = C.BOARD_WIDTH
 		self.h = C.BOARD_HEIGHT
 
-		self.show_coords = False
-		self.show_legals = True
-
-		self.flipped = False
-
 		# Mechanics
 		self.ply   = "w"
 		self.agent = None
 
-		self.black_first = False
-
-		self.movenum     = 1
 		self.halfmovenum = 1
-
-		self.all_tiles = []
+		self.movenum     = 1
 
 		self.last_move = None
 		self.this_move = Move(self,fen=C.INIT_FEN)
 		self.movelog   = [self.this_move,]
 
+		self.all_tiles = []
+
 		# Gameplay
 		self.opening = ''
 		self.outcome = (None,None)
 
-		# Stats
+		# Rule Counts
 		self.rulecount_fiftymoves = 0
 		self.rulecount_threereps  = 1
 
@@ -57,21 +50,21 @@ class Board:
 		self.sound_move_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_capture.wav")
 
 
-	def compose(self , model):
+	def compose(self , shell):
 		self.all_tiles.clear()
-		for r,rank in enumerate(model):
+		for r,rank in enumerate(shell):
 			r = 8 - r
 			for f,man in enumerate(rank):
 				f = 1 + f
 
 				self.all_tiles.append(
-					Tile(self , f , r , *C.TILE_SIZE)
+					Tile(self.coach.screen , f , r , *C.TILE_SIZE)
 				)
 
 				if not man.isspace():
 					colour = man[0]
 					creed  = man[1]
-					tile   = self.tile_of(f,r)
+					tile   = self.tile(f,r)
 
 					if creed == "P":
 						tile.occupant = Pawn(  self , colour , (f,r))
@@ -87,7 +80,14 @@ class Board:
 						tile.occupant = King(  self , colour , (f,r))
 
 
-	def tile_of(self , file , rank):
+	def tile(self , *args):
+		if len(args) == 1:
+			file = args[0].f
+			rank = args[0].r
+		else:
+			file = args[0]
+			rank = args[1]
+
 		for t in self.all_tiles:
 			if t.position == (file,rank):
 				return t
@@ -108,41 +108,47 @@ class Board:
 		return men
 
 
-	def attackers_of(self , tile , colour=None , creed=None):
-		attackers = []
+	def all_threats(self , tile , colour=None , creed=None):
+		threats = []
 		for man in self.all_men(colour,creed):
 			for tgt in man.legal_moves():
 				if tgt.position == tile.position:
-					attackers.append(man)
+					threats.append(man)
 
-		return attackers
+		return threats
 
 
 	def render(self):
-		# Fresh tiles
-		if self.agent:
-			self.tile_of(*self.agent.position).is_fresh = True
-		if self.last_move:
-			if self.last_move.origin:
-				self.tile_of(*self.last_move.origin.position).is_fresh = True
-			if self.last_move.target:
-				self.tile_of(*self.last_move.target.position).is_fresh = True
-
-		# Spotlit tiles
-		for tile in self.this_move.lights:
-			self.tile_of(*tile.position).is_focus = True
-
-		# Legal move dots
-		if self.show_legals and self.agent:
+		# Tiles
+		### legal (high overhead so separate loop)
+		if C.SHOW_MOVE_LEGAL and self.agent:
 			for tile in self.agent.legal_moves():
-				self.tile_of(*tile.position).is_legal = True
+				self.tile(tile).is_legal = True
 
-		# Render then reset
 		for tile in self.all_tiles:
-			self.tile_of(*tile.position).render()
-			self.tile_of(*tile.position).is_fresh = False
-			self.tile_of(*tile.position).is_focus = False
-			self.tile_of(*tile.position).is_legal = False
+			### fresh
+			if C.SHOW_MOVE_FRESH and ((
+				self.agent
+				and
+				tile.position == self.agent.position
+			) or (
+				self.last_move
+				and
+				tile in (
+					self.last_move.origin,
+					self.last_move.target
+				)
+			)):
+				tile.is_fresh = True
+
+			### focus
+			if tile in self.this_move.lights:
+				tile.is_focus = True
+
+			tile.render()
+			tile.is_fresh = False
+			tile.is_legal = False
+			tile.is_focus = False
 
 		# Annotations
 		for arrow in self.this_move.quiver:
@@ -150,11 +156,11 @@ class Board:
 
 
 	def handle_click(self , file , rank , promo=None , show=True):
-		chosen_tile = self.tile_of(file,rank)
+		chosen_tile = self.tile(file,rank)
 
 		# Initiate move:
 		if self.agent is None:
-			# Rinse annotations:
+			# Wash annotations:
 			if not chosen_tile.occupant:
 				self.this_move.wash()
 
@@ -171,7 +177,7 @@ class Board:
 				### unrestricted prev/next
 				del self.movelog[self.halfmovenum - 1:]
 
-				### handover
+				### turnover
 				if self.ply == "w":
 					self.ply = "b"
 				else:
@@ -179,18 +185,18 @@ class Board:
 					self.movenum += 1
 				self.halfmovenum += 1
 
+				# Movelog
 				self.last_move = self.this_move
 				self.this_move = Move(self,fen=self.coach.export_FEN())
 
-				### movelog
 				self.movelog.append(self.last_move)
 				self.movelog.append(self.this_move)
 
-				# Movetext
-				self.coach.reader.update()
+				# Clock
+				self.coach.clock.tack()
 
-				# Statistics
-				self.refresh_stats()
+				# Calibrate
+				self.calibrate()
 
 			# Switch agent:
 			elif chosen_tile.occupant and chosen_tile.occupant.colour == self.ply:
@@ -200,36 +206,38 @@ class Board:
 					self.agent 			= chosen_tile.occupant
 					self.agent.position = chosen_tile.position
 
-			# Deselect agent:
+			# Deselect agent & wash:
 			else:
 				self.agent = None
 				self.this_move.wash()
 
 
-	def refresh_stats(self):
+	def calibrate(self):
+		# Threefold repetition rule
 		if self.last_move:
-			# Fifty move rule
-			if not self.last_move.capture and type(self.last_move.agent) is not Pawn:
-				self.rulecount_fiftymoves += 1
-			else:
-				self.rulecount_fiftymoves = 0
-
-			# Threefold repetition rule
 			fenlog = [tuple(move.fen.split()[:3]) for move in self.movelog[:self.halfmovenum+1]]
 			self.rulecount_threereps = {fen : fenlog.count(fen) for fen in fenlog}[
 				tuple(self.this_move.fen.split()[:3])
 			]
 
-			# Movelog
+			### update movelog
 			self.last_move.rulecount_fiftymoves = self.rulecount_fiftymoves
 			self.last_move.rulecount_threereps  = self.rulecount_threereps
-		else:
-			self.rulecount_fiftymoves = 0
-			self.rulecount_threereps  = 1
 
 		# Counters
-		self.coach.analysis.counters["RULE_FIFTYMOVES"].text = str(self.rulecount_fiftymoves)
-		self.coach.analysis.counters["RULE_THREEREPS"].text  = str(self.rulecount_threereps)
+		self.coach.analysis.counters["RULECOUNT_FIFTYMOVES"].field = str(self.rulecount_fiftymoves)
+		self.coach.analysis.counters["RULECOUNT_THREEREPS"].field  = str(self.rulecount_threereps)
+
+		# Reader
+		self.coach.reader.update()
+
+		# Graveyard
+		self.coach.graveyard.update()
+
+		###################
+		# self.coach.engine.model.set_fen(self.this_move.fen)
+		# self.coach.analysis.counters["SCORE_SIMPLE"].field = f'{self.coach.engine.evaluate():.2f}'
+		###################
 
 
 	def is_in_check(self , colour , movement=None):
@@ -287,20 +295,15 @@ class Board:
 		return True
 
 
-	@property
-	def plynot(self):
-		return "w" if self.ply == "b" else "b"
-
-
 
 class Move:
-	def __init__(self , board , fen=None):
+	def __init__(self , board , fen):
 		self.board = board
 		self.fen   = fen
 
-		# Immutables
-		self.number = None
-		self.colour = None
+		# Innates
+		self.number = self.board.movenum
+		self.colour = self.board.ply
 
 		# Basics
 		self.origin = None
@@ -314,27 +317,28 @@ class Move:
 		self.ep     = None
 
 		# Extras
-		self.text = ''
+		self.text = None
 
 		self.capture 	  = None
 		self.in_check 	  = None
 		self.in_checkmate = None
 
+		# Draw criteria
 		self.rulecount_fiftymoves = None
 		self.rulecount_threereps  = None
+
+		# Clock
+		self.commence = None
+		# self.duration = None
+		self.conclude = None
 
 		# Annotations
 		self.lights = []
 		self.quiver = []
 
 
-	def vocalise(self):
-		if self.board.is_in_check(("w","b")[self.board.ply == "w"]):
-			pygame.mixer.Sound.play(self.board.sound_move_check)
-		elif self.capture:
-			pygame.mixer.Sound.play(self.board.sound_move_capture)
-		else:
-			pygame.mixer.Sound.play(self.board.sound_move_quiet)
+	def __repr__(self):
+		return (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
 
 
 	def rewind(self):
@@ -349,7 +353,16 @@ class Move:
 		return unmove
 
 
-	def describe(self):
+	def vocalise(self):
+		if self.board.is_in_check(("w","b")[self.board.ply == "w"]):
+			pygame.mixer.Sound.play(self.board.sound_move_check)
+		elif self.capture:
+			pygame.mixer.Sound.play(self.board.sound_move_capture)
+		else:
+			pygame.mixer.Sound.play(self.board.sound_move_quiet)
+
+
+	def inscribe(self):
 		self.text = ''
 
 		# Castling
@@ -366,7 +379,7 @@ class Move:
 			if self.agent.creed:
 				cache = self.target.occupant
 				self.target.occupant = None
-				attackers = self.board.attackers_of(self.target,self.agent.colour,self.agent.creed)
+				attackers = self.board.all_threats(self.target , self.agent.colour , self.agent.creed)
 				self.target.occupant = cache
 
 				if attackers:
@@ -397,9 +410,10 @@ class Move:
 		rect   = sprite.get_rect(center=self.origin.rect.center)
 		ox,oy  = rect.x,rect.y
 
+		# 1/3
 		if self.castle:
 			self.submove.origin.occupant = self.submove.target.occupant = None
-			self.board.tile_of(*self.submove.target.position).occupant  = None
+			self.board.tile(*self.submove.target.position).occupant  = None
 
 			dx_rook = self.submove.target.x - self.submove.origin.x
 			dy_rook = self.submove.target.y - self.submove.origin.y
@@ -409,53 +423,56 @@ class Move:
 			ox_rook,oy_rook = rect_rook.x,rect_rook.y
 
 		manhattan 	 = abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r)
-		total_frames = round(C.MOVE_SPEED * manhattan ** (1 / 2))
+		total_frames = round(C.MOVE_SPEED * manhattan**(1/2))
 		for frame in range(total_frames):
-			self.origin.is_fresh = self.target.is_fresh = True
+			if C.SHOW_MOVE_FRESH:
+				self.origin.is_fresh = self.target.is_fresh = True
 
 			self.board.render()
 
 			rect.x = ox + dx*(frame/total_frames)
 			rect.y = oy - dy*(frame/total_frames)
-			self.board.coach.display.blit(sprite,rect)
+			self.board.coach.screen.blit(sprite,rect)
 
+			# 2/3
 			if self.castle:
 				rect_rook.x = ox_rook + dx_rook*(frame/total_frames)
 				rect_rook.y = oy_rook - dy_rook*(frame/total_frames)
-				self.board.coach.display.blit(sprite_rook,rect_rook)
+				self.board.coach.screen.blit(sprite_rook,rect_rook)
 
 			pygame.display.update()
 
+		# 3/3
 		if self.castle:
-			self.board.tile_of(*self.submove.target.position).occupant = self.submove.agent
-			self.submove.agent.push(self.submove.target)
+			self.board.tile(self.submove.target).occupant = self.submove.agent
+			self.submove.agent.send(self.submove.target)
 
 
 	def promote(self , force=None):
-		if force:
+		if force or C.AUTO_PROMOTE:
 			# Reading movetext
-			if force == "Q":
+			if "Q" in (force,C.AUTO_PROMOTE):
 				from src.men.Queen import Queen
 				self.promo = Queen(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif force == "R":
+			elif "R" in (force,C.AUTO_PROMOTE):
 				from src.men.Rook import Rook
 				self.promo = Rook(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif force == "B":
+			elif "B" in (force,C.AUTO_PROMOTE):
 				from src.men.Bishop import Bishop
 				self.promo = Bishop(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif force == "N":
+			elif "N" in (force,C.AUTO_PROMOTE):
 				from src.men.Knight import Knight
 				self.promo = Knight(
 					self.board,
@@ -472,19 +489,19 @@ class Move:
 
 			promo_images = [
 				pygame.transform.scale(
-					pygame.image.load(C.DIR_SETS + self.colour + "_queen.png"),
+					pygame.image.load(C.DIR_SET + self.colour + "_queen.png"),
 					C.TILE_SIZE
 				),
 				pygame.transform.scale(
-					pygame.image.load(C.DIR_SETS + self.colour + "_rook.png"),
+					pygame.image.load(C.DIR_SET + self.colour + "_rook.png"),
 					C.TILE_SIZE
 				),
 				pygame.transform.scale(
-					pygame.image.load(C.DIR_SETS + self.colour + "_bishop.png"),
+					pygame.image.load(C.DIR_SET + self.colour + "_bishop.png"),
 					C.TILE_SIZE
 				),
 				pygame.transform.scale(
-					pygame.image.load(C.DIR_SETS + self.colour + "_knight.png"),
+					pygame.image.load(C.DIR_SET + self.colour + "_knight.png"),
 					C.TILE_SIZE
 				)
 			]
@@ -535,7 +552,7 @@ class Move:
 							)
 							paused = False
 
-				self.board.coach.display.blit(veil,(C.SIDEBAR_WIDTH,0))
+				self.board.coach.screen.blit(veil,(C.SIDEBAR_WIDTH,0))
 				for rect,img in zip(promo_rects,promo_images):
 					pygame.draw.rect(
 						veil,
@@ -555,37 +572,141 @@ class Move:
 		self.quiver.clear()
 
 
-	def clear(self):
-		# Basics
-		self.target = None
-		self.agent  = None
-
-		# Specials
-		self.forced = None
-		self.castle = None
-		self.promo  = None
-		self.ep     = None
-
-
-	@property
-	def id(self):
-		return (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
-
 
 class Line(list):
-	# CAN ADD:
-	#   1)  Validate appended moves.
-	#   2)
-	def __init__(self , board):
+	def __init__(self , *args):
 		super().__init__()
-		self.board = board
 
-	def __str__(self):
-		# return " - ".join(move.origin.pgn + move.target.pgn for move in self)
-		return "-".join([move.uci() for move in self])
+		self.eval = -float("inf")
+		self.main = []
 
-	# Ensures ".copy()" returns object of type Line rather than list.
-	def copy(self):
-		new = Line(self.board)
-		new.extend(self)
-		return new
+		for arg in args:
+			try:
+				for item in arg:
+					self.append(item)
+			except TypeError:
+				self.append(arg)
+
+
+	def __repr__(self):
+		return str(self.eval) + "L" + str(len(self)) + super().__repr__()
+
+
+	def __add__(self , this):
+		return Line(self,this)
+
+
+	def append(self , this):
+		super().append(this)
+
+		if this.eval > self.eval:
+			self.eval = this.eval
+			self.main.append(this)
+
+
+
+class Clock:
+	def __init__(self , coach):
+		self.coach = coach
+
+		from src.Element import ButtonClockFace,ButtonClockLink
+
+		self.whiteface = ButtonClockFace(
+			self.coach.tray,
+			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
+			(2/3)*C.BOARD_HEIGHT - C.BUTTON_HEIGHT,
+			player="WHITE",
+			clock=self
+		)
+		self.blackface = ButtonClockFace(
+			self.coach.tray,
+			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
+			(1/3)*C.BOARD_HEIGHT,
+			player="BLACK",
+			clock=self
+		)
+		self.link = ButtonClockLink(
+			self.coach.tray,
+			C.TRAY_PAD + C.TRAY_WIDTH/2 - 0.375*C.BUTTON_WIDTH,
+			C.BOARD_HEIGHT/2 - 0.175*C.BUTTON_HEIGHT,
+			(
+				0.75*C.BUTTON_WIDTH,
+				0.35*C.BUTTON_HEIGHT,
+			),
+			True,
+			clock=self
+		)
+		self.buttons = [
+			self.whiteface,
+			self.blackface,
+			self.link,
+		]
+
+		self.time = None
+		self.reset()
+
+		self.alerts = []
+
+
+	def reset(self):
+		self.whiteface.active       = self.blackface.active       = False
+		self.whiteface.colour       = self.blackface.colour       = C.BUTTON_DEAD
+		self.whiteface.timer.colour = self.blackface.timer.colour = C.TIMER_DEAD
+
+		self.time                 = 60*max(C.TIME_WHITE_START,C.TIME_BLACK_START) + max(C.TIME_WHITE_BONUS,C.TIME_BLACK_BONUS)
+		self.whiteface.timer.time = 60*C.TIME_WHITE_START + C.TIME_WHITE_BONUS
+		self.blackface.timer.time = 60*C.TIME_BLACK_START + C.TIME_BLACK_BONUS
+
+
+	def render(self):
+		for button in self.buttons:
+			button.render()
+
+
+	def tick(self):
+		self.time -= 1
+
+		# Propagate
+		if self.whiteface.active and self.coach.board.ply == "w":
+			self.whiteface.timer.time -= 1
+		elif self.blackface.active and self.coach.board.ply == "b":
+			self.blackface.timer.time -= 1
+
+		# Alerts
+		if self.time == 900:
+			self.buzz()
+		elif self.time == 0:
+			self.bang()
+
+
+	def tack(self):
+		ply_is_white = self.coach.board.ply == "w"
+
+		white = self.whiteface
+		black = self.blackface
+
+		# Movelog
+		self.coach.board.last_move.conclude = black.timer.time if ply_is_white else white.timer.time
+		self.coach.board.this_move.commence = white.timer.time if ply_is_white else black.timer.time
+
+		# Timers
+		### white
+		if white.active:
+			white.timer.colour = C.TIMER_LIVE if ply_is_white else C.TIMER_IDLE
+		else:
+			white.timer.colour = C.TIMER_DEAD
+
+		### black
+		if black.active:
+			black.timer.colour = C.TIMER_IDLE if ply_is_white else C.TIMER_LIVE
+		else:
+			black.timer.colour = C.TIMER_DEAD
+
+
+	def buzz(self):
+		pass
+
+
+	def bang(self):
+		# Handle end of time
+		pass

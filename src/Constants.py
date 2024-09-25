@@ -4,22 +4,41 @@ import os
 
 
 
-# GAMEPLAY CONSTANTS
 class C:
-	# MECHANICS
-	FILES = (None,"a","b","c","d","e","f","g","h")
-
+	# INITIALS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-
-	# INIT_FEN = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q w - - 0 1"    # disambiguation testing
-	# INIT_FEN = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"       # castle testing
+	# INIT_FEN = "Q7/ppppppPp/8/7K/8/7k/RrBbPPNn/8 w - - 0 1"    # graveyard test
+	# INIT_FEN = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q w - - 0 1"    # disambiguation test
+	# INIT_FEN = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"       # castle test
 	# INIT_FEN = "1r6/P6K/8/8/8/8/p6k/8 w - - 0 1"            # promote away from check
 	# INIT_FEN = "8/8/8/8/8/8/8/k3K2R w K - 0 1"              # castle into check
 	# INIT_FEN = "1Q5K/8/8/5q2/1p6/8/P7/1k6 w - - 0 1"        # e.p. into check
 
+	PIECE_STYLE = "CLASSIC"
+
+	SHOW_MOVE_FRESH = True
+	SHOW_MOVE_LEGAL = True
+	SHOW_TILE_COORD = False
+	BOARD_FLIPPED   = False
+
+
+
+	# MECHANICS
+	FILES = (None,"a","b","c","d","e","f","g","h")
+
+	# IMPORT_FEN_DEFAULT = "k7/1p6/1p6/8/8/8/5P1R/7K b - - 3 18"              # engine search practice
+	IMPORT_FEN_DEFAULT = "k7/1p2n3/1p6/8/8/8/5P1R/7K w - - 1 1"             # engine search practice
 	# IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
-	IMPORT_FEN_DEFAULT = "rnbqk2r/pppppp1p/5npb/8/8/5NPB/PPPPPP1P/RNBQK2R w Qkq - 0 1"
-	# DEFAULT_FEN_IMPORT = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 0 1"              # engine search practice
+
+
+	# GAMEPLAY
+	AUTO_PROMOTE = "Q"
+
+	TIME_WHITE_START = 15
+	TIME_WHITE_BONUS = 10
+
+	TIME_BLACK_START = 15
+	TIME_BLACK_BONUS = 10
 
 
 	# INTERFACE
@@ -28,7 +47,12 @@ class C:
 
 	GRID_GAP = 10
 
-	BOARD_WIDTH = BOARD_HEIGHT = 800        					### NO LOWER THAN 600 (?)
+	X_MARGIN = 15
+	Y_MARGIN = 20
+
+	SIDEBAR_WIDTH = 275
+
+	BOARD_WIDTH = BOARD_HEIGHT = 800                ### NO LOWER THAN 600 (i think)
 	BOARD_SIZE  = (BOARD_WIDTH,BOARD_HEIGHT)
 
 	TILE_WIDTH  = BOARD_WIDTH  // 8
@@ -38,20 +62,52 @@ class C:
 	BUTTON_WIDTH = BUTTON_HEIGHT = 50
 	BUTTON_SIZE  = (BUTTON_WIDTH,BUTTON_HEIGHT)
 
-	SIDEBAR_WIDTH  = 275
+	PANE_PAD   = 8*GRID_GAP
+	PANE_WIDTH = SIDEBAR_WIDTH
+	PANE_SIZE  = (PANE_WIDTH + PANE_PAD , BOARD_HEIGHT)
+
+	TRAY_PAD   = 1*GRID_GAP
+	TRAY_WIDTH = (2/3)*SIDEBAR_WIDTH
+	TRAY_SIZE  = (TRAY_PAD + TRAY_WIDTH , BOARD_HEIGHT)
+
 	TEXTBOX_WIDTH  = 225
 	TEXTBOX_HEIGHT = 18
+	TEXTBOX_SIZE   = (TEXTBOX_WIDTH,TEXTBOX_HEIGHT)
 
-	SIDEBAR_X_MARGIN = TEXTBOX_WIDTH / 15
-	SIDEBAR_Y_MARGIN = 20
 
-	PANE_SIZE = (SIDEBAR_WIDTH + 10*GRID_GAP , BOARD_HEIGHT)	### wider to render tooltips
-
-	WINDOW_SIZE = (BOARD_WIDTH + SIDEBAR_WIDTH , BOARD_HEIGHT)
+	WINDOW_SIZE = (PANE_WIDTH + BOARD_WIDTH + TRAY_WIDTH , BOARD_HEIGHT)
 	WINDOW_POS  = (100,100)
+	# WINDOW_POS = (10,125)
+
+
+	# COACH STYLES
+	BACKGR_PANE     = (152,155,155)
+	BACKGR_TRAY     = ( 50, 45, 45)
+	BACKGR_SETTINGS = (120,120,120)
+	BACKGR_ANALYSIS = (108,110,115)
+	BACKGR_TUTORIAL = (125,125,115)
+
+	TEXTBOX_LIGHT = (155,155,155)
+	TEXTBOX_DARK  = (100,105,105)
+
+	BUTTON_LIVE   = (100,110,100)
+	BUTTON_IDLE   = (  0,  0, 30, 15)
+	BUTTON_DEAD   = (215,215,215)
+	BUTTON_BORDER = (  0,  0,  0, 15)
+
+	TIMER_LIVE = ( 85, 25, 20)
+	TIMER_IDLE = BUTTON_DEAD
+	TIMER_DEAD = BUTTON_IDLE
+
+	BANNER_COLOUR = ( 75, 75, 75)
+	SLIDER_COLOUR = (215,215,215,150)
+	ARROW_COLOUR  = (250,175, 35,180)
 
 
 	# BOARD STYLES
+	TILE_FOCUS_LIGHT = (205, 90, 80)
+	TILE_FOCUS_DARK  = (180, 75, 60)
+
 	TILE_LIGHT_BASIC_HAZEL = (200,180,145)
 	TILE_LIGHT_FRESH_HAZEL = (200,160, 75)
 	TILE_DARK_BASIC_HAZEL  = (115, 80, 55)
@@ -87,68 +143,52 @@ class C:
 
 	BOARD_STYLE = BOARD_STYLE_HAZEL
 
-	TILE_FOCUS_LIGHT = (205,90,80)
-	TILE_FOCUS_DARK  = (180,75,60)
 
-	BACKGR_COLOUR = (165,165,170)
-	BACKGR_COLOUR_SETTINGS = (125,125,125)
-	# BACKGR_COLOUR_ANALYSIS = (115,120,100)
-
-	TEXTBOX_LIGHT = (225,225,225)
-	TEXTBOX_DARK  = (118,128,128)
-
-	BUTTON_COLOUR_NEUTRAL = (215,215,215)
-	BUTTON_COLOUR_ACTIVE  = (100,110,100)
-
-	ARROW_COLOUR  = (250,175,35,180)
-	BANNER_COLOUR = (75,75,75)
-	SLIDER_COLOUR = (200,200,200,75)
-
-
-	# PIECE STYLE
-	PIECE_STYLE = (
-		"Classic",
-		"Tutorial",
-		"3D",
-		"FontAwesome"
-	)[0]
-
+	# DIRECTORIES
 	DIR         = os.getcwd()
 	DIR_MEDIA   = DIR + "\\media\\"
 	DIR_ICONS   = DIR_MEDIA + "icons\\"
-	DIR_SETS    = DIR_MEDIA + "sets\\" + PIECE_STYLE + "\\"
+	DIR_SETS    = DIR_MEDIA + "sets\\"
+	DIR_SET     = DIR_SETS + PIECE_STYLE + "\\"
 	DIR_SOUNDS  = DIR_MEDIA + "sounds\\"
 
 
 
 
 
-# ENGINE CONSTANTS
+
+
 class E:
-	# INIT_SCHEME = [None,"BASIC"]
-	# INIT_SCHEME = [None,"RANDOM"]
+	# INITIALS
 	INIT_SCHEME = [None,None]
+	# INIT_SCHEME = [None,"SIMPLE"]
+	# INIT_SCHEME = [None,"RANDOM"]
 
-	# STATIC SCORETABLES
-	SCORETABLE_MATERIAL_BASIC = {
-		"P" : 10,
-		"N" : 30,
-		"B" : 30,
-		"R" : 50,
-		"Q" : 90,
-		"K" : 1000
-	}
-	SCORETABLE_MATERIAL_TUNED = {
-		"P" : 10,
-		"N" : 33,
-		"B" : 35,
-		"R" : 50,
-		"Q" : 95,
-		"K" : 1000
-	}
-	SCORETABLE_MATERIAL = SCORETABLE_MATERIAL_BASIC
+	BOT_DEPTH_BLACK = 2
+	BOT_DEPTH_WHITE = 1
 
-	SCORETABLE_POSITION_BASIC = {
+
+
+	# SCOREBOARDS
+	SCOREBOARD_MATERIAL_BASIC = {
+		"P" : 1,
+		"N" : 3,
+		"B" : 3,
+		"R" : 5,
+		"Q" : 9,
+		"K" : 100
+	}
+	SCOREBOARD_MATERIAL_TUNED = {
+		"P" : 1,
+		"N" : 3.3,
+		"B" : 3.5,
+		"R" : 5,
+		"Q" : 9.5,
+		"K" : 100
+	}
+	SCOREBOARD_MATERIAL = SCOREBOARD_MATERIAL_BASIC
+
+	SCOREBOARD_POSITION_BASIC = {               ### in centipawns I guess
 		"P" : [
 				( 99 , 99 , 99 , 99 , 99 , 99 , 99 , 99 ),
 				( 50 , 50 , 50 , 50 , 50 , 50 , 50 , 50 ),
@@ -180,7 +220,7 @@ class E:
 				(-20 ,-10 ,-10 ,-10 ,-10 ,-10 ,-10 ,-20 )
 			],
 		"R" : [
-				(  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ),
+				(  3 ,  3 ,  3 ,  3 ,  3 ,  3 ,  3 ,  3 ),
 				(  5 , 10 , 10 , 10 , 10 , 10 , 10 ,  5 ),
 				( -5 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , -5 ),
 				( -5 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , -5 ),
@@ -210,4 +250,4 @@ class E:
 				( 20 , 30 , 10 ,  0 ,  0 , 10 , 30 , 20 )
 			]
 	}
-	SCORETABLE_POSITION = SCORETABLE_POSITION_BASIC
+	SCOREBOARD_POSITION = SCOREBOARD_POSITION_BASIC

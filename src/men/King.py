@@ -8,14 +8,14 @@ from src.Constants import C
 
 
 class King(Man):
-	def __init__(self , position , colour , board):
-		super().__init__(position , colour , board)
+	def __init__(self , *args):
+		super().__init__(*args)
 		self.creed = "K"
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SETS + colour + "_king.png"
+		self.image_path = C.DIR_SET + self.colour + "_king.png"
 		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , (C.TILE_WIDTH-20 , C.TILE_HEIGHT-20))
+		self.image = pygame.transform.scale(self.image , self.image_size)
 
 
 	def stencil_moves(self):
@@ -30,19 +30,19 @@ class King(Man):
 			[(-1 , -1)]
 		]
 
-		return self.bound(moves)
+		return self.confine(moves)
 
 
 	def can_castle(self , board):
 		castles = ''
-		if not self.has_moved:
+		if not self.has_moved and not self.board.is_in_check(self.colour):
 			backrank = 1 if self.colour == "w" else 8
-			qside_rook = board.tile_of(1,backrank).occupant
-			kside_rook = board.tile_of(8,backrank).occupant
 
+			# Kingside
+			kside_rook = board.tile(8,backrank).occupant
 			if kside_rook is not None and kside_rook.creed == "R":
 				if not kside_rook.has_moved:
-					kside_path = [board.tile_of(i,backrank) for i in range(6,8)]
+					kside_path = [board.tile(i,backrank) for i in range(6,8)]
 					if (
 						# CLEAR
 						not any([t.occupant for t in kside_path])
@@ -52,9 +52,11 @@ class King(Man):
 					):
 						castles += "k"
 
+			# Queenside
+			qside_rook = board.tile(1,backrank).occupant
 			if qside_rook is not None and qside_rook.creed == "R":
 				if not qside_rook.has_moved:
-					qside_path = [board.tile_of(i,backrank) for i in range(2,5)]
+					qside_path = [board.tile(i,backrank) for i in range(2,5)]
 					if (
 						# CLEAR
 						not any([t.occupant for t in qside_path])
@@ -76,12 +78,12 @@ class King(Man):
 		# Castling
 		castles = self.can_castle(self.board)
 		if "q" in castles:
-			out.append(self.board.tile_of(
+			out.append(self.board.tile(
 				self.f-2,
 				self.r
 			))
 		if "k" in castles:
-			out.append(self.board.tile_of(
+			out.append(self.board.tile(
 				self.f+2,
 				self.r
 			))

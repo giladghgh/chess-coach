@@ -7,8 +7,8 @@ from src.Constants import C
 
 
 class Tile:
-	def __init__(self , board , f , r , w , h , preoccupant=None):
-		self.board = board
+	def __init__(self , display , f , r , w , h , preoccupant=None):
+		self.display = display
 		self.f = f
 		self.r = r
 		self.w = w
@@ -21,11 +21,10 @@ class Tile:
 		self.font = pygame.font.SysFont("Consolas",12)
 
 		# Decor
-		self.veil = pygame.Surface(C.TILE_SIZE,pygame.SRCALPHA)
-
+		self.veil     = pygame.Surface(C.TILE_SIZE,pygame.SRCALPHA)
 		self.is_fresh = False
-		self.is_focus = False
 		self.is_legal = False
+		self.is_focus = False
 
 		### "bottom right is light for white"
 		if (self.f + self.r) % 2 == 1:
@@ -44,55 +43,64 @@ class Tile:
 		# 	(self.w,self.h)
 		# )
 
-
 	def __str__(self):
-		return self.pgn + (self.occupant.colour + self.occupant.creed if self.occupant else "")
+		return self.pgn + ((self.occupant.colour + self.occupant.creed) if self.occupant else "")
+
+
+	def __eq__(self , this):
+		return (self.f,self.r) == (this.f,this.r)
 
 
 	def render(self):
 		# if self.image:
-		# 	self.board.coach.display.blit(
+		# 	self.display.blit(
 		# 		self.image,
 		# 		self.image.get_rect(center=self.rect.center)
 		# 	)
 		# else:
 		pygame.draw.rect(
-			self.board.coach.display,
+			self.display,
 			self.rgb_basic,
 			self.rect
 		)
 
-		# Fresh / Focus / Legal decor
-		if any([
-			self.is_fresh,
-			self.is_focus,
-			self.is_legal,
-		]):
+		# Fresh / Legal / Focus decor
+		if self.is_focus or self.is_fresh or self.is_legal:
+			self.veil.fill((0, 0, 0, 0))
+
 			if self.is_focus:
 				self.veil.fill((*self.rgb_focus,130))
+				self.display.blit(self.veil,self.rect)
+
 			elif self.is_fresh:
 				self.veil.fill((*self.rgb_fresh,180))
-			self.board.coach.display.blit(self.veil,self.rect)		# blit twice so doubled decor doesn't look like shit
+				self.display.blit(self.veil,self.rect)
 
 			if self.is_legal:
 				pygame.draw.circle(
 					self.veil,
 					(50,50,50,75),
-					self.veil.get_rect().center,
+					[l/2 for l in C.TILE_SIZE],
 					40 if self.occupant else 10
 				)
-			self.board.coach.display.blit(self.veil,self.rect)
+				self.display.blit(self.veil,self.rect)          # blit twice so doubled decor doesn't look shit
 
-		# Occupant / PGN coordinate
+		# Occupant
 		if self.occupant:
-			self.board.coach.display.blit(
+			self.display.blit(
 				self.occupant.image,
 				self.occupant.image.get_rect(center=self.rect.center)
 			)
-		elif self.board.show_coords:
-			prose = self.font.render(self.pgn,True,(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150))
+
+		# Co-ordinate
+		elif C.SHOW_TILE_COORD:
+			prose = self.font.render(
+				self.pgn,
+				True,
+				(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150)
+			)
 			prose.set_alpha(150)
-			self.board.coach.display.blit(
+			self.display.blit(
 				prose,
 				prose.get_rect(center=self.rect.center).move(0,1)
 			)
@@ -111,14 +119,14 @@ class Tile:
 	@property
 	def x(self):
 		return self.w * (
-			(8-self.f) if self.board.flipped else (self.f-1)
+			(8-self.f) if C.BOARD_FLIPPED else (self.f-1)
 		)
 
 
 	@property
 	def y(self):
 		return self.h * (
-			(8-self.r) if self.board.flipped else (self.r-1)
+			(8-self.r) if C.BOARD_FLIPPED else (self.r-1)
 		)
 
 

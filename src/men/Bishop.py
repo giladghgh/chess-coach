@@ -8,14 +8,14 @@ from src.Constants import C
 
 
 class Bishop(Man):
-	def __init__(self , position , colour , board):
-		super().__init__(position , colour , board)
+	def __init__(self , *args):
+		super().__init__(*args)
 		self.creed = "B"
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SETS + colour + "_bishop.png"
+		self.image_path = C.DIR_SET + self.colour + "_bishop.png"
 		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , (C.TILE_WIDTH-20 , C.TILE_HEIGHT-20))
+		self.image = pygame.transform.scale(self.image , self.image_size)
 
 
 	def stencil_moves(self):
@@ -36,4 +36,4 @@ class Bishop(Man):
 
 		moves = [moves_nw] + [moves_ne] + [moves_sw] + [moves_se]
 
-		return self.bound(moves)
+		return self.confine(moves)

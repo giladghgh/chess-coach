@@ -8,14 +8,14 @@ from src.Constants import C
 
 
 class Rook(Man):
-	def __init__(self , position , colour , board):
-		super().__init__(position , colour , board)
+	def __init__(self , *args):
+		super().__init__(*args)
 		self.creed = "R"
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SETS + colour + "_rook.png"
+		self.image_path = C.DIR_SET + self.colour + "_rook.png"
 		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , (C.TILE_WIDTH-20 , C.TILE_HEIGHT-20))
+		self.image = pygame.transform.scale(self.image , self.image_size)
 
 
 	def stencil_moves(self):
@@ -36,4 +36,4 @@ class Rook(Man):
 
 		moves = [moves_n] + [moves_e] + [moves_s] + [moves_w]
 
-		return self.bound(moves)
+		return self.confine(moves)
