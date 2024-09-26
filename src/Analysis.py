@@ -1,7 +1,7 @@
 import pygame
 
 from src.Constants import C
-from src.Element import *
+from src.Elements import *
 
 
 

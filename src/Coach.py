@@ -3,8 +3,8 @@ import pygame,time
 from src.Constants import C
 from src.Gameplay import Board,Move,Clock
 from src.Engine import Engine
-from src.Context import *
-from src.Element import *
+from src.Contexts import *
+from src.Elements import *
 
 
 
@@ -18,8 +18,8 @@ class Coach:
 
 		# Faculties
 		self.board  = Board(self)
-		self.engine = Engine(self)
 		self.reader = Reader(self)
+		self.engine = Engine(self)
 
 		# Contexts
 		self.settings = Settings(self)
@@ -124,13 +124,32 @@ class Coach:
 			**self.buttons_bots,
 		}
 
+
+
+
+		###########################################
+		# self.test = []
+		# for i in range(4):
+		# 	self.test.append(
+		# 		Writer(
+		# 			self.tray,
+		# 			C.TRAY_WIDTH/4,
+		# 			200 + i*(C.TEXTBOX_HEIGHT + C.GRID_GAP),
+		# 			C.TEXTBOX_WIDTH/2,
+		# 			""
+		# 		)
+		# 	)
+		###########################################
+
+
+
+
 		# Assemble!
 		self.import_FEN(C.INIT_FEN)		### assembling on black's turn may cause movelog issues... button import instead
-		self.tutorial.plug_in()
+
+		self.tutorial.plug_in()         ### in reverse order so tooltips aren't obscured
 		self.analysis.plug_in()
 		self.settings.plug_in()
-
-		print(self.analysis.buttons)
 
 
 	def reset(self , fen=C.INIT_FEN):
@@ -190,29 +209,6 @@ class Coach:
 
 			self.screen.blit(self.pane,(0,0))
 
-		################### BEAMS ##################
-		# x0 = pygame.mouse.get_pressed()[0]
-		# pygame.draw.line(
-		# 	self.screen,(0,0,0),(x0,0),(x0,C.BOARD_HEIGHT),
-		# )
-		# x1 = C.X_MARGIN
-		# pygame.draw.line(
-		# 	self.screen,(0,0,0),(x1,0),(x1,C.BOARD_HEIGHT),
-		# )
-		# x2 = C.X_MARGIN + 0.1*C.BUTTON_WIDTH
-		# pygame.draw.line(
-		# 	self.screen,(0,0,0),(x2,0),(x2,C.BOARD_HEIGHT),
-		# )
-		# y1 = C.Y_MARGIN
-		# pygame.draw.line(
-		# 	self.screen,(0,0,0),(0,y1),(C.SIDEBAR_WIDTH,y1),
-		# )
-		# y2 = C.Y_MARGIN + 0.1*C.BUTTON_HEIGHT
-		# pygame.draw.line(
-		# 	self.screen,(0,0,0),(0,y2),(C.SIDEBAR_WIDTH,y2),
-		# )
-		###########################################
-
 		# Tray
 		if self.tray:
 			self.tray.fill((0,0,0,0))
@@ -225,7 +221,35 @@ class Coach:
 			self.graveyard.render()
 
 
+
+			###########################################
+			# self.test[0].field = str(self.clock.time)
+			# self.test[1].field = str(self.clock.whiteface.timer.time) +"---"+ self.clock.whiteface.timer.reading
+			# self.test[2].field = str(self.clock.blackface.timer.time) +"---"+ self.clock.blackface.timer.reading
+			# for test in self.test:
+			# 	test.render()
+			###########################################
+
+
+
 			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_PAD,0))
+
+
+		############### SCAFFOLDING ###############
+		# def xscaff(x , colour=(255,255,255)):
+		# 	pygame.draw.line(
+		# 		self.screen,colour or (0,0,0),(x,0),(x,C.BOARD_HEIGHT),
+		# 	)
+		# def yscaff(y , colour=(255,255,255)):
+		# 	pygame.draw.line(
+		# 		self.screen,colour or (0,0,0),(C.SIDEBAR_WIDTH+C.BOARD_WIDTH,y),(C.WINDOW_SIZE[0],y),
+		# 	)
+		# x,y = pygame.mouse.get_pos()
+		# self.xscaff(x)
+		# self.yscaff(y)
+		# yscaff(C.BOARD_HEIGHT/2)
+		# xscaff(C.SIDEBAR_WIDTH+C.BOARD_WIDTH+C.TRAY_WIDTH/2)
+		###########################################
 
 
 
@@ -335,6 +359,7 @@ class Coach:
 					slider.hold(event.pos)
 
 
+	# TODO: HANDLE END OF GAME
 	def is_game_over(self):
 		# Stats
 		if self.board.rulecount_threereps >= 3:
@@ -370,6 +395,7 @@ class Coach:
 			return True
 
 
+	# TODO: OVERHAUL I/O
 	def export_PGN(self):
 		import re
 
@@ -501,12 +527,14 @@ class Coach:
 				corner.occupant.has_moved = True
 
 		### en passant availability
-		ep_square = fen[3]
-		if ep_square.isalnum():
-			self.board.tile(
-				C.FILES.index(ep_square[-2]),
-				int(ep_square[-1]) + (1 if self.board.ply == "b" else -1)
-			).occupant.just_moved_double = True
+		ep_tgt = fen[3]
+		if ep_tgt.isalnum():
+			ep_target = self.board.tile(
+				C.FILES.index(ep_tgt[-2]),
+				int(ep_tgt[-1]) + (1 if self.board.ply == "b" else -1)
+			)
+			if pawn := ep_target.occupant:
+				pawn.just_moved_double = True
 
 		### halfmove capture clock
 		self.board.rulecount_fiftymoves = int(fen[4])

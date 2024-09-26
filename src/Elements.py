@@ -238,19 +238,21 @@ class Writer:
 			self.rect
 		)
 
-		dest = (
-			self.rect.x + 5,
-			self.rect.y + 0.15*C.TEXTBOX_HEIGHT
-		)
 		if self.field:
 			self.pane.blit(
 				self.font.render(self.field,True,(255,255,255)),
-				dest
+				(
+					self.rect.x + 5,
+					self.rect.y + 0.15*C.TEXTBOX_HEIGHT
+				)
 			)
 		else:
 			self.pane.blit(
-				self.pre_font.render(self.pretext,True,(165,165,165)),
-				dest
+				self.pre_font.render(self.pretext,True,(185,185,185)),
+				(
+					self.rect.x + 5,
+					self.rect.y + 0.15*C.TEXTBOX_HEIGHT
+				)
 			)
 
 
@@ -1134,7 +1136,11 @@ class ButtonContextOpen(Button):
 			self.size
 		)
 
-		self.tooltip = str(self.context).title()
+		self.tooltip = {
+			"Settings" : "Settings",
+			"Analysis" : "Analysis",
+			"Tutorial" : "Coaching...",
+		}[str(self.context)]
 
 	def click(self):
 		for context in self.coach.contexts:
@@ -1154,7 +1160,7 @@ class ButtonContextShut(Button):
 		self.size = [self.scale*l for l in C.BUTTON_SIZE]
 		self.rect = pygame.Rect(
 			self.x,
-			self.y,
+			self.y + 1,             ### another correction needed... my maths is solid so wtf??
 			*self.size
 		)
 
@@ -1821,17 +1827,38 @@ class ButtonClockFace(Button):
 			self.size
 		)
 
+		starter = (C.TIME_STARTER_WHITE,C.TIME_STARTER_BLACK)[self.player=="BLACK"]
+		self.start = 60*(60*starter[0] + starter[1]) + starter[2]
+		self.bonus = (C.TIME_BONUS_WHITE,C.TIME_BONUS_BLACK)[self.player=="BLACK"]
+
+		self.nsegs = 3 if self.start + self.bonus >= 60*60 else 2
+
+		if self.nsegs == 3:
+			### HH:MM:SS
+			scheme = (
+				self.x - C.BUTTON_WIDTH,
+				(3*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT)
+			)
+		else:
+			### MM:SS
+			scheme = (
+				self.x - C.BUTTON_WIDTH/2,
+				(2*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT)
+			)
+
 		self.timer = Timer(
 			self.display,
-			self.x - C.BUTTON_WIDTH/2,
-			(
+			x=scheme[0],
+			y=(
 				self.y - (5/6)*C.BUTTON_HEIGHT - 2*C.GRID_GAP,
 				self.y + C.BUTTON_HEIGHT + 2*C.GRID_GAP
-			)[self.player=="BLACK"],
-			self.player,
-			90,0,
+			)[self.player == "BLACK"],
+			size=scheme[1],
+			player=self.player,
+			start=self.start,bonus=self.bonus,
 			trigger=self
 		)
+
 
 		self.tooltip = self.player.title() + " clock"
 
@@ -1963,25 +1990,23 @@ class ButtonClockLink(Button):
 
 
 
-# TODO: ADD SCRAMBLE MODE FOR t<10
+# TODO: SCRAMBLE
 class Timer:
-	def __init__(self , display , x , y , player , start , bonus , trigger):
+	def __init__(self , display , x , y , size , player , start , bonus , trigger):
 		self.display = display
 		self.x       = x
 		self.y       = y
+		self.size    = size
 		self.player  = player
 		self.start   = start
 		self.bonus   = bonus
-		self.time    = 60*start + bonus
 		self.trigger = trigger
 
-		self.colour = C.TIMER_DEAD
-		self.size   = (
-			(9/4)*C.BUTTON_WIDTH,
-			(5/6)*C.BUTTON_HEIGHT,
-		)
+		# Time itself (always in seconds)
+		self.time = self.start + self.bonus
 
-		self.font = pygame.font.SysFont("Consolas",28)
+		self.colour = C.TIMER_DEAD
+		self.font   = pygame.font.SysFont("Consolas",28)
 
 		self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
 		self.body  = pygame.Rect(0,0,*self.size)
@@ -1990,7 +2015,12 @@ class Timer:
 			0.075*self.body.height,
 			0.88*self.body.width,
 			0.85*self.body.height,
-		).move(1,1)                     ### corrections needed for some reason...
+		)
+
+		### alerts
+		self.beep()
+		self.buzz()
+		self.bang()
 
 
 	def render(self):
@@ -1998,7 +2028,7 @@ class Timer:
 
 		pygame.draw.rect(
 			self.frame,
-			(150,150,150),
+			C.TIMER_IDLE,
 			self.body,
 			border_radius=8
 		)
@@ -2014,16 +2044,55 @@ class Timer:
 		read.set_alpha(215)
 		self.frame.blit(
 			read,
-			read.get_rect(center=[self.size[0]/2 , 2.5+self.size[1]/2])
+			read.get_rect(center=[self.size[0]/2 , 1+self.size[1]/2])           ### minor correction...
 		)
 
-		self.display.blit(self.frame , (self.x-6,self.y-2))         ### pygame .scale() needs correcting... not sure why
+		self.display.blit(self.frame , (self.x,self.y))         ### pygame .scale() needs correcting... not sure why
 
+
+	def tick(self):
+		self.time -= 1
+
+		if self.time == 60*60-1:
+			self.x    = self.trigger.x - C.BUTTON_WIDTH/2
+			self.size = (
+				2*C.BUTTON_WIDTH,
+				(5/6)*C.BUTTON_HEIGHT
+			)
+
+			# self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
+			self.body  = pygame.Rect(0,0,*self.size)
+			self.face  = pygame.Rect(
+				0.06*self.body.width,
+				0.075*self.body.height,
+				0.88*self.body.width,
+				0.85*self.body.height,
+			)
+
+
+	def scramble(self):
+		pass
+
+
+	def beep(self):
+		pass
+
+	def buzz(self):
+		pass
+
+	def bang(self):
+		# Handle end of time
+		pass
 
 	@property
 	def reading(self):
-		mins,secs = divmod(self.time,60)
-		return  str(mins).zfill(2) + ":" + str(secs).zfill(2)
+		m,s = divmod(self.time,60)
+		h,m = divmod(m,60)
+
+		if h:
+			return f'{h:02d}:{m:02d}:{s:02d}'
+		else:
+			return f'{m:02d}:{s:02d}'
 
 
 

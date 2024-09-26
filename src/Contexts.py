@@ -1,6 +1,6 @@
 import pygame
 
-from src.Element import *
+from src.Elements import *
 
 
 
@@ -15,7 +15,12 @@ class Context:
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 
 		self.colour = None
-		self.rect   = pygame.Rect((0,0,C.SIDEBAR_WIDTH,C.BOARD_HEIGHT))
+		self.rect   = pygame.Rect(
+			0,
+			0,
+			C.X_MARGIN + C.TEXTBOX_WIDTH + C.X_MARGIN + C.GRID_GAP,
+			C.BOARD_HEIGHT
+		)
 
 		self.banners  = {}
 		self.counters = {}
@@ -26,10 +31,8 @@ class Context:
 			**self.context_menu,
 		}
 
-
 	def __repr__(self):
 		return type(self).__name__
-
 
 	def plug_in(self):
 		index = self.coach.contexts.index(self)
@@ -55,9 +58,30 @@ class Context:
 			)
 
 
+
+			###########################################
+			if str(context) != str(self) == "Tutorial":
+				print(context.context_menu)
+				context.context_menu["TUTORIAL"].colour = context.colour
+			###########################################
+
+
+
 	def render(self):
 		self.pane.fill((0,0,0,0))
 		self.pane.fill(self.colour,self.rect)
+
+		# Tab
+		pygame.draw.polygon(
+			self.pane,
+			self.colour,
+			points=(
+				( self.rect.width , 0 ),
+				( self.rect.width + 25 , 0 ),
+				( self.rect.width + 25 , (4/5)*C.TILE_HEIGHT ),
+				( self.rect.width , C.TILE_HEIGHT ),
+			)
+		)
 
 		# Banners
 		for subtitle,banner in self.banners.items():
@@ -80,7 +104,6 @@ class Context:
 
 		self.coach.screen.blit(self.pane,(0,0))
 
-
 	def handle_click(self , event):
 		# Buttons
 		for button in self.buttons.values():
@@ -98,7 +121,6 @@ class Context:
 		# Writers
 		for writer in self.writers.values():
 			writer.active = writer.rect.collidepoint(event.pos)
-
 
 	def arrange(self , ban , col , row , shift=(0,0) , scale=(1,1)):
 		return (
@@ -253,49 +275,52 @@ class Analysis(Context):
 
 		# Banners
 		self.banners = {
-			"DRAW CRITERIA"	: pygame.Rect(
+			"TOP LINES"	    : pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 1*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
-			"TOP LINES"	    : pygame.Rect(
+			"EVALUATION"    : pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 2.5*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
-			"EVALUATION"	: pygame.Rect(
+			"DRAWERS"       : pygame.Rect(
 				C.X_MARGIN,
-				C.Y_MARGIN + 4.5*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				C.Y_MARGIN + 8*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
 		}
 
 		# Counters
 		self.counters = {
+			### drawers
 			"RULECOUNT_FIFTYMOVES"	: Counter(
 				self.pane,
-				self.banners["DRAW CRITERIA"].left,
-				self.banners["DRAW CRITERIA"].bottom + C.GRID_GAP,
+				self.banners["DRAWERS"].left,
+				self.banners["DRAWERS"].bottom + C.GRID_GAP,
 				"Fifty Move Rule",
 				"0"
 			),
 			"RULECOUNT_THREEREPS"	: Counter(
 				self.pane,
-				self.banners["DRAW CRITERIA"].left,
-				self.banners["DRAW CRITERIA"].bottom + 4*C.GRID_GAP,
+				self.banners["DRAWERS"].left,
+				self.banners["DRAWERS"].bottom + 4*C.GRID_GAP,
 				"Threefold Repetition Rule",
 				"1"
 			),
 			### evaluation
 			"SCORE_SIMPLE"	        : Counter(
 				self.pane,
-				*self.arrange("EVALUATION",1,1),
+				self.banners["EVALUATION"].left,
+				self.banners["EVALUATION"].bottom + C.GRID_GAP,
 				"Simple",
 				"0.00"
 			),
 			"SCORE_STOCKFISH"       : Counter(
 				self.pane,
-				*self.arrange("EVALUATION",1,2),
+				self.banners["EVALUATION"].left,
+				self.banners["EVALUATION"].bottom + 4*C.GRID_GAP,
 				"Stockfish",
 				"0.00"
 			),

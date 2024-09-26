@@ -609,23 +609,24 @@ class Clock:
 	def __init__(self , coach):
 		self.coach = coach
 
-		from src.Element import ButtonClockFace,ButtonClockLink
+		from src.Elements import ButtonClockFace,ButtonClockLink
 
+		# Buttons
 		self.whiteface = ButtonClockFace(
 			self.coach.tray,
 			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
-			(2/3)*C.BOARD_HEIGHT - C.BUTTON_HEIGHT,
+			C.BOARD_HEIGHT/2 - C.GRID_GAP + C.TILE_HEIGHT,
 			player="WHITE",
 			clock=self
 		)
 		self.blackface = ButtonClockFace(
 			self.coach.tray,
 			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
-			(1/3)*C.BOARD_HEIGHT,
+			C.BOARD_HEIGHT/2 + C.GRID_GAP - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
 			player="BLACK",
 			clock=self
 		)
-		self.link = ButtonClockLink(
+		self.link      = ButtonClockLink(
 			self.coach.tray,
 			C.TRAY_PAD + C.TRAY_WIDTH/2 - 0.375*C.BUTTON_WIDTH,
 			C.BOARD_HEIGHT/2 - 0.175*C.BUTTON_HEIGHT,
@@ -636,26 +637,37 @@ class Clock:
 			True,
 			clock=self
 		)
+		self.faces = [
+			self.whiteface,
+			self.blackface,
+		]
 		self.buttons = [
 			self.whiteface,
 			self.blackface,
 			self.link,
 		]
 
+		# Mechanics
 		self.time = None
 		self.reset()
 
-		self.alerts = []
 
+	def reset(self , player=None):
+		if player:
+			pass
 
-	def reset(self):
-		self.whiteface.active       = self.blackface.active       = False
-		self.whiteface.colour       = self.blackface.colour       = C.BUTTON_DEAD
-		self.whiteface.timer.colour = self.blackface.timer.colour = C.TIMER_DEAD
+		else:
+			w = self.whiteface.timer
+			b = self.blackface.timer
 
-		self.time                 = 60*max(C.TIME_WHITE_START,C.TIME_BLACK_START) + max(C.TIME_WHITE_BONUS,C.TIME_BLACK_BONUS)
-		self.whiteface.timer.time = 60*C.TIME_WHITE_START + C.TIME_WHITE_BONUS
-		self.blackface.timer.time = 60*C.TIME_BLACK_START + C.TIME_BLACK_BONUS
+			self.whiteface.active = self.blackface.active = False
+			self.whiteface.colour = self.blackface.colour = C.BUTTON_DEAD
+			w.colour              = b.colour              = C.TIMER_DEAD
+
+			w.time    = w.start + w.bonus
+			b.time    = b.start + b.bonus
+
+			self.time = max(w.time,b.time)
 
 
 	def render(self):
@@ -664,49 +676,40 @@ class Clock:
 
 
 	def tick(self):
-		self.time -= 1
+		self.time -= 1      ### can I do anything with this ...?
 
 		# Propagate
 		if self.whiteface.active and self.coach.board.ply == "w":
-			self.whiteface.timer.time -= 1
+			self.whiteface.timer.tick()
 		elif self.blackface.active and self.coach.board.ply == "b":
-			self.blackface.timer.time -= 1
-
-		# Alerts
-		if self.time == 900:
-			self.buzz()
-		elif self.time == 0:
-			self.bang()
+			self.blackface.timer.tick()
 
 
 	def tack(self):
 		ply_is_white = self.coach.board.ply == "w"
 
-		white = self.whiteface
-		black = self.blackface
+		white = self.whiteface.timer
+		black = self.blackface.timer
+
+		if ply_is_white:
+			black.time += black.bonus
+		else:
+			white.time += white.bonus
 
 		# Movelog
-		self.coach.board.last_move.conclude = black.timer.time if ply_is_white else white.timer.time
-		self.coach.board.this_move.commence = white.timer.time if ply_is_white else black.timer.time
+		self.coach.board.last_move.conclude = black.time if ply_is_white else white.time
+		self.coach.board.this_move.commence = white.time if ply_is_white else black.time
 
 		# Timers
 		### white
-		if white.active:
-			white.timer.colour = C.TIMER_LIVE if ply_is_white else C.TIMER_IDLE
+		if self.whiteface.active:
+			white.time += white.bonus
+			white.colour = C.TIMER_LIVE if ply_is_white else C.TIMER_IDLE
 		else:
-			white.timer.colour = C.TIMER_DEAD
+			white.colour = C.TIMER_DEAD
 
 		### black
-		if black.active:
-			black.timer.colour = C.TIMER_IDLE if ply_is_white else C.TIMER_LIVE
+		if self.blackface.active:
+			black.colour = C.TIMER_IDLE if ply_is_white else C.TIMER_LIVE
 		else:
-			black.timer.colour = C.TIMER_DEAD
-
-
-	def buzz(self):
-		pass
-
-
-	def bang(self):
-		# Handle end of time
-		pass
+			black.colour = C.TIMER_DEAD
