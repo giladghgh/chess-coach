@@ -8,7 +8,7 @@ from src.Elements import *
 
 class Context:
 	def __init__(self , coach):
-		self.coach   = coach
+		self.coach = coach
 
 		self.show = False
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
@@ -57,31 +57,9 @@ class Context:
 				**context.context_menu,
 			)
 
-
-
-			###########################################
-			if str(context) != str(self) == "Tutorial":
-				print(context.context_menu)
-				context.context_menu["TUTORIAL"].colour = context.colour
-			###########################################
-
-
-
 	def render(self):
 		self.pane.fill((0,0,0,0))
 		self.pane.fill(self.colour,self.rect)
-
-		# Tab
-		pygame.draw.polygon(
-			self.pane,
-			self.colour,
-			points=(
-				( self.rect.width , 0 ),
-				( self.rect.width + 25 , 0 ),
-				( self.rect.width + 25 , (4/5)*C.TILE_HEIGHT ),
-				( self.rect.width , C.TILE_HEIGHT ),
-			)
-		)
 
 		# Banners
 		for subtitle,banner in self.banners.items():
@@ -100,7 +78,6 @@ class Context:
 			*self.buttons.values(),
 		]:
 			element.render()
-
 
 		self.coach.screen.blit(self.pane,(0,0))
 
@@ -184,7 +161,7 @@ class Settings(Context):
 				*self.arrange("UI",1,1),
 				C.BUTTON_SIZE,
 				True,
-				reader=self.coach.reader
+				coach=self.coach
 			),
 			"P_STYLIST"		: ButtonPieceStylist(
 				self.pane,
@@ -285,7 +262,7 @@ class Analysis(Context):
 				C.Y_MARGIN + 2.5*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
-			"DRAWERS"       : pygame.Rect(
+			"DRAW CRITERIA"       : pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 8*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
@@ -297,15 +274,15 @@ class Analysis(Context):
 			### drawers
 			"RULECOUNT_FIFTYMOVES"	: Counter(
 				self.pane,
-				self.banners["DRAWERS"].left,
-				self.banners["DRAWERS"].bottom + C.GRID_GAP,
+				self.banners["DRAW CRITERIA"].left,
+				self.banners["DRAW CRITERIA"].bottom + C.GRID_GAP,
 				"Fifty Move Rule",
 				"0"
 			),
 			"RULECOUNT_THREEREPS"	: Counter(
 				self.pane,
-				self.banners["DRAWERS"].left,
-				self.banners["DRAWERS"].bottom + 4*C.GRID_GAP,
+				self.banners["DRAW CRITERIA"].left,
+				self.banners["DRAW CRITERIA"].bottom + 4*C.GRID_GAP,
 				"Threefold Repetition Rule",
 				"1"
 			),
@@ -336,15 +313,15 @@ class Analysis(Context):
 
 
 
-class Tutorial(Context):
+class Coaching(Context):
 	def __init__(self , *args):
 		super().__init__(*args)
 
-		self.colour = C.BACKGR_TUTORIAL
+		self.colour = C.BACKGR_COACHING
 
 		# Banners
 		self.banners = {
-			"ALRIGHT LISTEN UP"	: pygame.Rect(
+			"ALRIGHT LISTEN UP..."	: pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 1*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE

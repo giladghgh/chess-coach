@@ -20,28 +20,29 @@ class Tile:
 
 		self.font = pygame.font.SysFont("Consolas",12)
 
+		# Brightness            "bottom right is light"
+		if (self.f + self.r) % 2 == 1:
+			self.rgb_basic = C.BOARD_STYLE[0]
+			self.rgb_fresh = C.BOARD_STYLE[1]
+			self.rgb_focus = C.TILE_FOCUS_LIGHT
+		else:
+			self.rgb_basic = C.BOARD_STYLE[2]
+			self.rgb_fresh = C.BOARD_STYLE[3]
+			self.rgb_focus = C.TILE_FOCUS_DARK
+
 		# Decor
 		self.veil     = pygame.Surface(C.TILE_SIZE,pygame.SRCALPHA)
 		self.is_fresh = False
 		self.is_legal = False
 		self.is_focus = False
 
-		### "bottom right is light for white"
-		if (self.f + self.r) % 2 == 1:
-			self.rgb_basic = C.BOARD_STYLE[0]
-			self.rgb_fresh = C.BOARD_STYLE[1]
-			self.rgb_focus = C.TILE_FOCUS_LIGHT
-			# self.image_path = C.DIR_MEDIA + "\\tile_light.png"
-		else:
-			self.rgb_basic = C.BOARD_STYLE[2]
-			self.rgb_fresh = C.BOARD_STYLE[3]
-			self.rgb_focus = C.TILE_FOCUS_DARK
-			# self.image_path = C.DIR_MEDIA + "\\tile_dark.png"
+		self.prose = self.font.render(
+			self.pgn,
+			True,
+			(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150)
+		)
+		self.prose.set_alpha(150)
 
-		# self.image = pygame.transform.scale(
-		# 	pygame.image.load(self.image_path),
-		# 	(self.w,self.h)
-		# )
 
 	def __str__(self):
 		return self.pgn + ((self.occupant.colour + self.occupant.creed) if self.occupant else "")
@@ -52,12 +53,6 @@ class Tile:
 
 
 	def render(self):
-		# if self.image:
-		# 	self.display.blit(
-		# 		self.image,
-		# 		self.image.get_rect(center=self.rect.center)
-		# 	)
-		# else:
 		pygame.draw.rect(
 			self.display,
 			self.rgb_basic,
@@ -85,24 +80,18 @@ class Tile:
 				)
 				self.display.blit(self.veil,self.rect)          # blit twice so doubled decor doesn't look shit
 
-		# Occupant
+		# Occupant ...
 		if self.occupant:
 			self.display.blit(
 				self.occupant.image,
 				self.occupant.image.get_rect(center=self.rect.center)
 			)
 
-		# Co-ordinate
+		# ... or co-ordinate
 		elif C.SHOW_TILE_COORD:
-			prose = self.font.render(
-				self.pgn,
-				True,
-				(235,235,235) if (self.f + self.r) % 2 == 1 else (150,150,150)
-			)
-			prose.set_alpha(150)
 			self.display.blit(
-				prose,
-				prose.get_rect(center=self.rect.center).move(0,1)
+				self.prose,
+				self.prose.get_rect(center=self.rect.center).move(0,1)
 			)
 
 

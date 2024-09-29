@@ -50,9 +50,9 @@ class Board:
 		self.sound_move_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_capture.wav")
 
 
-	def compose(self , shell):
+	def compose(self , blueprint):
 		self.all_tiles.clear()
-		for r,rank in enumerate(shell):
+		for r,rank in enumerate(blueprint):
 			r = 8 - r
 			for f,man in enumerate(rank):
 				f = 1 + f
@@ -174,7 +174,7 @@ class Board:
 			# Complete move:
 			if self.agent.go(self.this_move , chosen_tile , promo , show):
 				# Mechanics
-				### unrestricted prev/next
+				### unrestricted turn control
 				del self.movelog[self.halfmovenum - 1:]
 
 				### turnover
@@ -192,11 +192,11 @@ class Board:
 				self.movelog.append(self.last_move)
 				self.movelog.append(self.this_move)
 
-				# Clock
-				self.coach.clock.tack()
-
 				# Calibrate
 				self.calibrate()
+
+				### clock
+				self.coach.clock.tack()
 
 			# Switch agent:
 			elif chosen_tile.occupant and chosen_tile.occupant.colour == self.ply:
@@ -213,8 +213,14 @@ class Board:
 
 
 	def calibrate(self):
-		# Threefold repetition rule
 		if self.last_move:
+			# Fifty move rule
+			if self.last_move.agent.creed and not self.last_move.capture:
+				self.rulecount_fiftymoves += 1
+			else:
+				self.rulecount_fiftymoves = 0
+
+			# Threefold repetition rule
 			fenlog = [tuple(move.fen.split()[:3]) for move in self.movelog[:self.halfmovenum+1]]
 			self.rulecount_threereps = {fen : fenlog.count(fen) for fen in fenlog}[
 				tuple(self.this_move.fen.split()[:3])
@@ -258,9 +264,9 @@ class Board:
 		for man in self.all_men(colour=("w" if colour == "b" else "b")):
 			for tile in man.pseudolegal_moves():
 				if tile.occupant and (
-					tile.occupant.creed == "K"
-					and
-					tile.occupant.colour == colour
+						tile.occupant.creed == "K"
+						and
+						tile.occupant.colour == colour
 				):
 					in_check = True
 					break
@@ -353,7 +359,7 @@ class Move:
 		return unmove
 
 
-	def vocalise(self):
+	def talk(self):
 		if self.board.is_in_check(("w","b")[self.board.ply == "w"]):
 			pygame.mixer.Sound.play(self.board.sound_move_check)
 		elif self.capture:
@@ -362,7 +368,7 @@ class Move:
 			pygame.mixer.Sound.play(self.board.sound_move_quiet)
 
 
-	def inscribe(self):
+	def note(self):
 		self.text = ''
 
 		# Castling
@@ -379,7 +385,7 @@ class Move:
 			if self.agent.creed:
 				cache = self.target.occupant
 				self.target.occupant = None
-				attackers = self.board.all_threats(self.target , self.agent.colour , self.agent.creed)
+				attackers = self.board.all_threats(self.target, self.agent.colour, self.agent.creed)
 				self.target.occupant = cache
 
 				if attackers:
@@ -567,6 +573,85 @@ class Move:
 				pygame.display.update()
 
 
+	# TODO: TEST
+	def enact(self , text , ply):
+		if "..." in text:
+			return None
+
+		self.forced = True
+		self.text 	= text
+
+		# Standard Algebraic Notation
+		san = text
+
+		if text.count("#"):
+			san = san.replace("#","")
+			self.in_checkmate = True
+		elif text.count("+"):
+			san = san.replace("+","")
+			self.in_check = True
+
+		if text.count("x"):
+			san = san.replace("x","")
+			self.capture = True
+
+		if "=" in san:
+			# axb8=R
+			self.origin = self.board.tile(
+				C.FILES.index(san[0]),
+				2 if ply else 7
+			)
+			self.target = self.board.tile(
+				C.FILES.index(san[-4]),
+				1 if ply else 8
+			)
+
+			self.promo = san[-1]
+
+		if "-" in san:
+			# O-O-O
+			# O-O
+			self.origin = self.board.tile(
+				5,
+				8 if ply else 1
+			)
+			self.target = self.board.tile(
+				7 if san.count("-") == 1 else 3,
+				8 if ply else 1
+			)
+
+		elif san.isalnum():
+			# b4
+			# Nf7
+			# exd6
+			# Raxb8
+			# Qh4xe1
+			self.target = self.board.tile(
+				C.FILES.index(san[-2]),
+				int(san[-1])
+			)
+
+			attackers = self.board.all_threats(
+				self.target,
+				colour="b" if ply else "w",
+				creed=san[0] if san[0].isupper() else ""
+			)
+
+			if len(attackers) == 1:
+				self.origin = self.board.tile(*attackers[0].position)
+			else:
+				# Disambiguation
+				clue = "".join([char for char in san[:-2] if char.islower() or char.isnumeric()])
+				print("clue:" , clue , [a.pgn for a in attackers])
+				for opp in attackers:
+					if clue in opp.pgn:
+						print(opp.pgn)
+						self.origin = self.board.tile(*opp.position)
+
+		else:
+			return False
+
+
 	def wash(self):
 		self.lights.clear()
 		self.quiver.clear()
@@ -592,8 +677,8 @@ class Line(list):
 		return str(self.eval) + "L" + str(len(self)) + super().__repr__()
 
 
-	def __add__(self , this):
-		return Line(self,this)
+	def __add__(self , other):
+		return Line(self,other)
 
 
 	def append(self , this):
@@ -609,107 +694,165 @@ class Clock:
 	def __init__(self , coach):
 		self.coach = coach
 
-		from src.Elements import ButtonClockFace,ButtonClockLink
+		self.cache = None
+
+		from src.Elements import ButtonClockFace,ButtonClockLockSync
 
 		# Buttons
+		### for convenience
 		self.whiteface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
-			C.BOARD_HEIGHT/2 - C.GRID_GAP + C.TILE_HEIGHT,
-			player="WHITE",
-			clock=self
+			C.TRAY_GAP + C.TRAY_WIDTH/2,
+			C.BOARD_HEIGHT/2 + C.TILE_HEIGHT,
+			clock=self,
+			player="WHITE"
 		)
 		self.blackface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_PAD + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
-			C.BOARD_HEIGHT/2 + C.GRID_GAP - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
-			player="BLACK",
-			clock=self
+			C.TRAY_GAP + C.TRAY_WIDTH/2,
+			C.BOARD_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
+			clock=self,
+			player="BLACK"
 		)
-		self.link      = ButtonClockLink(
+		self.locksync  = ButtonClockLockSync(
 			self.coach.tray,
-			C.TRAY_PAD + C.TRAY_WIDTH/2 - 0.375*C.BUTTON_WIDTH,
-			C.BOARD_HEIGHT/2 - 0.175*C.BUTTON_HEIGHT,
-			(
-				0.75*C.BUTTON_WIDTH,
-				0.35*C.BUTTON_HEIGHT,
-			),
-			True,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 - (3/8)*C.BUTTON_WIDTH,
+			C.BOARD_HEIGHT/2 - (3/8)*C.BUTTON_HEIGHT,
+			[3*L/4 for L in C.BUTTON_SIZE],
 			clock=self
 		)
-		self.faces = [
-			self.whiteface,
-			self.blackface,
-		]
-		self.buttons = [
-			self.whiteface,
-			self.blackface,
-			self.link,
-		]
+		self.buttons = {
+			"WHITE"     : self.whiteface,
+			"BLACK"     : self.blackface,
+			"LOCKSYNC"  : self.locksync,
+		}
 
 		# Mechanics
 		self.time = None
 		self.reset()
 
 
-	def reset(self , player=None):
-		if player:
-			pass
+	def reset(self):
+		self.locksync._i = -1
+		self.locksync.click()
 
-		else:
-			w = self.whiteface.timer
-			b = self.blackface.timer
+		w_timer = self.whiteface.timer
+		b_timer = self.blackface.timer
 
-			self.whiteface.active = self.blackface.active = False
-			self.whiteface.colour = self.blackface.colour = C.BUTTON_DEAD
-			w.colour              = b.colour              = C.TIMER_DEAD
-
-			w.time    = w.start + w.bonus
-			b.time    = b.start + b.bonus
-
-			self.time = max(w.time,b.time)
+		w_timer.time = w_timer.start + w_timer.bonus
+		b_timer.time = b_timer.start + b_timer.bonus
+		w_timer.text = self.read(w_timer.time)
+		b_timer.text = self.read(b_timer.time)
 
 
-	def render(self):
-		for button in self.buttons:
-			button.render()
+	def handle_tick(self , event):
+		# self.time -= 1        ### no real use for this
 
-
-	def tick(self):
-		self.time -= 1      ### can I do anything with this ...?
-
-		# Propagate
-		if self.whiteface.active and self.coach.board.ply == "w":
-			self.whiteface.timer.tick()
-		elif self.blackface.active and self.coach.board.ply == "b":
-			self.blackface.timer.tick()
+		if self.coach.board.halfmovenum == len(self.coach.board.movelog):       ### idle during turn control
+			if self.whiteface.active and event.player == "WHITE":
+				self.whiteface.timer.tick()
+			elif self.blackface.active and event.player == "BLACK":
+				self.blackface.timer.tick()
 
 
 	def tack(self):
-		ply_is_white = self.coach.board.ply == "w"
+		board   = self.coach.board
+		w_timer = self.whiteface.timer
+		b_timer = self.blackface.timer
 
-		white = self.whiteface.timer
-		black = self.blackface.timer
+		if board.ply == "w":
+			board.this_move.commence = w_timer.time
+			board.last_move.conclude = b_timer.time
 
-		if ply_is_white:
-			black.time += black.bonus
+			if self.whiteface.active:
+				w_timer.play()
+			if self.blackface.active:
+				b_timer.time += b_timer.bonus
+				b_timer.wait()
+
 		else:
-			white.time += white.bonus
+			board.this_move.commence = b_timer.time
+			board.last_move.conclude = w_timer.time
 
-		# Movelog
-		self.coach.board.last_move.conclude = black.time if ply_is_white else white.time
-		self.coach.board.this_move.commence = white.time if ply_is_white else black.time
+			if self.whiteface.active:
+				w_timer.time += w_timer.bonus
+				w_timer.wait()
+			if self.blackface.active:
+				b_timer.play()
 
-		# Timers
-		### white
-		if self.whiteface.active:
-			white.time += white.bonus
-			white.colour = C.TIMER_LIVE if ply_is_white else C.TIMER_IDLE
+
+	def jibe(self , resume=False):
+		board = self.coach.board
+		white = self.whiteface
+		black = self.blackface
+
+		if resume:
+			white.active , black.active = self.cache[0]
+			white.colour , black.colour = self.cache[1]
+			self.cache = None
+
+			white.timer.text = self.read(white.timer.time)
+			black.timer.text = self.read(black.timer.time)
+
+			if board.ply == "w":
+				white.timer.play()
+				black.timer.wait()
+			else:
+				white.timer.wait()
+				black.timer.play()
+
 		else:
-			white.colour = C.TIMER_DEAD
+			self.cache = self.cache or [
+				(white.active , black.active),
+				(white.colour , black.colour),
+			]
 
-		### black
-		if self.blackface.active:
-			black.colour = C.TIMER_IDLE if ply_is_white else C.TIMER_LIVE
+			white.active = black.active = None
+			white.colour = black.colour = C.BUTTON_IDLE
+
+			if board.ply == "w":
+				white.timer.text = self.read(board.this_move.commence)
+				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start)
+				white.timer.play(ghost=True)
+				black.timer.wait(ghost=True)
+
+			else:
+				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start)
+				black.timer.text = self.read(board.this_move.commence)
+				white.timer.wait(ghost=True)
+				black.timer.play(ghost=True)
+
+
+	def sync(self):
+		pass
+
+
+	@staticmethod
+	def read(time):
+		if not time:
+			return None
+
+		m,s = divmod( round(time/100) ,60)
+		h,m = divmod(m,60)
+
+		if h:
+			return f'{h:02d}:{m:02d}:{s:02d}'
 		else:
-			black.colour = C.TIMER_DEAD
+			return f'{m:02d}:{s:02d}'
+
+
+	@property
+	def actives(self):
+		return self.whiteface.active , self.blackface.active
+
+	@property
+	def colours(self):
+		return self.whiteface.colour , self.blackface.colour
+
+	@property
+	def times(self):
+		return self.whiteface.timer.time , self.blackface.timer.time
+
+	@property
+	def times_elapsed(self):
+		return self.whiteface.timer.time_elapsed , self.blackface.timer.time_elapsed

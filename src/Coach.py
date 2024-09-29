@@ -14,21 +14,18 @@ class Coach:
 	def __init__(self):
 		self.screen = pygame.display.set_mode(C.WINDOW_SIZE)
 
-		pygame.time.set_timer(pygame.USEREVENT,1000)
-
 		# Faculties
 		self.board  = Board(self)
-		self.reader = Reader(self)
 		self.engine = Engine(self)
 
 		# Contexts
 		self.settings = Settings(self)
 		self.analysis = Analysis(self)
-		self.tutorial = Tutorial(self)
+		self.coaching = Coaching(self)
 		self.contexts = [
 			self.settings,
 			self.analysis,
-			self.tutorial,
+			self.coaching,
 		]
 
 		# Interface
@@ -37,9 +34,12 @@ class Coach:
 		self.tray = pygame.Surface(C.TRAY_SIZE,pygame.SRCALPHA)
 
 		### amenities
-		self.graveyard = Graveyard(self)    ### a moment of silence please
-		self.anchor    = None               ### annotations
+		self.graveyard = Graveyard(self)    ### afterlife included
+		self.reader    = Reader(self)       ### hello ECO
 		self.clock     = Clock(self)        ### timekeeping
+
+		### annotations
+		self.anchor = None
 
 		### banners
 		self.banners = {
@@ -60,11 +60,11 @@ class Coach:
 			coach=self
 		)
 		self.contexts_menu = {
-			"TUTORIAL"  : ButtonContextOpen(
+			"COACHING"  : ButtonContextOpen(
 				self.pane,
 				C.X_MARGIN + 2*(C.BUTTON_WIDTH + C.GRID_GAP),
 				C.Y_MARGIN,
-				context=self.tutorial,
+				context=self.coaching,
 				coach=self
 			),
 			"ANALYSIS"  : ButtonContextOpen(
@@ -82,7 +82,7 @@ class Coach:
 				coach=self
 			),
 		}
-		self.buttons_reader = {
+		self.buttons_turns = {
 			"NEXT"  : ButtonNext(
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
@@ -118,36 +118,16 @@ class Coach:
 				engine=self.engine
 			),
 		}
-		self.buttons = {				##### right->left (+ bottom->top if too near) so tooltips aren't obscured.
+		self.buttons = {				##### right->left (& bottom->top if near enough) so tooltips aren't obscured
 			**self.contexts_menu,
-			**self.buttons_reader,
+			**self.buttons_turns,
 			**self.buttons_bots,
 		}
 
-
-
-
-		###########################################
-		# self.test = []
-		# for i in range(4):
-		# 	self.test.append(
-		# 		Writer(
-		# 			self.tray,
-		# 			C.TRAY_WIDTH/4,
-		# 			200 + i*(C.TEXTBOX_HEIGHT + C.GRID_GAP),
-		# 			C.TEXTBOX_WIDTH/2,
-		# 			""
-		# 		)
-		# 	)
-		###########################################
-
-
-
-
 		# Assemble!
-		self.import_FEN(C.INIT_FEN)		### assembling on black's turn may cause movelog issues... button import instead
+		self.import_FEN(C.INIT_FEN)		### assembling on black's turn may cause movelog issues, button import instead
 
-		self.tutorial.plug_in()         ### in reverse order so tooltips aren't obscured
+		self.coaching.plug_in()         ### sorted such that tooltips aren't obscured
 		self.analysis.plug_in()
 		self.settings.plug_in()
 
@@ -161,6 +141,7 @@ class Coach:
 		self.board.this_move = Move(self.board,fen)
 		self.board.movelog   = [self.board.this_move,]
 
+		# For imports:
 		### ply agnostic
 		if self.board.ply == "b":
 			self.reader.halfmove_offset = True
@@ -176,11 +157,43 @@ class Coach:
 
 
 	def render(self):
-		# Sidebar
+		# Tray
+		if self.tray:
+			self.tray.fill((0,0,0,0))
+			self.tray.fill(C.BACKGR_TRAY , (C.TRAY_GAP,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
+
+			### clock
+			for button in self.clock.buttons.values():
+				button.render()
+
+			### graveyard
+			self.graveyard.render()
+
+
+			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
+
+		#
+		# Board rendered separately
+		#
+
+		# Pane
 		### CONTEXT
-		for context in self.contexts:
+		for i,context in enumerate(self.contexts):
 			if context.show:
+				### pane
 				context.render()
+
+				### tab
+				pygame.draw.polygon(
+					self.screen,
+					context.colour,
+					points=[
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH , 0 ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + 25 , 0 ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + 25 , (4/5)*C.TILE_HEIGHT ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH , C.TILE_HEIGHT ),
+					]
+				)
 				break
 
 		### NO CONTEXT
@@ -209,63 +222,39 @@ class Coach:
 
 			self.screen.blit(self.pane,(0,0))
 
-		# Tray
-		if self.tray:
-			self.tray.fill((0,0,0,0))
-			self.tray.fill(C.BACKGR_TRAY , (C.TRAY_PAD,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
-
-			### clock
-			self.clock.render()
-
-			### graveyard
-			self.graveyard.render()
-
-
-
-			###########################################
-			# self.test[0].field = str(self.clock.time)
-			# self.test[1].field = str(self.clock.whiteface.timer.time) +"---"+ self.clock.whiteface.timer.reading
-			# self.test[2].field = str(self.clock.blackface.timer.time) +"---"+ self.clock.blackface.timer.reading
-			# for test in self.test:
-			# 	test.render()
-			###########################################
-
-
-
-			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_PAD,0))
-
 
 		############### SCAFFOLDING ###############
-		# def xscaff(x , colour=(255,255,255)):
+		# def xscaff(x , colour=None):
 		# 	pygame.draw.line(
 		# 		self.screen,colour or (0,0,0),(x,0),(x,C.BOARD_HEIGHT),
 		# 	)
-		# def yscaff(y , colour=(255,255,255)):
+		# def yscaff(y , colour=None):
 		# 	pygame.draw.line(
 		# 		self.screen,colour or (0,0,0),(C.SIDEBAR_WIDTH+C.BOARD_WIDTH,y),(C.WINDOW_SIZE[0],y),
 		# 	)
 		# x,y = pygame.mouse.get_pos()
-		# self.xscaff(x)
-		# self.yscaff(y)
+		# xscaff(x)
+		# yscaff(y)
 		# yscaff(C.BOARD_HEIGHT/2)
 		# xscaff(C.SIDEBAR_WIDTH+C.BOARD_WIDTH+C.TRAY_WIDTH/2)
+		# xscaff(2*C.X_MARGIN + C.TEXTBOX_WIDTH)
+		# xscaff(C.SIDEBAR_WIDTH)
 		###########################################
 
 
-
+	# TODO: CLICK ONLY TRIGGER TOP RENDERED ELEMENT
 	def handle_click(self , event):
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 			# Tray
-			if event.pos[0] > C.SIDEBAR_WIDTH + C.BOARD_WIDTH:
-				if self.tray:
-					local_pos = (
-						event.pos[0] - C.SIDEBAR_WIDTH - C.BOARD_WIDTH,
-						event.pos[1],
-					)
-					for button in self.clock.buttons:
-						if button.rect.collidepoint(local_pos):
-							button.click()
+			if event.pos[0] > C.SIDEBAR_WIDTH + C.BOARD_WIDTH and self.tray:
+				local_pos = (
+					event.pos[0] - C.SIDEBAR_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,
+					event.pos[1],
+				)
+				for button in self.clock.buttons.values():
+					if button.rect.collidepoint(local_pos) and button.active is not None:   ### specifically "is not None" for turn controls
+						button.click()
 
 			# Board
 			elif event.pos[0] > C.SIDEBAR_WIDTH:
@@ -396,27 +385,6 @@ class Coach:
 
 
 	# TODO: OVERHAUL I/O
-	def export_PGN(self):
-		import re
-
-		# Seven Tag Roster:
-		# 1) Event
-		# 2) Site
-		# 3) Date
-		# 4) Round
-		# 5) White
-		# 6) Black
-		# 7) Result
-
-		pgn = []
-		### multiline movetext (up to 999 turns):
-		for t,turn in enumerate(re.split(r"\d{1,3}\." , self.reader.movetext)):
-			if not t: continue
-			pgn.append("\n" + str(t) + ". " + turn.strip())
-
-		return pgn
-
-
 	def export_FEN(self):
 		# Board
 		fen_board = ''
@@ -456,9 +424,9 @@ class Coach:
 		castlability = ''
 		for king in self.board.all_men(creed="K"):
 			if not king.has_moved and king.position in ((5,1),(5,8)):
-				for rook in self.board.all_men(colour=king.colour,creed="R"):
+				for rook in self.board.all_men(colour=king.colour, creed="R"):
 					if not rook.has_moved and rook.position in (
-							(1,1),(8,1) if rook.colour == "w" else (8,1),(8,8)
+							(1,1), (8,1) if rook.colour == "w" else (8, 1), (8, 8)
 					):
 						can_castle = "K" if rook.f > king.f else "Q"
 						castlability += {
@@ -472,7 +440,7 @@ class Coach:
 		epability = None
 		for pawn in self.board.all_men(creed=""):
 			if pawn.just_moved_double:
-				epability = C.FILES[pawn.f] + str(pawn.r-1 if pawn.colour == "w" else pawn.r+1)
+				epability = C.FILES[pawn.f] + str(pawn.r-1 if pawn.colour == "w" else pawn.r + 1)
 
 		fen_config.append(epability or "-")
 
@@ -490,16 +458,25 @@ class Coach:
 		return fen
 
 
-	def import_PGN(self , filename , multiline=True):
+	def export_PGN(self):
 		import re
 
-		with open(filename,"r") as file:
-			if multiline:
-				for movenum,line in enumerate([line for line in file.readlines() if re.match(r"^\d{1,3}\.",line)]):
-					for ply,movetext in enumerate(line.strip().split()[1:]):
-						self.force_move(
-							self.PGN_to_move(ply,movetext)
-						)
+		# Seven Tag Roster:
+		# 1) Event
+		# 2) Site
+		# 3) Date
+		# 4) Round
+		# 5) White
+		# 6) Black
+		# 7) Result
+
+		pgn = []
+		### multiline movetext (up to 999 turns):
+		for t,turn in enumerate(re.split(r"\d{1,3}\." , self.reader.movetext)):
+			if not t: continue
+			pgn.append("\n" + str(t) + ". " + turn.strip())
+
+		return pgn
 
 
 	def import_FEN(self , fen_raw):
@@ -508,7 +485,7 @@ class Coach:
 		# Board
 		self.board.agent = None
 		self.board.compose(
-			shell=self.FEN_to_model(fen[0])
+			self.blueprint(fen[0])
 		)
 
 		# Configuration
@@ -544,21 +521,34 @@ class Coach:
 
 		# Other
 		### halfmoves
-		# #####   last term accounts for FENs imported at black's turn; without it, prev/next buttons loop.
+		# #####   last term accounts for FENs imported at black's turn; without it, turn controls loop.
 		# self.board.halfmovenum = 2*self.board.movenum - (self.board.ply == "w")
 
 		### pawn double moves
 		for pawn in self.board.all_men(creed=""):
 			if (
-				pawn.colour == "w"
-				and
-				pawn.r != 2
+					pawn.colour == "w"
+					and
+					pawn.r != 2
 			) or (
-				pawn.colour == "b"
-				and
-				pawn.r != 7
+					pawn.colour == "b"
+					and
+					pawn.r != 7
 			):
 				pawn.has_moved = True
+
+
+	def import_PGN(self , filename , multiline=True):
+		import re
+
+		with open(filename,"r") as file:
+			if multiline:
+				for movenum,line in enumerate([line for line in file.readlines() if re.match(r"^\d{1,3}\.",line)]):
+					for ply,movetext in enumerate(line.strip().split()[1:]):
+						move = Move(self,self.export_FEN())
+						self.force_move(
+							move.enact(movetext,ply)
+						)
 
 
 	def force_move(self , move , show=True):
@@ -581,88 +571,6 @@ class Coach:
 			time.sleep(1/8)
 
 
-	def PGN_to_move(self , ply , movetextraw):
-		if "..." in movetextraw:
-			return None
-
-		move = Move(self.board)
-		move.forced = True
-		move.text 	= movetextraw
-
-		# Standard Algebraic Notation
-		san = movetextraw
-
-		if movetextraw.count("#"):
-			san = san.replace("#","")
-			move.in_checkmate = True
-		elif movetextraw.count("+"):
-			san = san.replace("+","")
-			move.in_check = True
-
-		if movetextraw.count("x"):
-			san = san.replace("x","")
-			move.capture = True
-
-		elif "=" in san:
-			# axb8=R
-			move.origin = self.board.tile(
-				C.FILES.index(san[0]),
-				2 if ply else 7
-			)
-			move.target = self.board.tile(
-				C.FILES.index(san[-4]),
-				1 if ply else 8
-			)
-
-			move.promo = san[-1]
-
-		elif "-" in san:
-			# O-O-O
-			# O-O
-			move.origin = self.board.tile(
-				5,
-				8 if ply else 1
-			)
-			move.target = self.board.tile(
-				7 if san.count("-") == 1 else 3,
-				8 if ply else 1
-			)
-
-		elif san.isalnum():
-			# b4
-			# Nf7
-			# exd6
-			# Raxb8
-			# Qh4xe1
-			move.target = self.board.tile(
-				C.FILES.index(san[-2]),
-				int(san[-1])
-			)
-
-			attackers = self.board.all_threats(
-				move.target,
-				colour="b" if ply else "w",
-				creed=san[0] if san[0].isupper() else ""
-			)
-
-			if len(attackers) == 1:
-				move.origin = self.board.tile(*attackers[0].position)
-			else:
-				# Disambiguation
-				clue = "".join([char for char in san[:-2] if char.islower() or char.isnumeric()])
-				print("clue:" , clue , [a.pgn for a in attackers])
-				for opp in attackers:
-					if clue in opp.pgn:
-						print(opp.pgn)
-						move.origin = self.board.tile(*opp.position)
-
-		else:
-			print(movetextraw , san)
-			raise Exception("Imported PGN move not recognised!")
-
-		return move
-
-
 	@staticmethod
 	def gridify(mouseclick):
 		if C.BOARD_FLIPPED:
@@ -678,7 +586,7 @@ class Coach:
 
 
 	@staticmethod
-	def FEN_to_model(fenboard):
+	def blueprint(fenboard):
 		model = [[]]
 		y = 0
 		for char in fenboard:

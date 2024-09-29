@@ -13,10 +13,10 @@ class Rook(Man):
 		self.creed = "R"
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SET + self.colour + "_rook.png"
-		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , self.image_size)
-
+		self.image = pygame.transform.scale(
+			pygame.image.load(C.DIR_SET + self.colour + "_rook.png"),
+			self.image_size
+		)
 
 	def stencil_moves(self):
 		moves_n,moves_e,moves_s,moves_w = [],[],[],[]

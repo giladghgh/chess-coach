@@ -14,9 +14,10 @@ class Pawn(Man):
 		self.creed = ""
 		self.id    = self.colour + self.creed + self.pgn
 
-		self.image_path = C.DIR_SET + self.colour + "_pawn.png"
-		self.image = pygame.image.load(self.image_path)
-		self.image = pygame.transform.scale(self.image , self.image_size)
+		self.image = pygame.transform.scale(
+			pygame.image.load(C.DIR_SET + self.colour + "_pawn.png"),
+			self.image_size
+		)
 
 		# Unique pawn attribute
 		self.just_moved_double = False

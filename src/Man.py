@@ -52,21 +52,22 @@ class Man:
 			### ...
 
 			# Special Mechanics
+			### promotion
 			if not self.creed:
-				### promotion
 				move.promo = False
 				if special or (
-					move.colour   == "w"
-					and
-					move.target.r == 8
+						move.colour == "w"
+						and
+						move.target.r == 8
 				) or (
-					move.colour   == "b"
-					and
-					move.target.r == 1
+						move.colour == "b"
+						and
+						move.target.r == 1
 				):
 					move.promote(special)
 
-				### en passant
+			### en passant
+			if not self.creed:
 				move.ep = False
 				for pawn in self.board.all_men(
 						colour=("w","b")[move.colour == "w"],
@@ -125,20 +126,14 @@ class Man:
 				for pawn in self.board.all_men(creed=""):
 					pawn.just_moved_double = pawn is self
 
-			### quiet move clock
-			if self.creed and not move.capture:
-				self.board.rulecount_fiftymoves += 1
-			else:
-				self.board.rulecount_fiftymoves = 0
-
-			### further details
+			### more info
 			move.in_checkmate = self.board.is_in_checkmate("w" if move.colour == "b" else "b")
 			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
-			move.inscribe()
+			move.note()
 
 			### make yaself heard
 			if tell:
-				move.vocalise()
+				move.talk()
 
 			return True
 		else:

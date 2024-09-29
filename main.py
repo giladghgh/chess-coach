@@ -25,6 +25,7 @@ if __name__ == "__main__":
 	os.environ["SDL_VIDEO_WINDOW_POS"] = "%d,%d" % C.WINDOW_POS
 
 	coach  = Coach()
+	clock  = coach.clock
 	board  = coach.board
 	engine = coach.engine
 
@@ -36,8 +37,10 @@ if __name__ == "__main__":
 			if event.type == pygame.QUIT:
 				running = False
 
+			# Keyboard
 			elif event.type == pygame.KEYDOWN:
 				match event.key:
+					### quit or shut pane
 					case pygame.K_ESCAPE:
 						for context in coach.contexts:
 							if context.show:
@@ -45,37 +48,42 @@ if __name__ == "__main__":
 								break
 						else:
 							running = False
-					case pygame.K_t:
-						coach.toggle_tray.click()
-					case pygame.K_LEFT:
-						if coach.toggle_tray.active:            ### can't hide if it's hidden already
-							coach.toggle_tray.active = True
-							coach.toggle_tray.click()
+
+					### open tray
 					case pygame.K_RIGHT:
 						if not coach.toggle_tray.active:
 							coach.toggle_tray.active = False
 							coach.toggle_tray.click()
 
-			elif event.type == pygame.USEREVENT:
-				coach.clock.tick()
+					### shut tray
+					case pygame.K_LEFT:
+						if coach.toggle_tray.active:
+							coach.toggle_tray.active = True
+							coach.toggle_tray.click()
 
+			# Clock
+			elif event in (clock.whiteface.timer.TICK,clock.blackface.timer.TICK):
+				coach.clock.handle_tick(event)
+
+			# Coach
 			elif event.type in (
 				pygame.KEYDOWN,
 				pygame.KEYUP,
-				pygame.MOUSEMOTION,
-				pygame.MOUSEBUTTONUP,
 				pygame.MOUSEBUTTONDOWN,
+				pygame.MOUSEBUTTONUP,
+				pygame.MOUSEMOTION,
+				pygame.MOUSEWHEEL,
 			):
 				coach.handle_click(event)
 
 		if not done:
 
 			# TODO: KING BURIALS
-			#   - DRAW, SAME FILE
-			#   - WHITE, BOTH ON LIGHT TILES
-			#   - BLACK, BOTH ON DARK TILES
 			if coach.is_game_over():
 				done = True
+
+				# Clock
+				# pygame.time.set_timer(pygame.USEREVENT,0)
 
 				if board.outcome[0] == "Draw":
 					print("The game is a draw by " + board.outcome[1].lower() + "!")
