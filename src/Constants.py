@@ -92,7 +92,7 @@ class C:
 	TEXTBOX_DARK  = (100,105,105)
 
 	BUTTON_LIVE   = (100,110,100)
-	BUTTON_IDLE   = (  0,  0, 25, 50)
+	BUTTON_IDLE   = (  0,  0, 15, 50)
 	BUTTON_DEAD   = (215,215,215)
 	BUTTON_BORDER = (  0,  0,  0, 15)
 

@@ -573,7 +573,7 @@ class Move:
 				pygame.display.update()
 
 
-	# TODO: TEST
+	# TODO: TEST THIS
 	def enact(self , text , ply):
 		if "..." in text:
 			return None
@@ -786,20 +786,34 @@ class Clock:
 		white = self.whiteface
 		black = self.blackface
 
+		ply_is_white = board.ply == "w"
+
 		if resume:
+			### resume button states
 			white.active , black.active = self.cache[0]
 			white.colour , black.colour = self.cache[1]
 			self.cache = None
 
+			### resume readings
 			white.timer.text = self.read(white.timer.time)
 			black.timer.text = self.read(black.timer.time)
 
-			if board.ply == "w":
-				white.timer.play()
-				black.timer.wait()
+			### resume timers
+			if white.active:
+				if ply_is_white:
+					white.timer.play()
+				else:
+					white.timer.wait()
 			else:
-				white.timer.wait()
-				black.timer.play()
+				white.timer.stop()
+
+			if black.active:
+				if ply_is_white:
+					black.timer.wait()
+				else:
+					black.timer.play()
+			else:
+				black.timer.stop()
 
 		else:
 			self.cache = self.cache or [
@@ -810,17 +824,33 @@ class Clock:
 			white.active = black.active = None
 			white.colour = black.colour = C.BUTTON_IDLE
 
-			if board.ply == "w":
+			if ply_is_white:
 				white.timer.text = self.read(board.this_move.commence)
 				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start)
-				white.timer.play(ghost=True)
-				black.timer.wait(ghost=True)
+
+				if white.active:
+					white.timer.play(ghost=True)
+				else:
+					white.timer.stop()
+
+				if black.active:
+					black.timer.wait(ghost=True)
+				else:
+					black.timer.stop()
 
 			else:
 				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start)
 				black.timer.text = self.read(board.this_move.commence)
-				white.timer.wait(ghost=True)
-				black.timer.play(ghost=True)
+
+				if white.active:
+					white.timer.wait(ghost=True)
+				else:
+					white.timer.stop()
+
+				if black.active:
+					black.timer.play(ghost=True)
+				else:
+					black.timer.stop()
 
 
 	def sync(self):
@@ -840,6 +870,10 @@ class Clock:
 		else:
 			return f'{m:02d}:{s:02d}'
 
+
+	@property
+	def active(self):
+		return self.whiteface.active or self.blackface.active
 
 	@property
 	def actives(self):

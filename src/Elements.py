@@ -1955,7 +1955,6 @@ class ButtonClockLockSync(Button):
 
 		match self._i:
 			case 2:
-				self.active  = True
 				self.tooltip = "Synced"
 				self.image   = pygame.transform.scale(
 					pygame.image.load(C.DIR_ICONS + "\\clock\\btn_locksync-c.png"),
@@ -1963,18 +1962,9 @@ class ButtonClockLockSync(Button):
 				)
 
 				# Function
-				## unlocked & synced, essentially 'match mode'
-				white.active = black.active = True
-				white.colour = black.colour = C.BUTTON_LIVE
-				if self.clock.coach.board.ply == "w":
-					white.timer.play()
-					black.timer.wait()
-				else:
-					white.timer.wait()
-					black.timer.play()
+				self.active = True
 
 			case 1:
-				self.active  = False
 				self.tooltip = "Unlocked"
 				self.image   = pygame.transform.scale(
 					pygame.image.load(C.DIR_ICONS + "\\clock\\btn_locksync-b.png"),
@@ -1982,12 +1972,11 @@ class ButtonClockLockSync(Button):
 				)
 
 				# Function
-				### play at will
+				self.active  = False
 				white.active = black.active = False
 				white.colour = black.colour = C.BUTTON_DEAD
 
 			case 0:
-				self.active  = False
 				self.tooltip = "Locked"
 				self.image   = pygame.transform.scale(
 					pygame.image.load(C.DIR_ICONS + "\\clock\\btn_locksync-a.png"),
@@ -1996,6 +1985,7 @@ class ButtonClockLockSync(Button):
 
 				# Function
 				### everyting lock arff
+				self.active  = False
 				white.active = black.active = None
 				white.colour = black.colour = C.BUTTON_IDLE
 				white.timer.stop()
@@ -2037,76 +2027,6 @@ class ButtonClockLockSync(Button):
 					local_pos[0] - 5 - tltip_width,
 					local_pos[1] + 10
 				)
-			)
-
-
-
-class ButtonClockLink(Button):
-	def __init__(self , *args , clock):
-		super().__init__(*args)
-		self.clock = clock
-
-		self.active = False
-		self.click()
-
-
-	def click(self):
-		self.active = not self.active
-
-		if self.active:
-			self.colour  = C.BUTTON_LIVE
-			self.tooltip = "Linked"
-
-			self.image = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "\\clock\\btn_link-a.png"),
-				self.size
-			)
-
-			# Function
-			### if either faces are active, deactivate both
-			if not (self.clock.whiteface.active and self.clock.blackface.active):
-				self.clock.whiteface.active = self.clock.blackface.active = False
-				self.clock.whiteface.colour = self.clock.blackface.colour = C.BUTTON_DEAD
-				self.clock.whiteface.timer.stop()
-				self.clock.blackface.timer.stop()
-
-		else:
-			self.colour  = C.BUTTON_DEAD
-			self.tooltip = "Link"
-
-			self.image = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "\\clock\\btn_link-b.png"),
-				self.size
-			)
-
-
-	def render(self):
-		# Button
-		pygame.draw.rect(
-			self.display,
-			self.colour,
-			self.rect
-		)
-		self.display.blit(
-			self.image,
-			self.rect
-		)
-
-		# Tooltip
-		mouse_pos = pygame.mouse.get_pos()
-		local_pos = (
-			mouse_pos[0] - C.SIDEBAR_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,            ### shift for tray
-			mouse_pos[1],
-		)
-		if self.rect.collidepoint(local_pos):
-			self.display.blit(
-				self.font.render(
-					self.tooltip,
-					True,
-					(0,0,0),
-					(255,255,255,0)
-				),
-				(local_pos[0]+15,local_pos[1]+10)
 			)
 
 
@@ -2199,23 +2119,23 @@ class Timer:
 
 
 	def play(self , ghost=False):
+		self.text_colour = (255,255,255)
+		self.case_colour = C.TIMER_CASE_LIVE
 		if ghost:
 			self.colour = C.TIMER_IDLE
 		else:
 			self.colour = C.TIMER_LIVE
 			pygame.time.set_timer(self.TICK,10)
-		self.text_colour = (255,255,255)
-		self.case_colour = C.TIMER_CASE_LIVE
 
 
 	def wait(self , ghost=False):
-		if ghost:
-			self.colour      = C.TIMER_IDLE
-		else:
-			self.colour      = C.TIMER_IDLE
-			pygame.time.set_timer(self.TICK,0)
 		self.text_colour = (255,255,255)
 		self.case_colour = C.TIMER_IDLE
+		if ghost:
+			self.colour = C.TIMER_IDLE
+		else:
+			self.colour = C.TIMER_IDLE
+			pygame.time.set_timer(self.TICK,0)
 
 	def stop(self):
 		self.colour      = C.TIMER_DEAD
