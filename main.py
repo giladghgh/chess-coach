@@ -18,7 +18,7 @@ if __name__ == "__main__":
 	# 	pygame.display.Info().current_h
 	# )
 	# C.WINDOW_POS = (
-	# 	(19/20)*C.MONITOR_SIZE[0] - (C.SIDEBAR_WIDTH + C.BOARD_WIDTH),
+	# 	(19/20)*C.MONITOR_SIZE[0] - (C.PANE_WIDTH + C.BOARD_WIDTH),
 	# 	C.MONITOR_SIZE[1]/10
 	# )
 
@@ -93,6 +93,8 @@ if __name__ == "__main__":
 			elif engine.scheme[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
 				engine.play()
 
+		# coach.screen.fill(C.BACKGR_PANE , (0,0,C.PANE_WIDTH,C.BOARD_HEIGHT))
+		# coach.screen.fill(C.BACKGR_TRAY , (C.PANE_WIDTH + C.BOARD_WIDTH,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
 		coach.screen.fill(C.BACKGR_PANE)
 		board.render()
 		coach.render()

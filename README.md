@@ -1,51 +1,58 @@
 # Chess Coach
 
-#### My attempt at a simple chess platform, to help explore openings and endgames.
+##### _[WIP]_
+
+<br>
+
+#### My attempt at a simple chess platform, to help explore openings and endgames. [WIP]
+#### [WORK IN PROGRESS]
 
 <p align="center">
-  <img src="media/coach_poster.png" width="600"/>
+  <img src="media/coach_poster_wip.png" width="600"/>
 </p>
+
+<br>
 
 
 
 ## Briefing
 
-Coach comes fully equipped with:
+Coach comes fully equipped with [WIP]:
 - [x]  Basic UI settings
 - [x]  Import/export functionality
 - [x]  Board annotations
-- [x]  ECO interpreter
+- [x]  Encyclopaedia of Chess Openings (ECO) interpreter
 - [ ]  Syzygy interpreter
 - [ ]  Stockfish bot with variable skill
-- [ ]  Coach's own chess bot!
+- [ ]  Coach's own bot!
 
-The GUI is *unspeakably* simple, give it a whirl.
-
-
-#### Dependencies
-
-Fully specified in `dependencies.txt`, surpringly.
-
-Nothing heavy.
-Only one of coach's many talents requires a live internet connection (Stockfish bot), but it's optional.
+The GUI is *unspeakably* simple [WIP], give it a whirl.
 
 
 
-#### ECO Interpreter
+### Dependencies
 
-My openings database is based on the Encyclopedia of Chess Openings.
-To ensure coach works offline, I cleaned & converted the entire ECO catalogue to CSV format.
+**Libraries**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Fully specified in `dependencies.txt`, surpringly.
 
-ETL details soon.
-
-
-#### Coachbot
-
-Soon.
+**Internet**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Just _one_ of coach's many talents requires a live internet connection (Stockfish bot [WIP]), only once, on the first run. Anywhichway, it's optional.
 
 
 
-## License
+### ECO Interpreter
+
+My openings database [WIP] is based on the [Encyclopedia of Chess Openings](https://www.365chess.com/eco.php).
+So that coach works offline [WIP], I cleaned & converted this ECO catalogue to CSV format [WIP]. ETL details soon.
+[WORK IN PROGRESS]
+
+
+
+### Coachbot
+
+[WIP]
+
+
+
+### License
 
 [Unlincensed](LICENSE).
 

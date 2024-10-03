@@ -63,7 +63,7 @@ class Context:
 
 		# Banners
 		for subtitle,banner in self.banners.items():
-			text = self.font.render(subtitle,True,C.BUTTON_DEAD)
+			text = self.font.render(subtitle,True,C.BUTTON_IDLE)
 			pygame.draw.rect(
 				self.pane,
 				C.BANNER_COLOUR,

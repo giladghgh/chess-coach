@@ -323,7 +323,8 @@ class Move:
 		self.ep     = None
 
 		# Extras
-		self.text = None
+		self.score = None           ### score of fen AFTER move, not before like move.fen
+		self.text  = None
 
 		self.capture 	  = None
 		self.in_check 	  = None
@@ -343,18 +344,19 @@ class Move:
 		self.quiver = []
 
 
+
 	def __repr__(self):
 		return (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
 
 
 	def rewind(self):
-		from copy import copy
+		unmove = Move(self.board,self.fen)
 
-		unmove = copy(self)
+		unmove.__dict__ = self.__dict__.copy()
 
 		unmove.origin , unmove.target = unmove.target , unmove.origin
 		if unmove.castle:
-			unmove.submove = copy(unmove.submove).rewind()
+			unmove.submove = unmove.submove.rewind()
 
 		return unmove
 
@@ -524,7 +526,7 @@ class Move:
 			while paused:
 				for event in pygame.event.get():
 					if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-						cursor = (event.pos[0] - C.SIDEBAR_WIDTH , event.pos[1])
+						cursor = (event.pos[0] - C.PANE_WIDTH , event.pos[1])
 						if promo_rects[0].collidepoint(cursor):
 							from src.men.Queen import Queen
 							self.promo = Queen(
@@ -558,7 +560,7 @@ class Move:
 							)
 							paused = False
 
-				self.board.coach.screen.blit(veil,(C.SIDEBAR_WIDTH,0))
+				self.board.coach.screen.blit(veil,(C.PANE_WIDTH,0))
 				for rect,img in zip(promo_rects,promo_images):
 					pygame.draw.rect(
 						veil,
@@ -696,20 +698,20 @@ class Clock:
 
 		self.cache = None
 
+		# Buttons
 		from src.Elements import ButtonClockFace,ButtonClockLockSync
 
-		# Buttons
-		### for convenience
+		### convenience
 		self.whiteface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
 			C.BOARD_HEIGHT/2 + C.TILE_HEIGHT,
 			clock=self,
 			player="WHITE"
 		)
 		self.blackface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
 			C.BOARD_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
 			clock=self,
 			player="BLACK"
@@ -729,26 +731,23 @@ class Clock:
 
 		# Mechanics
 		self.time = None
-		self.reset()
 
 
 	def reset(self):
-		self.locksync._i = -1
-		self.locksync.click()
+		self.locksync.reset()
+		self.whiteface.reset()
+		self.blackface.reset()
 
-		w_timer = self.whiteface.timer
-		b_timer = self.blackface.timer
-
-		w_timer.time = w_timer.start + w_timer.bonus
-		b_timer.time = b_timer.start + b_timer.bonus
-		w_timer.text = self.read(w_timer.time)
-		b_timer.text = self.read(b_timer.time)
+		self.coach.board.this_move.commence = (
+			self.whiteface.timer.time,
+			self.blackface.timer.time,
+		)[self.coach.board.ply == "b"]
 
 
 	def handle_tick(self , event):
 		# self.time -= 1        ### no real use for this
 
-		if self.coach.board.halfmovenum == len(self.coach.board.movelog):       ### idle during turn control
+		if self.coach.board.halfmovenum == len(self.coach.board.movelog):       ### disabled during turn control
 			if self.whiteface.active and event.player == "WHITE":
 				self.whiteface.timer.tick()
 			elif self.blackface.active and event.player == "BLACK":
@@ -764,6 +763,8 @@ class Clock:
 			board.this_move.commence = w_timer.time
 			board.last_move.conclude = b_timer.time
 
+			w_timer.case_colour = C.TIMER_CASE_LIVE
+			b_timer.case_colour = C.TIMER_CASE_IDLE
 			if self.whiteface.active:
 				w_timer.play()
 			if self.blackface.active:
@@ -774,6 +775,8 @@ class Clock:
 			board.this_move.commence = b_timer.time
 			board.last_move.conclude = w_timer.time
 
+			w_timer.case_colour = C.TIMER_CASE_IDLE
+			b_timer.case_colour = C.TIMER_CASE_LIVE
 			if self.whiteface.active:
 				w_timer.time += w_timer.bonus
 				w_timer.wait()
@@ -790,8 +793,11 @@ class Clock:
 
 		if resume:
 			### resume button states
-			white.active , black.active = self.cache[0]
-			white.colour , black.colour = self.cache[1]
+			self.locksync.state = self.cache[0]
+			self.locksync.apply()
+
+			white.active , black.active = self.cache[1]
+			white.colour , black.colour = self.cache[2]
 			self.cache = None
 
 			### resume readings
@@ -799,62 +805,66 @@ class Clock:
 			black.timer.text = self.read(black.timer.time)
 
 			### resume timers
-			if white.active:
-				if ply_is_white:
+			if ply_is_white:
+				white.timer.case_colour = C.TIMER_CASE_LIVE
+				black.timer.case_colour = C.TIMER_CASE_IDLE
+				if self.whiteface.active:
 					white.timer.play()
 				else:
-					white.timer.wait()
-			else:
-				white.timer.stop()
+					white.timer.stop()
 
-			if black.active:
-				if ply_is_white:
+				if self.blackface.active:
 					black.timer.wait()
 				else:
-					black.timer.play()
+					black.timer.stop()
+
 			else:
-				black.timer.stop()
+				white.timer.case_colour = C.TIMER_CASE_IDLE
+				black.timer.case_colour = C.TIMER_CASE_LIVE
+				if self.whiteface.active:
+					white.timer.wait()
+				else:
+					white.timer.stop()
+
+				if self.blackface.active:
+					black.timer.play()
+				else:
+					black.timer.stop()
 
 		else:
 			self.cache = self.cache or [
+				self.locksync.state,
 				(white.active , black.active),
 				(white.colour , black.colour),
 			]
 
+			self.locksync.reset()
 			white.active = black.active = None
-			white.colour = black.colour = C.BUTTON_IDLE
+			white.colour = black.colour = C.BUTTON_DEAD
+
+			if self.cache[1][0]:
+				white.timer.wait()
+			else:
+				white.timer.stop()
+
+			if self.cache[1][1]:
+				black.timer.wait()
+			else:
+				black.timer.stop()
 
 			if ply_is_white:
 				white.timer.text = self.read(board.this_move.commence)
 				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start)
 
-				if white.active:
-					white.timer.play(ghost=True)
-				else:
-					white.timer.stop()
-
-				if black.active:
-					black.timer.wait(ghost=True)
-				else:
-					black.timer.stop()
+				white.timer.case_colour = C.TIMER_CASE_LIVE
+				black.timer.case_colour = C.TIMER_CASE_IDLE
 
 			else:
 				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start)
 				black.timer.text = self.read(board.this_move.commence)
 
-				if white.active:
-					white.timer.wait(ghost=True)
-				else:
-					white.timer.stop()
-
-				if black.active:
-					black.timer.play(ghost=True)
-				else:
-					black.timer.stop()
-
-
-	def sync(self):
-		pass
+				white.timer.case_colour = C.TIMER_CASE_IDLE
+				black.timer.case_colour = C.TIMER_CASE_LIVE
 
 
 	@staticmethod
@@ -862,7 +872,7 @@ class Clock:
 		if not time:
 			return None
 
-		m,s = divmod( round(time/100) ,60)
+		m,s = divmod( round(abs(time)/100) ,60)
 		h,m = divmod(m,60)
 
 		if h:
@@ -871,22 +881,11 @@ class Clock:
 			return f'{m:02d}:{s:02d}'
 
 
+	@staticmethod
+	def both(attribute):
+		return eval("self.whiteface." + str(attribute)) , eval("self.blackface." + str(attribute))
+
+
 	@property
 	def active(self):
 		return self.whiteface.active or self.blackface.active
-
-	@property
-	def actives(self):
-		return self.whiteface.active , self.blackface.active
-
-	@property
-	def colours(self):
-		return self.whiteface.colour , self.blackface.colour
-
-	@property
-	def times(self):
-		return self.whiteface.timer.time , self.blackface.timer.time
-
-	@property
-	def times_elapsed(self):
-		return self.whiteface.timer.time_elapsed , self.blackface.timer.time_elapsed

@@ -98,7 +98,7 @@ class Tile:
 	@property
 	def rect(self):
 		return pygame.Rect(
-			C.SIDEBAR_WIDTH + self.x,
+			C.PANE_WIDTH + self.x,
 			C.BOARD_HEIGHT - C.TILE_HEIGHT - self.y,
 			self.w,
 			self.h

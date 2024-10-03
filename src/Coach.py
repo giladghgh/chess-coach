@@ -33,10 +33,10 @@ class Coach:
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 		self.tray = pygame.Surface(C.TRAY_SIZE,pygame.SRCALPHA)
 
-		### amenities
-		self.graveyard = Graveyard(self)    ### afterlife included
-		self.reader    = Reader(self)       ### hello ECO
-		self.clock     = Clock(self)        ### timekeeping
+		### facets
+		self.graveyard = Graveyard(self)
+		self.reader    = Reader(self)
+		self.clock     = Clock(self)
 
 		### annotations
 		self.anchor = None
@@ -125,7 +125,21 @@ class Coach:
 		}
 
 		# Assemble!
-		self.import_FEN(C.INIT_FEN)		### assembling on black's turn may cause movelog issues, button import instead
+		self.reset()
+
+
+		###########################################
+		self.tests = []
+		for i in range(3):
+			self.tests.append(Writer(
+				self.tray,
+				C.TRAY_GAP + C.TRAY_WIDTH/2 - C.TEXTBOX_WIDTH/4,
+				150 + i*(C.TEXTBOX_HEIGHT+5),
+				C.TEXTBOX_WIDTH/2,
+				""
+			))
+		###########################################
+
 
 		self.coaching.plug_in()         ### sorted such that tooltips aren't obscured
 		self.analysis.plug_in()
@@ -133,7 +147,6 @@ class Coach:
 
 
 	def reset(self , fen=C.INIT_FEN):
-		# Mechanics
 		self.board.__init__(self)
 		self.import_FEN(fen)
 
@@ -149,11 +162,11 @@ class Coach:
 		if self.board.movenum > 1:
 			self.reader.fullmove_offset = self.board.movenum
 
-		# Clock
-		self.clock.reset()
-
 		# Calibrate
 		self.board.calibrate()
+
+		### clock
+		self.clock.reset()
 
 
 	def render(self):
@@ -170,37 +183,38 @@ class Coach:
 			self.graveyard.render()
 
 
+			###########################################
+			# self.tests[0].field = str(self.board.this_move.commence)+"-"+str(self.board.this_move.conclude)
+			# if self.board.last_move:
+			# 	self.tests[1].field = str(self.board.last_move.commence)+"-"+str(self.board.last_move.conclude)
+			# else:
+			# 	self.tests[1].field = "None---None"
+			# for test in self.tests:
+			# 	test.render()
+			###########################################
+
+
 			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
-		#
-		# Board rendered separately
-		#
+		#                           #
+		# Board rendered separately #
+		#                           #
 
 		# Pane
 		### CONTEXT
+		### pane
+		c = None
 		for i,context in enumerate(self.contexts):
 			if context.show:
-				### pane
+				c = i
 				context.render()
-
-				### tab
-				pygame.draw.polygon(
-					self.screen,
-					context.colour,
-					points=[
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH , 0 ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + 25 , 0 ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + 25 , (4/5)*C.TILE_HEIGHT ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH , C.TILE_HEIGHT ),
-					]
-				)
 				break
 
 		### NO CONTEXT
 		else:
 			# Pane
 			self.pane.fill((0,0,0,0))
-			self.pane.fill(C.BACKGR_PANE , (0,0,C.SIDEBAR_WIDTH,C.BOARD_HEIGHT))
+			self.pane.fill(C.BACKGR_PANE , (0,0,C.PANE_WIDTH,C.BOARD_HEIGHT))
 
 			### elements
 			for element in (
@@ -211,7 +225,7 @@ class Coach:
 
 			### banners
 			for subtitle,banner in self.banners.items():
-				prose = self.font.render(subtitle,True,C.BUTTON_DEAD)
+				prose = self.font.render(subtitle,True,C.BUTTON_IDLE)
 				pygame.draw.rect(
 					self.pane,
 					(110,110,110),
@@ -222,6 +236,21 @@ class Coach:
 
 			self.screen.blit(self.pane,(0,0))
 
+		### tabs
+		if c is not None:
+			# J = len(self.contexts) - 1
+			for j,cntxt in sorted( enumerate(self.contexts) , key=lambda ec : ec[1].show):
+				pygame.draw.polygon(
+					self.screen,
+					cntxt.colour,
+					points=[
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , j*0.9*C.TILE_HEIGHT ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 + 8*(j==c) , j*0.9*C.TILE_HEIGHT + 0.1*C.TILE_HEIGHT ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 + 8*(j==c) , j*0.9*C.TILE_HEIGHT + 0.9*C.TILE_HEIGHT ),
+						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , j*0.9*C.TILE_HEIGHT + C.TILE_HEIGHT ),
+					]
+				)
+
 
 		############### SCAFFOLDING ###############
 		# def xscaff(x , colour=None):
@@ -230,15 +259,15 @@ class Coach:
 		# 	)
 		# def yscaff(y , colour=None):
 		# 	pygame.draw.line(
-		# 		self.screen,colour or (0,0,0),(C.SIDEBAR_WIDTH+C.BOARD_WIDTH,y),(C.WINDOW_SIZE[0],y),
+		# 		self.screen,colour or (0,0,0),(C.PANE_WIDTH+C.BOARD_WIDTH,y),(C.WINDOW_SIZE[0],y),
 		# 	)
 		# x,y = pygame.mouse.get_pos()
 		# xscaff(x)
 		# yscaff(y)
 		# yscaff(C.BOARD_HEIGHT/2)
-		# xscaff(C.SIDEBAR_WIDTH+C.BOARD_WIDTH+C.TRAY_WIDTH/2)
+		# xscaff(C.PANE_WIDTH+C.BOARD_WIDTH+C.TRAY_WIDTH/2)
 		# xscaff(2*C.X_MARGIN + C.TEXTBOX_WIDTH)
-		# xscaff(C.SIDEBAR_WIDTH)
+		# xscaff(C.PANE_WIDTH)
 		###########################################
 
 
@@ -247,9 +276,9 @@ class Coach:
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 			# Tray
-			if event.pos[0] > C.SIDEBAR_WIDTH + C.BOARD_WIDTH and self.tray:
+			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH and self.tray:
 				local_pos = (
-					event.pos[0] - C.SIDEBAR_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,
+					event.pos[0] - C.PANE_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,
 					event.pos[1],
 				)
 				for button in self.clock.buttons.values():
@@ -257,7 +286,7 @@ class Coach:
 						button.click()
 
 			# Board
-			elif event.pos[0] > C.SIDEBAR_WIDTH:
+			elif event.pos[0] > C.PANE_WIDTH:
 				self.board.handle_click(*self.gridify(event.pos))
 
 				### collapse dropdowns
@@ -281,15 +310,19 @@ class Coach:
 					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
 							button.click()
-					### bot options
-					for bot in self.buttons_bots.values():
-						for option in bot.options:
-							if option.rect.collidepoint(event.pos):
-								option.click()
+
+						elif button.dropdown:
+							### dropdown always renders in mainpane
+							for option in button.dropdown:
+								if option.rect.collidepoint(event.pos):
+									option.click()
 
 		# Annotations
 		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3:
 			f,r = self.gridify(event.pos)
+			for coord in (f,r):
+				if coord < 1 or coord > 8:
+					return
 
 			### anchor down
 			if event.type == pygame.MOUSEBUTTONDOWN:
@@ -309,15 +342,15 @@ class Coach:
 							arrow.roof is header
 						]):
 							self.board.this_move.quiver.remove(arrow)
-							return
-
-					self.board.this_move.quiver.append(
-						Arrow(
-							self,
-							self.anchor,
-							header
+							break
+					else:
+						self.board.this_move.quiver.append(
+							Arrow(
+								self,
+								self.anchor,
+								header
+							)
 						)
-					)
 
 		# Reader
 		elif event.type == pygame.MOUSEWHEEL:
@@ -575,12 +608,12 @@ class Coach:
 	def gridify(mouseclick):
 		if C.BOARD_FLIPPED:
 			return (
-				8 - ((mouseclick[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				8 - ((mouseclick[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
 				1 + (mouseclick[1] // C.TILE_HEIGHT)
 			)
 		else:
 			return (
-				1 + ((mouseclick[0] - C.SIDEBAR_WIDTH) // C.TILE_WIDTH),
+				1 + ((mouseclick[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
 				8 - (mouseclick[1] // C.TILE_HEIGHT)
 			)
 
