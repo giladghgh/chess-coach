@@ -1,6 +1,6 @@
 # Chess Coach
 
-##### _[WIP]_
+##### [WIP]
 
 <br>
 
