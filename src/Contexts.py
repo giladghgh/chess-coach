@@ -22,12 +22,12 @@ class Context:
 			C.BOARD_HEIGHT
 		)
 
-		self.banners  = {}
+		self.banners = {}
 		self.counters = {}
-		self.writers  = {}
+		self.writers = {}
 
 		self.context_menu = {}
-		self.buttons  = {
+		self.buttons = {
 			**self.context_menu,
 		}
 
@@ -81,23 +81,35 @@ class Context:
 
 		self.coach.screen.blit(self.pane,(0,0))
 
+	def collapse_dropdowns(self):
+		for button in self.buttons.values():
+			if button.dropdown:
+				button.active = False
+
 	def handle_click(self , event):
+		hits = []
+
 		# Buttons
 		for button in self.buttons.values():
 			if button.rect.collidepoint(event.pos):
-				button.click()
+				# button.click()
+				hits.append(button)
 
 			### dropdowns
 			elif button.active:
 				for option in button.dropdown:
 					if option.rect.collidepoint(event.pos):
-						option.click()
+						# option.click()
+						hits.append(option)
 						break
 					button.active = False
 
 		# Writers
 		for writer in self.writers.values():
-			writer.active = writer.rect.collidepoint(event.pos)
+			if writer.rect.collidepoint(event.pos):
+				hits.append(writer)
+
+		return hits
 
 	def arrange(self , ban , col , row , shift=(0,0) , scale=(1,1)):
 		return (
@@ -156,7 +168,7 @@ class Settings(Context):
 				*self.arrange("UI",2,1),
 				board=self.coach.board
 			),
-			"ECOI"			: ButtonECOI(
+			"ECOInterpreter": ButtonECOInterpreter(
 				self.pane,
 				*self.arrange("UI",1,1),
 				C.BUTTON_SIZE,

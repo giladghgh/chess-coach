@@ -38,7 +38,7 @@ if __name__ == "__main__":
 				running = False
 
 			# Keyboard
-			elif event.type == pygame.KEYDOWN:
+			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE,pygame.K_RIGHT,pygame.K_LEFT):
 				match event.key:
 					### quit or shut pane
 					case pygame.K_ESCAPE:

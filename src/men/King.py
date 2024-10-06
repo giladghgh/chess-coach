@@ -14,7 +14,7 @@ class King(Man):
 		self.id    = self.colour + self.creed + self.pgn
 
 		self.image = pygame.transform.scale(
-			pygame.image.load(C.DIR_SET + self.colour + "_king.png"),
+			pygame.image.load(C.DIR_SET + self.colour + "k.png"),
 			self.image_size
 		)
 
