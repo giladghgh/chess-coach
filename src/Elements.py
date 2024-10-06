@@ -210,6 +210,7 @@ class Writer:
 		self.field   = ''
 
 		self.active = False
+		self.colour = C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK
 
 		self.pre_font = pygame.font.SysFont("Consolas",13,italic=True)
 		self.font     = pygame.font.SysFont("Consolas",13)
@@ -224,7 +225,7 @@ class Writer:
 	def render(self):
 		pygame.draw.rect(
 			self.pane,
-			C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK,
+			self.colour,
 			self.rect
 		)
 
@@ -244,6 +245,10 @@ class Writer:
 					self.rect.y + 0.15*C.TEXTBOX_HEIGHT
 				)
 			)
+
+	def click(self):
+		self.active = not self.active
+		self.colour = C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK
 
 
 
@@ -466,7 +471,7 @@ class Dilemma(tk.Toplevel):
 		self.choice = self.right
 		self.destroy()
 
-
+# TODO: REINTRODUCE DROPDOWNS
 
 class Arrow:
 	def __init__(self , coach , base , roof):
@@ -658,8 +663,9 @@ class Arrow:
 
 
 # TODO: BUTTON IDEAS
-#   1) force draws
-#   2) top engine line(s) arrows
+#   1) volume
+#   2) force draws
+#   3) top engine line(s) arrows
 class Button:
 	def __init__(self , display , x , y , size=C.BUTTON_SIZE , preactive=False):
 		self.display = display
@@ -668,9 +674,11 @@ class Button:
 		self.size    = size
 		self.active  = preactive
 
+		self.trigger = None
+
 		match self.active:
 			case None:
-				self.colour = C.BUTTON_DEAD
+				self.colour = C.BUTTON_LOCK
 			case False:
 				self.colour = C.BUTTON_IDLE
 			case True:
@@ -764,7 +772,7 @@ class ButtonBot(Button):
 			),
 		]
 		### initial conditions
-		self.colour = C.BUTTON_LIVE if self.active else C.BUTTON_DEAD
+		self.colour = C.BUTTON_LIVE if self.active else C.BUTTON_LOCK
 		for option in self.dropdown:
 			if self.engine.scheme[self.player == "BLACK"] == option.philosophy.upper():
 				option.active = True
@@ -850,7 +858,7 @@ class ButtonBotOption(Button):
 		else:
 			appointed           = None
 			self.trigger.active = False
-			self.trigger.colour = C.BUTTON_DEAD
+			self.trigger.colour = C.BUTTON_LOCK
 
 		self.engine.scheme[self.trigger.player.upper() == "BLACK"] = appointed
 
@@ -919,7 +927,7 @@ class ButtonPieceStylist(Button):
 
 	def render(self):
 		if self.active:
-			self.colour = C.BUTTON_DEAD
+			self.colour = C.BUTTON_LOCK
 			for option in self.dropdown:
 				option.render()
 		else:
@@ -958,7 +966,7 @@ class ButtonPieceStyleOption(Button):
 		### single-select mandatory dropdown
 		for option in self.trigger.dropdown:
 			option.active = option is self
-			option.colour = C.BUTTON_LIVE if option is self else C.BUTTON_DEAD
+			option.colour = C.BUTTON_LIVE if option is self else C.BUTTON_LOCK
 
 		# Function
 		C.PIECE_STYLE = self.style.upper()
@@ -1016,7 +1024,7 @@ class ButtonBoardStylist(Button):
 
 	def render(self):
 		if self.active:
-			self.colour = C.BUTTON_DEAD
+			self.colour = C.BUTTON_LOCK
 			for option in self.dropdown:
 				option.render()
 		else:
@@ -1044,7 +1052,7 @@ class ButtonBoardStyleOption(Button):
 
 		for option in self.trigger.dropdown:
 			option.active = not option.active if option is self else False
-			option.colour = C.BUTTON_LIVE if option.active else C.BUTTON_DEAD
+			option.colour = C.BUTTON_LIVE if option.active else C.BUTTON_LOCK
 
 		# Function
 		C.BOARD_STYLE = self.style
@@ -1207,7 +1215,7 @@ class ToggleTray(Button):
 			self.coach.screen = pygame.display.set_mode(C.WINDOW_SIZE)
 
 		else:
-			self.colour  = C.BUTTON_DEAD
+			self.colour  = C.BUTTON_LOCK
 			self.tooltip = "Tray shut"
 
 			self.image      = pygame.transform.scale(
@@ -1370,13 +1378,13 @@ class ButtonNext(Button):
 
 
 
-class ButtonECOI(Button):
+class ButtonECOInterpreter(Button):
 	def __init__(self , *args , coach):
 		super().__init__(*args)
 		self.coach = coach
 
 		self.image = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_ecoi.png"),
+			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_eco_interpreter.png"),
 			self.size
 		)
 
@@ -1619,6 +1627,8 @@ class ButtonReset(Button):
 		super().__init__(*args)
 		self.coach = coach
 
+		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_reset.wav")
+
 		self.image = pygame.transform.scale(
 			pygame.image.load(C.DIR_ICONS + "\\btn_reset.png"),
 			self.size
@@ -1627,7 +1637,10 @@ class ButtonReset(Button):
 		self.tooltip = "Reset"
 
 	def click(self):
-		self.coach.reset()
+		print(self.coach.clock.elapsed,self.coach.clock.times_elapsed)
+		if self.coach.board.movelog or any(self.coach.clock.times_elapsed):
+			self.coach.reset()
+			self.sound_game_reset.play()
 
 
 
@@ -1665,7 +1678,7 @@ class ButtonSpedometer(Button):
 	def render(self):
 		# Slider is in dropdown
 		if self.active:
-			self.colour = C.BUTTON_DEAD
+			self.colour = C.BUTTON_LOCK
 			for option in self.dropdown:
 				option.render()
 		else:
@@ -1744,7 +1757,7 @@ class ButtonAutoPromo(Button):
 
 	def render(self):
 		if self.active:
-			self.colour = C.BUTTON_DEAD
+			self.colour = C.BUTTON_LOCK
 			for option in self.dropdown:
 				option.render()
 		else:
@@ -1897,7 +1910,9 @@ class ButtonClockFace(Button):
 		white = self.clock.whiteface
 		black = self.clock.blackface
 
-		if self.clock.locksync.active:
+		self.clock.linklock.cache = None
+
+		if self.clock.linklock.synced:
 			white.active = black.active = not self.active
 
 			if self.active:
@@ -1931,10 +1946,15 @@ class ButtonClockFace(Button):
 
 
 
-class ButtonClockLockSync(Button):
+class ButtonClockLinkLock(Button):
 	def __init__(self , *args , clock):
 		super().__init__(*args)
 		self.clock = clock
+
+		self.cache = None
+
+		self.locked = True
+		self.synced = True
 
 		self.states = None
 		self.state  = None
@@ -1950,7 +1970,7 @@ class ButtonClockLockSync(Button):
 	def apply(self):
 		self.tooltip = self.state.title()
 		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\btn_locksync-" + self.state.lower() + ".png"),
+			pygame.image.load(C.DIR_ICONS + "\\clock\\btn_linklock-" + self.state.lower() + ".png"),
 			self.size
 		)
 		self.image.set_alpha(200)
@@ -1959,23 +1979,31 @@ class ButtonClockLockSync(Button):
 		black = self.clock.blackface
 
 		match self.state:
-			case "LOCKED":
-				### everyting lock arff
-				self.active  = False
-				white.active = black.active = None
-				white.colour = black.colour = C.BUTTON_DEAD
-				white.timer.stop()
-				black.timer.stop()
+			case "LOCKED":          ### because LOCKED implies LINKED
+				self.locked = True
+				self.synced = True
+
+				self.link()
+				self.lock()
+
 
 			case "UNLOCKED":
-				self.active = True
-				white.active = black.active = False
-				white.colour = black.colour = C.BUTTON_IDLE
+				self.locked = False
+				self.synced = True
 
-			case "UNSYNCED":
-				self.active  = False
-				# white.active = black.active = False
-				# white.colour = black.colour = C.BUTTON_IDLE
+				white.active , black.active = self.cache[0]
+				white.colour , black.colour = self.cache[1]
+
+
+			case "UNLINKED":
+				self.locked = False
+				self.synced = False
+
+				### remember remember
+				self.cache = self.cache or (
+					(white.active, black.active),
+					(white.colour, black.colour),
+				)
 
 	def render(self):
 		# Button
@@ -2005,6 +2033,53 @@ class ButtonClockLockSync(Button):
 				)
 			)
 
+
+	def link(self):
+		white = self.clock.whiteface
+		black = self.clock.blackface
+
+		### force-match idle player's activity to live's
+		ply = self.clock.coach.board.ply
+		player_live = (white,black)[ply == "b"]
+		player_idle = (white,black)[ply == "w"]
+		if player_live.active != player_idle.active:
+			player_idle.active = player_live.active
+			player_idle.colour = player_live.colour
+
+			if player_live.active:
+				# player_live.timer.play()
+				player_idle.timer.wait()
+			else:
+				# player_live.timer.stop()
+				player_live.timer.play()
+				# player_idle.timer.stop()
+
+		elif player_live.active is True:
+			# print("player_live.active (& _idle) is True!")
+			pass
+
+		elif player_live.active is False:
+			white.timer.kill()
+			black.timer.kill()
+
+		elif player_live.active is None:
+			# print("player_live.active (& _idle) is None!")
+			pass
+
+		### commit to memory
+		self.cache = self.cache or (
+			(white.active , black.active),
+			(white.colour , black.colour),
+		)
+
+
+	def lock(self):
+		white = self.clock.whiteface
+		black = self.clock.blackface
+
+		white.active = black.active = None
+		white.colour = black.colour = C.BUTTON_LOCK
+
 	@staticmethod
 	def toggle_states():
 		while True:
@@ -2027,6 +2102,8 @@ class Timer:
 		self.start   = 100*start
 		self.bonus   = 100*bonus
 		self.trigger = trigger
+
+		self.elapsed = 0
 
 		# Mechanics
 		self.time = self.start + self.bonus
@@ -2059,19 +2136,21 @@ class Timer:
 		self.time = self.start + self.bonus
 		self.text = self.trigger.clock.read(self.time)
 
+		self.colour      = C.TIMER_DEAD
+		self.text_colour = C.TIMER_IDLE
 		self.case_colour = C.TIMER_CASE_LIVE if self.trigger.clock.coach.board.ply == self.trigger.p else C.TIMER_CASE_IDLE
 
 
 	def render(self):
 		self.frame.fill((0,0,0,0))
-
-		if (nsegs := self.text.count(":")) == 2:            ### has to redefine at render to respect turn control
+		# print(self.trigger.player,self.trigger.active)
+		if self.text.count(":") == 2:            ### redefined every render to respect turn control
 			self.x    = self.trigger.x - C.BUTTON_WIDTH
 			self.size = (
 				3*C.BUTTON_WIDTH,
 				(5/6)*C.BUTTON_HEIGHT
 			)
-		elif nsegs == 1:
+		else:
 			self.x    = self.trigger.x - C.BUTTON_WIDTH/2
 			self.size = (
 				2*C.BUTTON_WIDTH,
@@ -2111,8 +2190,11 @@ class Timer:
 
 
 	def tick(self):
+		self.elapsed += 1
+
 		self.time -= 1
-		self.text = self.trigger.clock.read(self.time)
+		self.text  = self.trigger.clock.read(self.time)
+
 
 	def play(self):
 		pygame.time.set_timer(self.TICK,10)
@@ -2126,12 +2208,20 @@ class Timer:
 
 	def stop(self):
 		pygame.time.set_timer(self.TICK,0)
+
+	def kill(self):
+		pygame.time.set_timer(self.TICK,0)
 		self.text_colour = C.TIMER_IDLE
 		self.colour      = C.TIMER_DEAD
 
 
 	def scramble(self):
 		pass
+
+
+	@property
+	def time_elapsed(self):
+		return self.start + self.bonus - (self.trigger.clock.coach.board.movenum*self.bonus)
 
 
 

@@ -124,20 +124,24 @@ class Coach:
 			**self.buttons_bots,
 		}
 
+		# Sounds
+		self.sound_game_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_start.wav")
+		self.sound_game_end   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
+
 		# Assemble!
 		self.reset()
 
 
 		###########################################
-		self.tests = []
-		for i in range(3):
-			self.tests.append(Writer(
-				self.tray,
-				C.TRAY_GAP + C.TRAY_WIDTH/2 - C.TEXTBOX_WIDTH/4,
-				150 + i*(C.TEXTBOX_HEIGHT+5),
-				C.TEXTBOX_WIDTH/2,
-				""
-			))
+		# self.tests = []
+		# for i in range(3):
+		# 	self.tests.append(Writer(
+		# 		self.tray,
+		# 		C.TRAY_GAP + C.TRAY_WIDTH/2 - C.TEXTBOX_WIDTH/4,
+		# 		150 + i*(C.TEXTBOX_HEIGHT+5),
+		# 		C.TEXTBOX_WIDTH/2,
+		# 		""
+		# 	))
 		###########################################
 
 
@@ -275,6 +279,8 @@ class Coach:
 	def handle_click(self , event):
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+			hits = []
+
 			# Tray
 			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH and self.tray:
 				local_pos = (
@@ -283,7 +289,8 @@ class Coach:
 				)
 				for button in self.clock.buttons.values():
 					if button.rect.collidepoint(local_pos) and button.active is not None:   ### specifically "is not None" for turn controls
-						button.click()
+						# button.click()
+						hits.append(button)
 
 			# Board
 			elif event.pos[0] > C.PANE_WIDTH:
@@ -292,16 +299,14 @@ class Coach:
 				### collapse dropdowns
 				if event.pos[0] > C.PANE_WIDTH:
 					for context in self.contexts:
-						for button in context.buttons.values():
-							if button.dropdown:
-								button.active = False
+						context.collapse_dropdowns()
 
 			# Pane
 			else:
 				### CONTEXT
 				for context in self.contexts:
 					if context.show:
-						context.handle_click(event)
+						hits.extend( context.handle_click(event) )
 						break
 
 				### NO CONTEXT
@@ -309,13 +314,19 @@ class Coach:
 					# Buttons
 					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
-							button.click()
+							# button.click()
+							hits.append(button)
 
 						elif button.dropdown:
 							### dropdown always renders in mainpane
 							for option in button.dropdown:
 								if option.rect.collidepoint(event.pos):
-									option.click()
+									# option.click()
+									hits.append(option)
+
+			### only click top-rendered button
+			if hits:
+				hits[-1].click()
 
 		# Annotations
 		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3:
@@ -417,7 +428,7 @@ class Coach:
 			return True
 
 
-	# TODO: OVERHAUL I/O
+	# TODO: OVERHAUL I/O (use Move.enact)
 	def export_FEN(self):
 		# Board
 		fen_board = ''

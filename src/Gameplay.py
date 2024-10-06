@@ -44,10 +44,14 @@ class Board:
 		self.rulecount_fiftymoves = 0
 		self.rulecount_threereps  = 1
 
-		# Audio
-		self.sound_move_quiet   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_quiet.wav")
-		self.sound_move_check   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_check.wav")
-		self.sound_move_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_capture.wav")
+		# Sound
+		self.sound_move_capture   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_capture.wav")
+		self.sound_move_castle    = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_castle.wav.")
+		self.sound_move_check     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_check.wav")
+		self.sound_move_checkmate = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_checkmate.wav")
+		self.sound_move_promote   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_promote.wav")
+		self.sound_move_quiet     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_quiet.wav")
+		self.sound_move_clean     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_clean.wav")
 
 
 	def compose(self , blueprint):
@@ -162,7 +166,7 @@ class Board:
 		if self.agent is None:
 			# Wash annotations:
 			if not chosen_tile.occupant:
-				self.this_move.wash()
+				self.this_move.clean()
 
 			# Select agent:
 			elif chosen_tile.occupant.colour == self.ply:
@@ -209,7 +213,7 @@ class Board:
 			# Deselect agent & wash:
 			else:
 				self.agent = None
-				self.this_move.wash()
+				self.this_move.clean()
 
 
 	def calibrate(self):
@@ -323,7 +327,7 @@ class Move:
 		self.ep     = None
 
 		# Extras
-		self.score = None           ### score of fen AFTER move, not before like move.fen
+		self.score = None           ### score of fen AFTER move, NOT before (like move.fen)
 		self.text  = None
 
 		self.capture 	  = None
@@ -344,7 +348,6 @@ class Move:
 		self.quiver = []
 
 
-
 	def __repr__(self):
 		return (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
 
@@ -362,12 +365,21 @@ class Move:
 
 
 	def talk(self):
-		if self.board.is_in_check(("w","b")[self.board.ply == "w"]):
-			pygame.mixer.Sound.play(self.board.sound_move_check)
-		elif self.capture:
-			pygame.mixer.Sound.play(self.board.sound_move_capture)
+		noises = []
+
+		if self.in_checkmate:
+			noises.append(self.board.sound_move_checkmate)
+		elif self.in_check:
+			noises.append(self.board.sound_move_check)
+
+		if self.capture:
+			noises.append(self.board.sound_move_capture)
 		else:
-			pygame.mixer.Sound.play(self.board.sound_move_quiet)
+			noises.append(self.board.sound_move_quiet)
+
+		### move sounds play simultaneously (e.g. a8=Q+)
+		for i,sound in enumerate(noises):
+			pygame.mixer.Channel(i).play(sound)
 
 
 	def note(self):
@@ -575,7 +587,6 @@ class Move:
 				pygame.display.update()
 
 
-	# TODO: TEST THIS
 	def enact(self , text , ply):
 		if "..." in text:
 			return None
@@ -654,9 +665,10 @@ class Move:
 			return False
 
 
-	def wash(self):
+	def clean(self):
 		self.lights.clear()
 		self.quiver.clear()
+		self.board.sound_move_clean.play()
 
 
 
@@ -699,26 +711,25 @@ class Clock:
 		self.cache = None
 
 		# Buttons
-		from src.Elements import ButtonClockFace,ButtonClockLockSync
+		from src.Elements import ButtonClockFace,ButtonClockLinkLock
 
-		### convenience
 		self.whiteface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
+			C.TRAY_GAP + 2*C.BUTTON_WIDTH + C.GRID_GAP,
 			C.BOARD_HEIGHT/2 + C.TILE_HEIGHT,
 			clock=self,
 			player="WHITE"
 		)
 		self.blackface = ButtonClockFace(
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 - C.BUTTON_WIDTH/2,
+			C.TRAY_GAP + 2*C.BUTTON_WIDTH + C.GRID_GAP,
 			C.BOARD_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
 			clock=self,
 			player="BLACK"
 		)
-		self.locksync  = ButtonClockLockSync(
+		self.linklock  = ButtonClockLinkLock(
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 - (3/8)*C.BUTTON_WIDTH,
+			C.TRAY_GAP + + (5/2)*C.BUTTON_WIDTH + C.GRID_GAP - (3/8)*C.BUTTON_WIDTH,
 			C.BOARD_HEIGHT/2 - (3/8)*C.BUTTON_HEIGHT,
 			[3*L/4 for L in C.BUTTON_SIZE],
 			clock=self
@@ -726,15 +737,23 @@ class Clock:
 		self.buttons = {
 			"WHITE"     : self.whiteface,
 			"BLACK"     : self.blackface,
-			"LOCKSYNC"  : self.locksync,
+			"LINKLOCK"  : self.linklock,
 		}
 
 		# Mechanics
 		self.time = None
 
+		# Sounds
+		self.sound_clock_tick = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_tick.wav")
+		self.sound_clock_tack = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_tack.wav")
+		self.sound_clock_link = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_link.wav")
+
 
 	def reset(self):
-		self.locksync.reset()
+		self.cache = None
+		self.linklock.cache = None
+
+		self.linklock.reset()
 		self.whiteface.reset()
 		self.blackface.reset()
 
@@ -748,10 +767,14 @@ class Clock:
 		# self.time -= 1        ### no real use for this
 
 		if self.coach.board.halfmovenum == len(self.coach.board.movelog):       ### disabled during turn control
-			if self.whiteface.active and event.player == "WHITE":
-				self.whiteface.timer.tick()
-			elif self.blackface.active and event.player == "BLACK":
+			if (w := self.whiteface).active is not False and event.player == "WHITE":
+				w.timer.tick()
+				if not (w.timer.time-60)%100:
+					self.sound_clock_tick.play()
+
+			elif self.blackface.active is not False and event.player == "BLACK":
 				self.blackface.timer.tick()
+				self.sound_clock_tick.play()
 
 
 	def tack(self):
@@ -760,28 +783,41 @@ class Clock:
 		b_timer = self.blackface.timer
 
 		if board.ply == "w":
-			board.this_move.commence = w_timer.time
-			board.last_move.conclude = b_timer.time
+			### synchronise with move's times out of respect for turn controls
+			# board.this_move.commence = board.this_move.commence or w_timer.time
+			# board.last_move.conclude = board.last_move.conclude or b_timer.time
+			# w_timer.time = board.this_move.commence
+			# b_timer.time = board.last_move.conclude
+
+			board.this_move.commence = board.this_move.commence
+			board.last_move.conclude = board.last_move.conclude
 
 			w_timer.case_colour = C.TIMER_CASE_LIVE
 			b_timer.case_colour = C.TIMER_CASE_IDLE
-			if self.whiteface.active:
+			if self.whiteface.active is not False:      ### is None when locked
 				w_timer.play()
-			if self.blackface.active:
+			if self.blackface.active is not False:
 				b_timer.time += b_timer.bonus
 				b_timer.wait()
 
 		else:
-			board.this_move.commence = b_timer.time
-			board.last_move.conclude = w_timer.time
+			# board.this_move.commence = board.this_move.commence or b_timer.time
+			# board.last_move.conclude = board.last_move.conclude or w_timer.time
+			# w_timer.time = board.last_move.conclude
+			# b_timer.time = board.this_move.commence
+
+			board.this_move.commence = board.this_move.commence
+			board.last_move.conclude = board.last_move.conclude
 
 			w_timer.case_colour = C.TIMER_CASE_IDLE
 			b_timer.case_colour = C.TIMER_CASE_LIVE
-			if self.whiteface.active:
+			if self.whiteface.active is not False:
 				w_timer.time += w_timer.bonus
 				w_timer.wait()
-			if self.blackface.active:
+			if self.blackface.active is not False:
 				b_timer.play()
+
+		self.sound_clock_tack.play()
 
 
 	def jibe(self , resume=False):
@@ -793,8 +829,8 @@ class Clock:
 
 		if resume:
 			### resume button states
-			self.locksync.state = self.cache[0]
-			self.locksync.apply()
+			self.linklock.state = self.cache[0]
+			self.linklock.apply()
 
 			white.active , black.active = self.cache[1]
 			white.colour , black.colour = self.cache[2]
@@ -833,14 +869,15 @@ class Clock:
 
 		else:
 			self.cache = self.cache or [
-				self.locksync.state,
+				self.linklock.state,
 				(white.active , black.active),
 				(white.colour , black.colour),
 			]
 
-			self.locksync.reset()
-			white.active = black.active = None
-			white.colour = black.colour = C.BUTTON_DEAD
+			self.linklock.reset()
+			# print("T1:",self.read(white.timer.time),self.read(black.timer.time))
+			# white.active = black.active = None
+			# white.colour = black.colour = C.BUTTON_LOCK
 
 			if self.cache[1][0]:
 				white.timer.wait()
@@ -852,9 +889,15 @@ class Clock:
 			else:
 				black.timer.stop()
 
+			# print(board.this_move.commence,board.this_move.conclude)
+			# if board.last_move:
+				# print(board.last_move.commence,board.last_move.conclude)
+
 			if ply_is_white:
 				white.timer.text = self.read(board.this_move.commence)
 				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start)
+
+				# print("T2w:",self.read(white.timer.time),self.read(black.timer.time))
 
 				white.timer.case_colour = C.TIMER_CASE_LIVE
 				black.timer.case_colour = C.TIMER_CASE_IDLE
@@ -862,6 +905,8 @@ class Clock:
 			else:
 				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start)
 				black.timer.text = self.read(board.this_move.commence)
+
+				# print("T2b:",self.read(white.timer.time),self.read(black.timer.time))
 
 				white.timer.case_colour = C.TIMER_CASE_IDLE
 				black.timer.case_colour = C.TIMER_CASE_LIVE
@@ -881,11 +926,19 @@ class Clock:
 			return f'{m:02d}:{s:02d}'
 
 
-	@staticmethod
-	def both(attribute):
+	def both(self , attribute):
 		return eval("self.whiteface." + str(attribute)) , eval("self.blackface." + str(attribute))
 
 
 	@property
 	def active(self):
 		return self.whiteface.active or self.blackface.active
+
+	@property
+	def elapsed(self):
+		return self.whiteface.timer.elapsed , self.blackface.timer.elapsed
+
+	@property
+	def times_elapsed(self):
+		return self.whiteface.timer.time_elapsed , self.blackface.timer.time_elapsed
+
