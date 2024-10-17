@@ -7,7 +7,6 @@ import os
 class C:
 	# INITIALS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	# INIT_FEN = "Q7/ppppppPp/8/7K/8/7k/RrBbPPNn/8 w - - 0 1"    # graveyard test
 	# INIT_FEN = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q w - - 0 1"    # disambiguation test
 	# INIT_FEN = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"       # castle test
 	# INIT_FEN = "1r6/P6K/8/8/8/8/p6k/8 w - - 0 1"            # promote away from check
@@ -26,24 +25,24 @@ class C:
 	# MECHANICS
 	FILES = (None,"a","b","c","d","e","f","g","h")
 
-	# IMPORT_FEN_DEFAULT = "k7/1p6/1p6/8/8/8/5P1R/7K b - - 3 18"              # engine search practice
-	IMPORT_FEN_DEFAULT = "k7/1p2n3/1p6/8/8/8/5P1R/7K w - - 1 1"             # engine search practice
+	IMPORT_FEN_DEFAULT = "k7/1p6/1p6/8/8/8/5P1R/7K b - - 3 18"              # basic engine search practice
+	# IMPORT_FEN_DEFAULT = "k7/1p2n3/1p6/8/8/8/5P1R/7K w - - 1 1"             # harder engine search practice
 	# IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
 
 
 	# GAMEPLAY
 	AUTO_PROMOTE = "Q"
 
-	TIME_STARTER_WHITE = (0,10,2)
-	TIME_BONUS_WHITE   = 0
+	TIME_STARTER_WHITE = (0,0,11)
+	TIME_BONUS_WHITE   = 2
 
-	TIME_STARTER_BLACK = (1,10,2)
-	TIME_BONUS_BLACK   = 0
+	TIME_STARTER_BLACK = (0,0,11)
+	TIME_BONUS_BLACK   = 2
 
 
 	# INTERFACE
-	MOVE_SPEED 	= 8
-	MOVE_VOLUME = 1
+	MOVE_SPEED 	= 8     ### / 10
+	GAME_VOLUME = 2     ### / 3
 
 	GRID_GAP = 10
 
@@ -67,7 +66,7 @@ class C:
 	PANE_SIZE  = (PANE_WIDTH + PANE_GAP , BOARD_HEIGHT)
 
 	TRAY_GAP   = 3*GRID_GAP
-	TRAY_WIDTH = (2/3)*SIDEBAR_WIDTH + BUTTON_WIDTH/2 + 2*GRID_GAP
+	TRAY_WIDTH = (5/6)*SIDEBAR_WIDTH
 	TRAY_SIZE  = (TRAY_GAP + TRAY_WIDTH , BOARD_HEIGHT)
 
 	TEXTBOX_WIDTH  = 225
@@ -93,12 +92,13 @@ class C:
 
 	BUTTON_LIVE   = (100,110,100)
 	BUTTON_IDLE   = (215,215,215)
-	BUTTON_LOCK   = (  0,  0, 15, 50)
-	BUTTON_BORDER = (  0,  0,  0, 15)
+	BUTTON_LOOM   = (120,125,130, 80)
+	BUTTON_LOCK   = (130,130,130)
 
 	TIMER_LIVE      = ( 80, 25, 20)
 	TIMER_IDLE      = (115,115,115)
 	TIMER_DEAD      = (  0,  0,  0,  0)
+	TIMER_SCRAMBLE  = (255,115,125,150)
 	TIMER_CASE_LIVE = (215,215,215)
 	TIMER_CASE_IDLE = (115,115,115)
 

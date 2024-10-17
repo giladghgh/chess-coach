@@ -15,47 +15,55 @@ class Context:
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 
 		self.colour = None
-		self.rect   = pygame.Rect(
+
+		self.rect = pygame.Rect(
 			0,
 			0,
 			C.X_MARGIN + C.TEXTBOX_WIDTH + C.X_MARGIN + C.GRID_GAP,
 			C.BOARD_HEIGHT
 		)
 
+		self.tab = (
+
+		)
+
 		self.banners = {}
 		self.counters = {}
 		self.writers = {}
 
-		self.context_menu = {}
+		self.buttons_nav = {}
 		self.buttons = {
-			**self.context_menu,
+			**self.buttons_nav,
 		}
 
 	def __repr__(self):
 		return type(self).__name__
 
+
 	def plug_in(self):
 		index = self.coach.contexts.index(self)
 
+		### populate other contexts with navigation buttons to this one.
 		for context in self.coach.contexts:
 			if context is self:
-				self.context_menu["SHUT"] = ButtonContextShut(
+				self.buttons_nav["EXIT"] = ButtonContextExit(
+					self.coach,
 					self.pane,
 					C.X_MARGIN + index*(C.BUTTON_WIDTH + C.GRID_GAP),
-					C.Y_MARGIN,
-					coach=self.coach
+					C.Y_MARGIN
 				)
 			else:
-				context.context_menu[str(self).upper()] = ButtonContextOpen(
+				context.buttons_nav[str(self).upper()] = ButtonContextOpen(
+					self.coach,
 					context.pane,
 					C.X_MARGIN + index*(C.BUTTON_WIDTH + C.GRID_GAP),
 					C.Y_MARGIN,
-					context=self,
-					coach=context.coach
+					context=self
 				)
 			context.buttons.update(
-				**context.context_menu,
+				**context.buttons_nav,
 			)
+
 
 	def render(self):
 		self.pane.fill((0,0,0,0))
@@ -75,16 +83,35 @@ class Context:
 		for element in [
 			*self.writers.values(),
 			*self.counters.values(),
-			*self.buttons.values(),
 		]:
 			element.render()
 
+		### buttons
+		hovering = None
+		for button in self.buttons.values():
+			button.render()
+
+			### hover mechanics
+			if button.dropdown:
+				if button.rect.collidepoint(self.coach.mouse_pos):
+					hovering = button
+				else:
+					button.colour = C.BUTTON_LOOM if button.active else C.BUTTON_IDLE
+					for option in button.dropdown:
+						if button.active and option.rect.collidepoint(self.coach.mouse_pos):
+							hovering = option
+						else:
+							option.paint()
+			else:
+				if button.active is not None and button.rect.collidepoint(self.coach.mouse_pos):
+					hovering = button
+				else:
+					button.paint()
+
 		self.coach.screen.blit(self.pane,(0,0))
 
-	def collapse_dropdowns(self):
-		for button in self.buttons.values():
-			if button.dropdown:
-				button.active = False
+		return hovering
+
 
 	def handle_click(self , event):
 		hits = []
@@ -92,24 +119,41 @@ class Context:
 		# Buttons
 		for button in self.buttons.values():
 			if button.rect.collidepoint(event.pos):
-				# button.click()
 				hits.append(button)
 
 			### dropdowns
 			elif button.active:
 				for option in button.dropdown:
 					if option.rect.collidepoint(event.pos):
-						# option.click()
 						hits.append(option)
-						break
-					button.active = False
+						break                       ### so Sliders can be held
+					button.active = False           ### so opening one dropdown closes all others
 
 		# Writers
 		for writer in self.writers.values():
 			if writer.rect.collidepoint(event.pos):
 				hits.append(writer)
+			else:
+				writer.kill()
 
 		return hits
+
+
+	def tidy(self , and_exit=False):
+		# Collapse dropdowns
+		for button in self.buttons.values():
+			if button.dropdown:
+				button.active = False
+
+		# Deactivate writers
+		for writer in self.writers.values():
+			writer.kill()
+
+		# Leave graciously
+		if and_exit:
+			for context in self.coach.contexts:
+				context.show = False
+
 
 	def arrange(self , ban , col , row , shift=(0,0) , scale=(1,1)):
 		return (
@@ -126,8 +170,6 @@ class Context:
 class Settings(Context):
 	def __init__(self , *args):
 		super().__init__(*args)
-
-		from datetime import datetime
 
 		self.colour = C.BACKGR_SETTINGS
 
@@ -152,68 +194,64 @@ class Settings(Context):
 
 		# Buttons
 		self.buttons_gameplay = {
-			"FLIP"		 : ButtonFlip(
-				self.pane,
-				*self.arrange("GAMEPLAY",2,1),
-				coach=self.coach
-			),
 			"AUTO_PROMO" : ButtonAutoPromo(
+				self.coach,
 				self.pane,
 				*self.arrange("GAMEPLAY",1,1)
 			),
 		}
 		self.buttons_ui = {
-			"B_STYLIST"	    : ButtonBoardStylist(
+			"B_STYLIST"	    : ButtonStyleBoard(
+				self.coach,
 				self.pane,
-				*self.arrange("UI",2,1),
-				board=self.coach.board
-			),
-			"ECOInterpreter": ButtonECOInterpreter(
-				self.pane,
-				*self.arrange("UI",1,1),
-				C.BUTTON_SIZE,
-				True,
-				coach=self.coach
-			),
-			"P_STYLIST"		: ButtonPieceStylist(
-				self.pane,
-				*self.arrange("UI",2,2),
-				board=self.coach.board
+				*self.arrange("UI",2,1)
 			),
 			"LEGAL_MOVES"   : ButtonLegalMoves(
+				self.coach,
 				self.pane,
-				*self.arrange("UI",1,2),
-				C.BUTTON_SIZE,
-				True,
-				board=self.coach.board
+				*self.arrange("UI",1,1)
 			),
-			"SPEDOMETER"	: ButtonSpedometer(
+			"P_STYLIST"		: ButtonStylePieces(
+				self.coach,
 				self.pane,
-				*self.arrange("UI",2,3),
+				*self.arrange("UI",2,2)
 			),
 			"COORDS"		: ButtonCoords(
+				self.coach,
 				self.pane,
-				*self.arrange("UI",1,3),
-				board=self.coach.board
+				*self.arrange("UI",1,2)
+			),
+			"SPEDOMETER"	: ButtonSpedometer(
+				self.coach,
+				self.pane,
+				*self.arrange("UI",2,3)
 			),
 			"FRESH_MOVES"	: ButtonFreshMoves(
+				self.coach,
 				self.pane,
-				*self.arrange("UI",1,4),
-				C.BUTTON_SIZE,
-				True,
-				board=self.coach.board
+				*self.arrange("UI",1,3)
+			),
+			"VOLUME"        : ButtonVolume(
+				self.coach,
+				self.pane,
+				*self.arrange("UI",2,4)
+			),
+			"FLIP"		    : ButtonFlip(
+				self.coach,
+				self.pane,
+				*self.arrange("UI",1,4)
 			),
 		}
 		self.buttons_io = {
 			"EXPORT"		: ButtonExport(
+				self.coach,
 				self.pane,
-				*self.arrange("I/O",1,1),
-				coach=self.coach
+				*self.arrange("I/O",2,1)
 			),
 			"IMPORT"		: ButtonImport(
+				self.coach,
 				self.pane,
-				*self.arrange("I/O",1,2 , shift=(0,C.GRID_GAP)),
-				coach=self.coach
+				*self.arrange("I/O",1,1)
 			),
 		}
 		self.buttons.update(
@@ -223,34 +261,57 @@ class Settings(Context):
 		)
 
 		# Writers
+		from datetime import datetime
+
 		self.writers = {
-			"TITLE" : Writer(
-				self.pane,
-				C.X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
-				self.banners["I/O"].bottom + 1*C.GRID_GAP,
-				C.TEXTBOX_WIDTH - C.BUTTON_WIDTH - C.GRID_GAP,
-				"Title"
+			"EVENT" : Writer(
+				self,
+				C.X_MARGIN,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 1*C.GRID_GAP,
+				C.TEXTBOX_WIDTH,
+				"Event"
 			),
-			"DATE"  : Writer(
-				self.pane,
-				C.X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
-				self.banners["I/O"].bottom + 4*C.GRID_GAP,
-				C.TEXTBOX_WIDTH - C.BUTTON_WIDTH - C.GRID_GAP,
-				datetime.today().strftime("%Y-%m-%d")
+			"SITE" : Writer(
+				self,
+				C.X_MARGIN,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
+				C.TEXTBOX_WIDTH,
+				"Gilad's Bedroom, U.K."
 			),
 			"WHITE" : Writer(
-				self.pane,
-				C.X_MARGIN + C.BUTTON_WIDTH + C.GRID_GAP,
-				self.banners["I/O"].bottom + 7*C.GRID_GAP,
-				(5/11)*(C.TEXTBOX_WIDTH - C.BUTTON_WIDTH - C.GRID_GAP),
-				"White"
+				self,
+				C.X_MARGIN,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
+				(5.25/11)*C.TEXTBOX_WIDTH,
+				"Jack White"
 			),
 			"BLACK" : Writer(
-				self.pane,
-				C.X_MARGIN + C.BUTTON_WIDTH + (3/8)*C.TEXTBOX_WIDTH + 1.5*C.GRID_GAP,
-				self.banners["I/O"].bottom + 7*C.GRID_GAP,
-				(5/11)*(C.TEXTBOX_WIDTH - C.BUTTON_WIDTH - C.GRID_GAP),
-				"Black"
+				self,
+				C.X_MARGIN + (5.75/11)*C.TEXTBOX_WIDTH,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
+				(5.25/11)*C.TEXTBOX_WIDTH,
+				"Jack Black"
+			),
+			"DATE" : Writer(
+				self,
+				C.X_MARGIN,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
+				(4/11)*C.TEXTBOX_WIDTH,
+				datetime.today().strftime("%Y-%m-%d")
+			),
+			"ROUND" : Writer(
+				self,
+				C.X_MARGIN + (4.5/11)*C.TEXTBOX_WIDTH,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
+				(3/11)*C.TEXTBOX_WIDTH,
+				"Round"
+			),
+			"MODE" : Writer(
+				self,
+				C.X_MARGIN + (8/11)*C.TEXTBOX_WIDTH,
+				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
+				(3/11)*C.TEXTBOX_WIDTH,
+				"LCP"
 			),
 		}
 
@@ -319,7 +380,7 @@ class Analysis(Context):
 		# self.buttons_engine = {
 		#
 		# }
-		# self.context_menu.update(
+		# self.buttons_nav.update(
 		#   **self.buttons_engine,
 		# )
 
@@ -333,7 +394,7 @@ class Coaching(Context):
 
 		# Banners
 		self.banners = {
-			"ALRIGHT LISTEN UP..."	: pygame.Rect(
+			"ALRIGHT LISTEN UP!"	: pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 1*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
@@ -341,9 +402,9 @@ class Coaching(Context):
 		}
 
 		# Buttons
-		# self.buttons_drill = {
+		# self.buttons_drills = {
 		#
 		# }
-		# self.context_menu.update(
-		#   **self.buttons_drill,
+		# self.buttons_nav.update(
+		#   **self.buttons_drills,
 		# )

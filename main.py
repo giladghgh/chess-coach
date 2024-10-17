@@ -12,6 +12,8 @@ if __name__ == "__main__":
 	pygame.init()
 	pygame.display.set_caption("Chess Coach")
 	pygame.display.set_icon(pygame.image.load(C.DIR_MEDIA + "coach_icon.png"))
+	pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_WAIT)
+
 
 	# C.MONITOR_SIZE = (
 	# 	pygame.display.Info().current_w,
@@ -29,7 +31,6 @@ if __name__ == "__main__":
 	board  = coach.board
 	engine = coach.engine
 
-	cache   = None
 	running = True
 	done    = False
 	while running:
@@ -38,31 +39,28 @@ if __name__ == "__main__":
 				running = False
 
 			# Keyboard
-			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE,pygame.K_RIGHT,pygame.K_LEFT):
-				match event.key:
-					### quit or shut pane
-					case pygame.K_ESCAPE:
-						for context in coach.contexts:
-							if context.show:
-								context.show = False
-								break
-						else:
-							running = False
+			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE,pygame.K_LEFT,pygame.K_RIGHT):
+				### exit pane or quit
+				if event.key == pygame.K_ESCAPE:
+					for context in coach.contexts:
+						if context.show:
+							context.show = False
+							break
+					else:
+						running = False
 
-					### open tray
-					case pygame.K_RIGHT:
-						if not coach.toggle_tray.active:
-							coach.toggle_tray.active = False
-							coach.toggle_tray.click()
+				### shut tray
+				elif event.key == pygame.K_LEFT:
+					if coach.tray:
+						coach.toggle_tray.click()
 
-					### shut tray
-					case pygame.K_LEFT:
-						if coach.toggle_tray.active:
-							coach.toggle_tray.active = True
-							coach.toggle_tray.click()
+				### open tray
+				elif event.key == pygame.K_RIGHT:
+					if not coach.tray:
+						coach.toggle_tray.click()
 
 			# Clock
-			elif event in (clock.whiteface.timer.TICK,clock.blackface.timer.TICK):
+			elif event in clock.TICKS:
 				coach.clock.handle_tick(event)
 
 			# Coach
@@ -77,13 +75,9 @@ if __name__ == "__main__":
 				coach.handle_click(event)
 
 		if not done:
-
-			# TODO: KING BURIALS
+			# TODO: CONSUMMATION (king placement at end of game)
 			if coach.is_game_over():
 				done = True
-
-				# Clock
-				# pygame.time.set_timer(pygame.USEREVENT,0)
 
 				if board.outcome[0] == "Draw":
 					print("The game is a draw by " + board.outcome[1].lower() + "!")
@@ -93,8 +87,6 @@ if __name__ == "__main__":
 			elif engine.scheme[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
 				engine.play()
 
-		# coach.screen.fill(C.BACKGR_PANE , (0,0,C.PANE_WIDTH,C.BOARD_HEIGHT))
-		# coach.screen.fill(C.BACKGR_TRAY , (C.PANE_WIDTH + C.BOARD_WIDTH,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
 		coach.screen.fill(C.BACKGR_PANE)
 		board.render()
 		coach.render()

@@ -50,104 +50,121 @@ class Coach:
 			),
 		}
 
+		### button hover action
+		self.mouse_pos = None
+		self.hovered   = None
+
 		### buttons
 		self.toggle_tray = ToggleTray(
+			self,
 			self.pane,
 			C.X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH/2,
-			C.Y_MARGIN,
-			C.BUTTON_SIZE,
-			True,
-			coach=self
+			C.Y_MARGIN
 		)
-		self.contexts_menu = {
+		self.buttons_nav = {
 			"COACHING"  : ButtonContextOpen(
+				self,
 				self.pane,
 				C.X_MARGIN + 2*(C.BUTTON_WIDTH + C.GRID_GAP),
 				C.Y_MARGIN,
-				context=self.coaching,
-				coach=self
+				context=self.coaching
 			),
 			"ANALYSIS"  : ButtonContextOpen(
+				self,
 				self.pane,
 				C.X_MARGIN + 1*(C.BUTTON_WIDTH + C.GRID_GAP),
 				C.Y_MARGIN,
-				context=self.analysis,
-				coach=self
+				context=self.analysis
 			),
 			"SETTINGS"  : ButtonContextOpen(
+				self,
 				self.pane,
 				C.X_MARGIN,
 				C.Y_MARGIN,
-				context=self.settings,
-				coach=self
+				context=self.settings
 			),
 		}
 		self.buttons_turns = {
 			"NEXT"  : ButtonNext(
+				self,
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
-				self.reader.rect.bottom + C.GRID_GAP,
-				coach=self
+				self.reader.rect.bottom + C.GRID_GAP
 			),
 			"PREV"	: ButtonPrevious(
+				self,
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
-				self.reader.rect.bottom + C.GRID_GAP,
-				coach=self
+				self.reader.rect.bottom + C.GRID_GAP
 			),
 			"RESET"	: ButtonReset(
+				self,
+				self.pane,
+				C.X_MARGIN + C.TEXTBOX_WIDTH - 3*C.BUTTON_WIDTH,
+				self.reader.rect.bottom + C.GRID_GAP
+			),
+			"ECOInterpreter": ButtonECOInterpreter(
+				self,
 				self.pane,
 				C.X_MARGIN,
-				self.reader.rect.bottom + C.GRID_GAP,
-				coach=self
+				self.reader.rect.bottom + C.GRID_GAP
 			),
 		}
 		self.buttons_bots = {
 			"BOT_BLACK"	: ButtonBot(
+				self,
 				self.pane,
-				15,
-				553,
-				player="BLACK",
-				engine=self.engine
+				C.X_MARGIN,
+				self.banners["BOTS"].bottom + C.GRID_GAP,
+				player="BLACK"
 			),
 			"BOT_WHITE"	: ButtonBot(
+				self,
 				self.pane,
-				15,
-				683,
-				player="WHITE",
-				engine=self.engine
+				C.X_MARGIN,
+				self.banners["BOTS"].bottom + 2*C.BUTTON_HEIGHT + 3*C.GRID_GAP,
+				player="WHITE"
 			),
 		}
-		self.buttons = {				##### right->left (& bottom->top if near enough) so tooltips aren't obscured
-			**self.contexts_menu,
+		self.buttons = {				### right->left (& bottom->top if tight enough) so tooltips aren't obscured
+			**self.buttons_nav,
 			**self.buttons_turns,
 			**self.buttons_bots,
 		}
 
-		# Sounds
+		### sounds
 		self.sound_game_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_start.wav")
 		self.sound_game_end   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
 
+		self.sound_game_start.play()
+
+		### i/o
+		self.tags = {tag : self.settings.writers[tag.upper()].pretext for tag in (
+			"Event",
+			"Site",
+			"Date",
+			"Round",
+			"White",
+			"Black",
+			"Mode",                 ### Result handled automatically. Mode included cos why not.
+		)}
+
 		# Assemble!
+		### visuals
+		self.screen.fill([(L+D)/2 for L,D in zip(C.BOARD_STYLE[0],C.BOARD_STYLE[2])])
+		self.pane.fill(C.BACKGR_PANE)
+		self.tray.fill(C.BACKGR_TRAY)
+		self.screen.blits([
+			(self.pane , (0,0)),
+			(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH,0))
+		])
+		pygame.display.update()
+
+		### mechanics
+		time.sleep(1/5)             ### pause for effect
 		self.reset()
-
-
-		###########################################
-		# self.tests = []
-		# for i in range(3):
-		# 	self.tests.append(Writer(
-		# 		self.tray,
-		# 		C.TRAY_GAP + C.TRAY_WIDTH/2 - C.TEXTBOX_WIDTH/4,
-		# 		150 + i*(C.TEXTBOX_HEIGHT+5),
-		# 		C.TEXTBOX_WIDTH/2,
-		# 		""
-		# 	))
-		###########################################
-
-
-		self.coaching.plug_in()         ### sorted such that tooltips aren't obscured
-		self.analysis.plug_in()
-		self.settings.plug_in()
+		for context in reversed(self.contexts):     ### plug in AFTER declaring contexts. Reversed for tooltip exposure.
+			context.plug_in()
 
 
 	def reset(self , fen=C.INIT_FEN):
@@ -158,13 +175,15 @@ class Coach:
 		self.board.this_move = Move(self.board,fen)
 		self.board.movelog   = [self.board.this_move,]
 
+		self.mouse_pos = pygame.mouse.get_pos()
+		pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
 		# For imports:
 		### ply agnostic
 		if self.board.ply == "b":
 			self.reader.halfmove_offset = True
 		### movenum agnostic
-		if self.board.movenum > 1:
-			self.reader.fullmove_offset = self.board.movenum
+		self.reader.fullmove_offset = self.board.movenum
 
 		# Calibrate
 		self.board.calibrate()
@@ -174,7 +193,10 @@ class Coach:
 
 
 	def render(self):
+		self.mouse_pos = pygame.mouse.get_pos()
+
 		# Tray
+		hovering = None
 		if self.tray:
 			self.tray.fill((0,0,0,0))
 			self.tray.fill(C.BACKGR_TRAY , (C.TRAY_GAP,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
@@ -183,49 +205,67 @@ class Coach:
 			for button in self.clock.buttons.values():
 				button.render()
 
+				if button.active is not None and button.rect.collidepoint((
+					self.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
+					self.mouse_pos[1],
+				)):
+					hovering = button
+				else:
+					button.paint()
+
 			### graveyard
 			self.graveyard.render()
 
-
-			###########################################
-			# self.tests[0].field = str(self.board.this_move.commence)+"-"+str(self.board.this_move.conclude)
-			# if self.board.last_move:
-			# 	self.tests[1].field = str(self.board.last_move.commence)+"-"+str(self.board.last_move.conclude)
-			# else:
-			# 	self.tests[1].field = "None---None"
-			# for test in self.tests:
-			# 	test.render()
-			###########################################
-
-
 			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
-		#                           #
-		# Board rendered separately #
-		#                           #
 
-		# Pane
+		# Sidebar
 		### CONTEXT
-		### pane
-		c = None
-		for i,context in enumerate(self.contexts):
-			if context.show:
-				c = i
-				context.render()
-				break
+		if any(cntxt.show for cntxt in self.contexts):
+			### tabs
+			begin = [
+				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , 0 ),
+				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.1*C.TILE_HEIGHT ),
+				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.9*C.TILE_HEIGHT ),
+				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , C.TILE_HEIGHT ),
+			]
+
+			for c,context in sorted( enumerate(self.contexts) , key=lambda c:c[1].show ):
+				if context.show:
+					if h := context.render():       ### /hovering/ never redefined to /None/ as that would discard tray hovers
+						hovering = h
+					shift = [
+						(0 , c*0.9*C.TILE_HEIGHT),
+						(8 , c*0.9*C.TILE_HEIGHT),
+						(8 , c*0.9*C.TILE_HEIGHT),
+						(0 , c*0.9*C.TILE_HEIGHT),
+					]
+
+				else:
+					shift = [
+						(0 , c*0.9*C.TILE_HEIGHT),
+						(0 , c*0.9*C.TILE_HEIGHT),
+						(0 , c*0.9*C.TILE_HEIGHT),
+						(0 , c*0.9*C.TILE_HEIGHT),
+					]
+
+				points = []
+				for b,s in zip(begin,shift):
+					points.append(
+						(b[0]+s[0] , b[1]+s[1])
+					)
+
+				pygame.draw.polygon(
+					self.screen,
+					context.colour,
+					points
+				)
 
 		### NO CONTEXT
 		else:
-			# Pane
+			### pane
 			self.pane.fill((0,0,0,0))
 			self.pane.fill(C.BACKGR_PANE , (0,0,C.PANE_WIDTH,C.BOARD_HEIGHT))
-
-			### elements
-			for element in (
-				self.reader,
-				*self.buttons.values(),
-			):
-				element.render()
 
 			### banners
 			for subtitle,banner in self.banners.items():
@@ -237,69 +277,55 @@ class Coach:
 				)
 				self.pane.blit(prose , prose.get_rect(center=banner.center))
 
+			### reader
+			self.reader.render()
+
+			### buttons
+			for button in self.buttons.values():
+				button.render()
+
+				### hover mechanics
+				if button.dropdown:
+					for option in button.dropdown:
+						if option.active is not None and option.rect.collidepoint(self.mouse_pos):
+							hovering = option
+						else:
+							option.paint()
+				else:
+					if button.active is not None and button.rect.collidepoint(self.mouse_pos):
+						hovering = button
+					else:
+						button.paint()
 
 			self.screen.blit(self.pane,(0,0))
 
-		### tabs
-		if c is not None:
-			# J = len(self.contexts) - 1
-			for j,cntxt in sorted( enumerate(self.contexts) , key=lambda ec : ec[1].show):
-				pygame.draw.polygon(
-					self.screen,
-					cntxt.colour,
-					points=[
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , j*0.9*C.TILE_HEIGHT ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 + 8*(j==c) , j*0.9*C.TILE_HEIGHT + 0.1*C.TILE_HEIGHT ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 + 8*(j==c) , j*0.9*C.TILE_HEIGHT + 0.9*C.TILE_HEIGHT ),
-						( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , j*0.9*C.TILE_HEIGHT + C.TILE_HEIGHT ),
-					]
-				)
+		### de-hover
+		if hovering:
+			pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+			if hovering.active is False and not str(hovering).endswith("Exit"):
+				hovering.colour = C.BUTTON_LOOM
+		else:
+			pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
 
-		############### SCAFFOLDING ###############
-		# def xscaff(x , colour=None):
-		# 	pygame.draw.line(
-		# 		self.screen,colour or (0,0,0),(x,0),(x,C.BOARD_HEIGHT),
-		# 	)
-		# def yscaff(y , colour=None):
-		# 	pygame.draw.line(
-		# 		self.screen,colour or (0,0,0),(C.PANE_WIDTH+C.BOARD_WIDTH,y),(C.WINDOW_SIZE[0],y),
-		# 	)
-		# x,y = pygame.mouse.get_pos()
-		# xscaff(x)
-		# yscaff(y)
-		# yscaff(C.BOARD_HEIGHT/2)
-		# xscaff(C.PANE_WIDTH+C.BOARD_WIDTH+C.TRAY_WIDTH/2)
-		# xscaff(2*C.X_MARGIN + C.TEXTBOX_WIDTH)
-		# xscaff(C.PANE_WIDTH)
-		###########################################
-
-
-	# TODO: CLICK ONLY TRIGGER TOP RENDERED ELEMENT
 	def handle_click(self , event):
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 			hits = []
 
 			# Tray
-			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH and self.tray:
+			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH:
 				local_pos = (
 					event.pos[0] - C.PANE_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,
 					event.pos[1],
 				)
 				for button in self.clock.buttons.values():
-					if button.rect.collidepoint(local_pos) and button.active is not None:   ### specifically "is not None" for turn controls
-						# button.click()
+					if button.rect.collidepoint(local_pos) and button.active is not None:   ### /None/ used to disable buttons
 						hits.append(button)
 
 			# Board
 			elif event.pos[0] > C.PANE_WIDTH:
 				self.board.handle_click(*self.gridify(event.pos))
-
-				### collapse dropdowns
-				if event.pos[0] > C.PANE_WIDTH:
-					for context in self.contexts:
-						context.collapse_dropdowns()
 
 			# Pane
 			else:
@@ -314,19 +340,20 @@ class Coach:
 					# Buttons
 					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
-							# button.click()
 							hits.append(button)
 
-						elif button.dropdown:
-							### dropdown always renders in mainpane
-							for option in button.dropdown:
+						elif button.dropdown and (button.dropdown.persist or button.active):
+							for option in button.dropdown:                  ### bot dropdowns always clickable
 								if option.rect.collidepoint(event.pos):
-									# option.click()
 									hits.append(option)
 
-			### only click top-rendered button
+			### only click top-layer button
 			if hits:
 				hits[-1].click()
+			else:
+				for context in self.contexts:
+					if context.show:
+						context.tidy()
 
 		# Annotations
 		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3:
@@ -363,23 +390,48 @@ class Coach:
 							)
 						)
 
-		# Reader
+		# Reader (scroll)
 		elif event.type == pygame.MOUSEWHEEL:
 			self.reader.scroll(event.y)
 
-		# Writers
 		elif event.type == pygame.KEYDOWN:
-			for context in self.contexts:
-				if context.show:
-					for writer in context.writers.values():
-						if writer.active:
-							if event.key == pygame.K_BACKSPACE:
-								if writer.field:
-									writer.field = writer.field[:-1]
-								else:
-									writer.active = False
-							else:
-								writer.field += event.unicode
+			# Writers
+			for writer in self.settings.writers.values():
+				if writer.active:
+					if event.key == pygame.K_BACKSPACE:
+						if writer.field:
+							writer.field = writer.field[:-1]
+						else:
+							writer.kill()
+					elif event.key == pygame.K_RETURN:
+						writer.kill()
+					else:
+						writer.field += event.unicode
+					break
+
+			# Navigators
+			else:
+				### port
+				if event.key == pygame.K_a:
+					for c,context in enumerate(self.contexts):
+						if context.show:
+							context.show = False
+							if c:
+								self.contexts[c-1].show = True
+							break
+					else:
+						self.contexts[-1].show = True
+
+				### starboard
+				elif event.key == pygame.K_d:
+					for c,context in enumerate(self.contexts):
+						if context.show:
+							context.show = False
+							if len(self.contexts) - c - 1:
+								self.contexts[c+1].show = True
+							break
+					else:
+						self.contexts[0].show = True
 
 		# Sliders
 		if (
@@ -396,10 +448,10 @@ class Coach:
 	def is_game_over(self):
 		# Stats
 		if self.board.rulecount_threereps >= 3:
-			print("draw by repetition!")
+			print("Draw by repetition!")
 			return True
 		if self.board.rulecount_fiftymoves > 99:
-			print("draw by boredom!")
+			print("Draw by boredom!")
 			return True
 
 		# Calculations
@@ -407,7 +459,9 @@ class Coach:
 		blacks = [man.creed for man in self.board.all_men("b")]
 
 		if len(whites) > 2 or len(blacks) > 2:
-			return self.board.is_in_checkmate()
+			if self.board.is_in_checkmate():
+				self.sound_game_end.play()
+				return True
 
 		if any([
 			set(whites) == {"K"} and not all([
@@ -428,7 +482,6 @@ class Coach:
 			return True
 
 
-	# TODO: OVERHAUL I/O (use Move.enact)
 	def export_FEN(self):
 		# Board
 		fen_board = ''
@@ -505,15 +558,6 @@ class Coach:
 	def export_PGN(self):
 		import re
 
-		# Seven Tag Roster:
-		# 1) Event
-		# 2) Site
-		# 3) Date
-		# 4) Round
-		# 5) White
-		# 6) Black
-		# 7) Result
-
 		pgn = []
 		### multiline movetext (up to 999 turns):
 		for t,turn in enumerate(re.split(r"\d{1,3}\." , self.reader.movetext)):
@@ -565,8 +609,7 @@ class Coach:
 
 		# Other
 		### halfmoves
-		# #####   last term accounts for FENs imported at black's turn; without it, turn controls loop.
-		# self.board.halfmovenum = 2*self.board.movenum - (self.board.ply == "w")
+		# incremented in prev/next buttons
 
 		### pawn double moves
 		for pawn in self.board.all_men(creed=""):
@@ -582,17 +625,25 @@ class Coach:
 				pawn.has_moved = True
 
 
-	def import_PGN(self , filename , multiline=True):
+	def import_PGN(self , filename):
 		import re
 
 		with open(filename,"r") as file:
-			if multiline:
-				for movenum,line in enumerate([line for line in file.readlines() if re.match(r"^\d{1,3}\.",line)]):
-					for ply,movetext in enumerate(line.strip().split()[1:]):
-						move = Move(self,self.export_FEN())
-						self.force_move(
-							move.enact(movetext,ply)
-						)
+			for line in file.readlines():
+				# Tags
+				if pair := re.match( r"^\[(.+) \"(.+)\"\]" , line ):
+					tag,val = pair.group(1,2)
+					self.tags[tag] = val
+					if (TAG := tag.upper()) in self.settings.writers.keys():
+						self.settings.writers[TAG].pretext = val
+
+				# Movetext
+				elif re.match( r"^\d{1,3}\." , line ):
+					for ply,movetext in enumerate( re.split( '[. ]' , line.strip() )[1:] ):     ### first split is movenum, last is newline
+						move = Move(self.board , self.export_FEN())
+						move.enact(movetext,ply)
+
+						self.force_move(move)
 
 
 	def force_move(self , move , show=True):
@@ -605,6 +656,7 @@ class Coach:
 			)
 
 			if show and tile == move.target:
+				self.screen.fill(C.BACKGR_PANE)
 				self.reader.update()
 				self.board.render()
 				self.render()
@@ -612,7 +664,7 @@ class Coach:
 			pygame.display.update()
 
 		if show:
-			time.sleep(1/8)
+			time.sleep(0.1)
 
 
 	@staticmethod

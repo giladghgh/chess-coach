@@ -18,7 +18,7 @@ class Engine:
 		self.scheme = E.INIT_SCHEME
 		self.model	= chess.Board(fen=C.INIT_FEN)
 
-		# Convenience
+		### convenience
 		chess.COLORS = (
 			chess.WHITE,
 			chess.BLACK

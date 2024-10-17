@@ -48,8 +48,8 @@ class Tile:
 		return self.pgn + ((self.occupant.colour + self.occupant.creed) if self.occupant else "")
 
 
-	def __eq__(self , this):
-		return (self.f,self.r) == (this.f,this.r)
+	def __eq__(self , other):
+		return (self.f,self.r) == (other.f,other.r)
 
 
 	def render(self):
