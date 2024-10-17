@@ -32,9 +32,9 @@ The GUI is *unspeakably* simple [WIP], give it a whirl.
 
 ### Dependencies
 
-**Libraries**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Fully specified in `dependencies.txt`, surpringly.
+**Libraries**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Fully [WIP] specified in `dependencies.txt`, surpringly.
 
-**Internet**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Just _one_ of coach's many talents requires a live internet connection (Stockfish bot [WIP]), only once, on the first run. Anywhichway, it's optional.
+**Internet**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Just _one_ of coach's many talents requires a live internet connection (Stockfish bot [WIP]), only once, on the first run. Anywhichway, it's optional [WIP].
 
 
 
