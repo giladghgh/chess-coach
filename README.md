@@ -1,14 +1,11 @@
 # Chess Coach
 
-##### [WIP]
-
 <br>
 
-#### My attempt at a simple chess platform, to help explore openings and endgames. [WIP]
-#### [WORK IN PROGRESS]
+#### My attempt at a simple chess platform, to help explore openings and endgames.
 
 <p align="center">
-  <img src="media/coach_poster_wip.png" width="600"/>
+  <img src="media/coach_poster.png" width="600"/>
 </p>
 
 <br>
@@ -17,7 +14,7 @@
 
 ## Briefing
 
-Coach comes fully equipped with [WIP]:
+Coach comes fully equipped with:
 - [x]  Basic UI settings
 - [x]  Import/export functionality
 - [x]  Board annotations
@@ -26,7 +23,7 @@ Coach comes fully equipped with [WIP]:
 - [ ]  Stockfish bot with variable skill
 - [ ]  Coach's own bot!
 
-The GUI is *unspeakably* simple [WIP], give it a whirl.
+The GUI is *unspeakably* simple, give it a whirl.
 
 
 
@@ -40,9 +37,8 @@ The GUI is *unspeakably* simple [WIP], give it a whirl.
 
 ### ECO Interpreter
 
-My openings database [WIP] is based on the [Encyclopedia of Chess Openings](https://www.365chess.com/eco.php).
-So that coach works offline [WIP], I cleaned & converted this ECO catalogue to CSV format [WIP]. ETL details soon.
-[WORK IN PROGRESS]
+My openings database is based on the [Encyclopedia of Chess Openings](https://www.365chess.com/eco.php).
+So that coach works offline, I cleaned & converted this ECO catalogue to CSV format. ETL details soon.
 
 
 
