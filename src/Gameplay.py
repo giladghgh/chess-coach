@@ -220,7 +220,6 @@ class Board:
 				self.sound_void.play()
 
 
-
 	def calibrate(self):
 		if self.last_move:
 			# Fifty move rule
@@ -835,8 +834,7 @@ class Clock:
 
 
 	def tack(self):
-		print("tack")
-		board   = self.coach.board
+		board  = self.coach.board
 		wtimer = self.whiteface.timer
 		btimer = self.blackface.timer
 
@@ -956,7 +954,7 @@ class Clock:
 
 		if scramble:
 			s,ms = divmod( round(time) , 100 )
-			return f'{s:02d}·{ms:02d}'
+			return f'{s:02d}.{ms:02d}'
 
 		else:
 			m,s = divmod( round(time/100) , 60 )
