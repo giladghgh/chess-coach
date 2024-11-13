@@ -221,8 +221,9 @@ class Reader:
 
 
 class Writer:
-	def __init__(self , context , x , y , width , pretext):
+	def __init__(self , context , display , x , y , width , pretext):
 		self.context = context
+		self.display = display
 		self.x	     = x
 		self.y	     = y
 		self.width   = width
@@ -245,16 +246,16 @@ class Writer:
 
 	def render(self):
 		pygame.draw.rect(
-			self.context.pane,
+			self.display,
 			self.colour,
 			self.rect
 		)
 
-		if self.field:      ### logic implies emptying field will always reveal pretext.
+		if self.field:
 			font , colour = self.font , (255,255,255)
 		else:
 			font , colour = self.pre_font , (185,185,185)
-		self.context.pane.blit(
+		self.display.blit(
 			font.render(self.text,True,colour),
 			(
 				self.rect.x + 5,
@@ -267,12 +268,28 @@ class Writer:
 			writer.active = not self.active if writer is self else False
 			writer.colour = C.TEXTBOX_LIGHT if writer.active else C.TEXTBOX_DARK
 
+	def type(self , event):
+		if event.key == pygame.K_BACKSPACE:
+			if self.field:
+				self.field = self.field[:-1]
+			else:
+				self.kill()
+		elif event.key == pygame.K_RETURN:
+			self.kill()
+		else:
+			print(event.key,str(event.key))
+			self.field += event.unicode
+
 	def kill(self):
 		self.active = False
 		self.colour = C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK
 
+	def paint(self):
+		self.colour = C.TEXTBOX_LOOM if self.active else C.TEXTBOX_DARK
+
 	@property
 	def text(self):
+		# return self.field if self.active else self.pretext
 		return self.field or self.pretext
 
 
@@ -1817,7 +1834,7 @@ class ButtonAutoPromo(Button):
 			option.active = option.creed.upper() == C.AUTO_PROMOTE
 
 		if C.AUTO_PROMOTE:
-			self.tooltip = "Auto-" + self.names[C.AUTO_PROMOTE] + "ing"
+			self.tooltip = "Auto-" + self.names[C.AUTO_PROMOTE]
 		else:
 			self.tooltip = "Ask to promote"
 		self.image = pygame.transform.scale(
@@ -1866,10 +1883,10 @@ class ButtonAutoPromoOption(Button):
 		# Mechanics again
 		if C.AUTO_PROMOTE:
 			image_dir            = C.DIR_SETS + "promo_" + self.name.lower()
-			self.trigger.tooltip = "Auto-" + self.name.title() + "ing"
+			self.trigger.tooltip = "Auto-" + self.name.title()
 		else:
 			image_dir            = C.DIR_SETS + "promo_pawn"
-			self.trigger.tooltip = "Asking to promote"
+			self.trigger.tooltip = "Ask to promote"
 
 		self.trigger.image = pygame.transform.scale(
 			pygame.image.load(image_dir+".png"),
@@ -1885,17 +1902,18 @@ class ButtonClockFace(Button):
 		self.player = player
 		self.p      = player[0].lower()
 
-		self.rect = pygame.Rect(
-			self.x,
-			self.y,
-			*self.size,
-		)
+		# self.rect = pygame.Rect(
+		# 	self.x - C.BUTTON_WIDTH,
+		# 	self.y,
+		# 	*self.size,
+		# )
 
 		starter = (C.TIME_STARTER_WHITE,C.TIME_STARTER_BLACK)[self.p=="b"]
-		self.start = 60*(60*starter[0] + starter[1]) + starter[2]
+		self.start_str = ":".join(str(s) for s in starter)
+		self.start_sec = 60*(60*starter[0] + starter[1]) + starter[2]
 		self.bonus = (C.TIME_BONUS_WHITE,C.TIME_BONUS_BLACK)[self.p=="b"]
 
-		if self.start + self.bonus > 60*60:
+		if self.start_sec + self.bonus > 60*60:
 			scheme = (      ### HH:MM:SS
 				self.x - C.BUTTON_WIDTH,
 				(3*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT)
@@ -1914,12 +1932,21 @@ class ButtonClockFace(Button):
 				self.y + C.BUTTON_HEIGHT + 2*C.GRID_GAP
 			)[self.p == "b"],
 			size=scheme[1],
-			start=self.start,
+			start=self.start_sec,
 			bonus=self.bonus,
 			trigger=self
 		)
 
-		self.tooltip = ("White","Black")[self.p=="b"] + " timer"
+		self.dropdown = Dropdown(
+			options=[
+				# TODO: WHEN Writer.click() FIND CLEANER WAY TO DEACTIVATE OTHER WRITERS
+				### writers and +/- buttons
+			],
+			trigger=self,
+			persist=True
+		)
+
+		self.tooltip = self.player.title() + " timer"
 		self.image   = pygame.transform.scale(
 			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),
 			self.size
@@ -1944,6 +1971,10 @@ class ButtonClockFace(Button):
 
 		# Timer
 		self.timer.render()
+
+		# Clock controls
+		# for control in self.dropdown:
+		# 	control.render()
 
 		# Hover Mechanics
 		if self.rect.collidepoint(local_pos := (

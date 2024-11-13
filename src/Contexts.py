@@ -14,19 +14,20 @@ class Context:
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 
+		# Rendering
 		self.colour = None
-
-		self.rect = pygame.Rect(
+		self.rect   = pygame.Rect(
 			0,
 			0,
 			C.X_MARGIN + C.TEXTBOX_WIDTH + C.X_MARGIN + C.GRID_GAP,
 			C.BOARD_HEIGHT
 		)
 
-		self.tab = (
+		self.tab = ()
 
-		)
+		self.hovering = None
 
+		# Elements
 		self.banners = {}
 		self.counters = {}
 		self.writers = {}
@@ -69,6 +70,16 @@ class Context:
 		self.pane.fill((0,0,0,0))
 		self.pane.fill(self.colour,self.rect)
 
+		self.hovering = None
+
+		# Title
+		for i,char in enumerate(myself := str(self).upper()):
+			rune = self.font.render(char , True , [(4/5)*c for c in C.BANNER_COLOUR])
+			self.pane.blit(
+				rune,
+				( C.X_MARGIN + (5/6)*(i/len(myself))*C.TEXTBOX_WIDTH + 26 , C.Y_MARGIN + C.BUTTON_HEIGHT + 2*C.GRID_GAP )
+			)
+
 		# Banners
 		for subtitle,banner in self.banners.items():
 			text = self.font.render(subtitle,True,C.BUTTON_IDLE)
@@ -80,37 +91,45 @@ class Context:
 			self.pane.blit(text , text.get_rect(center=banner.center))
 
 		# Elements
+		### misc
 		for element in [
-			*self.writers.values(),
 			*self.counters.values(),
 		]:
 			element.render()
 
+		### writers
+		for writer in self.writers.values():
+			writer.render()
+
+			### hover mechanics
+			if writer.active is not None:
+				writer.paint()
+				if writer.rect.collidepoint(self.coach.mouse_pos):
+					self.hovering = writer
+
 		### buttons
-		hovering = None
 		for button in self.buttons.values():
 			button.render()
 
 			### hover mechanics
 			if button.dropdown:
 				if button.rect.collidepoint(self.coach.mouse_pos):
-					hovering = button
+					self.hovering = button
 				else:
 					button.colour = C.BUTTON_LOOM if button.active else C.BUTTON_IDLE
 					for option in button.dropdown:
 						if button.active and option.rect.collidepoint(self.coach.mouse_pos):
-							hovering = option
+							self.hovering = option
 						else:
 							option.paint()
 			else:
 				if button.active is not None and button.rect.collidepoint(self.coach.mouse_pos):
-					hovering = button
+					self.hovering = button
 				else:
 					button.paint()
 
-		self.coach.screen.blit(self.pane,(0,0))
 
-		return hovering
+		self.coach.screen.blit(self.pane,(0,0))
 
 
 	def handle_click(self , event):
@@ -266,6 +285,7 @@ class Settings(Context):
 		self.writers = {
 			"EVENT" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 1*C.GRID_GAP,
 				C.TEXTBOX_WIDTH,
@@ -273,6 +293,7 @@ class Settings(Context):
 			),
 			"SITE" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
 				C.TEXTBOX_WIDTH,
@@ -280,6 +301,7 @@ class Settings(Context):
 			),
 			"WHITE" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
 				(5.25/11)*C.TEXTBOX_WIDTH,
@@ -287,6 +309,7 @@ class Settings(Context):
 			),
 			"BLACK" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN + (5.75/11)*C.TEXTBOX_WIDTH,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
 				(5.25/11)*C.TEXTBOX_WIDTH,
@@ -294,6 +317,7 @@ class Settings(Context):
 			),
 			"DATE" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(4/11)*C.TEXTBOX_WIDTH,
@@ -301,6 +325,7 @@ class Settings(Context):
 			),
 			"ROUND" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN + (4.5/11)*C.TEXTBOX_WIDTH,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(3/11)*C.TEXTBOX_WIDTH,
@@ -308,6 +333,7 @@ class Settings(Context):
 			),
 			"MODE" : Writer(
 				self,
+				self.pane,
 				C.X_MARGIN + (8/11)*C.TEXTBOX_WIDTH,
 				self.buttons_io["EXPORT"].y + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(3/11)*C.TEXTBOX_WIDTH,

@@ -541,7 +541,7 @@ class Move:
 				)
 			]
 
-			screen_centre = [l/2 for l in C.BOARD_SIZE]
+			screen_centre = [L/2 for L in C.BOARD_SIZE]
 			promo_rects = [
 				promo_images[0].get_rect(bottomright=screen_centre),
 				promo_images[1].get_rect(bottomleft=screen_centre),
@@ -934,13 +934,13 @@ class Clock:
 
 			if ply_is_white:
 				white.timer.text = self.read(board.this_move.commence)
-				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start)
+				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start_sec)
 
 				white.timer.case_colour = C.TIMER_CASE_LIVE
 				black.timer.case_colour = C.TIMER_CASE_IDLE
 
 			else:
-				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start)
+				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start_sec)
 				black.timer.text = self.read(board.this_move.commence)
 
 				white.timer.case_colour = C.TIMER_CASE_IDLE
@@ -948,16 +948,16 @@ class Clock:
 
 
 	@staticmethod
-	def read(time , scramble=False):
+	def read(time_sec , scramble=False):
 		if not time:
 			return ""
 
 		if scramble:
-			s,ms = divmod( round(time) , 100 )
+			s,ms = divmod( round(time_sec) , 100 )
 			return f'{s:02d}.{ms:02d}'
 
 		else:
-			m,s = divmod( round(time/100) , 60 )
+			m,s = divmod( round(time_sec/100) , 60 )
 			h,m = divmod(m,60)
 			return f'{h:02d}:{m:02d}:{s:02d}' if h else f'{m:02d}:{s:02d}'
 

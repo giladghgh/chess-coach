@@ -50,10 +50,6 @@ class Coach:
 			),
 		}
 
-		### button hover action
-		self.mouse_pos = None
-		self.hovered   = None
-
 		### buttons
 		self.toggle_tray = ToggleTray(
 			self,
@@ -138,7 +134,11 @@ class Coach:
 
 		self.sound_game_start.play()
 
-		### i/o
+		### mouse
+		self.mouse_pos = None
+		self.hovering  = None
+
+		### file i/o
 		self.tags = {tag : self.settings.writers[tag.upper()].pretext for tag in (
 			"Event",
 			"Site",
@@ -194,9 +194,9 @@ class Coach:
 
 	def render(self):
 		self.mouse_pos = pygame.mouse.get_pos()
+		self.hovering  = None
 
 		# Tray
-		hovering = None
 		if self.tray:
 			self.tray.fill((0,0,0,0))
 			self.tray.fill(C.BACKGR_TRAY , (C.TRAY_GAP,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
@@ -209,7 +209,7 @@ class Coach:
 					self.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
 					self.mouse_pos[1],
 				)):
-					hovering = button
+					self.hovering = button
 				else:
 					button.paint()
 
@@ -230,10 +230,13 @@ class Coach:
 				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , C.TILE_HEIGHT ),
 			]
 
-			for c,context in sorted( enumerate(self.contexts) , key=lambda c:c[1].show ):
+			for c,context in sorted( enumerate(self.contexts) , key=lambda _:_[1].show ):
 				if context.show:
-					if h := context.render():       ### /hovering/ never redefined to /None/ as that would discard tray hovers
-						hovering = h
+					context.render()
+
+					if h := context.hovering:       ### /hovering/ never redefined to /None/ as that would discard tray hovers
+						self.hovering = h
+
 					shift = [
 						(0 , c*0.9*C.TILE_HEIGHT),
 						(8 , c*0.9*C.TILE_HEIGHT),
@@ -288,22 +291,29 @@ class Coach:
 				if button.dropdown:
 					for option in button.dropdown:
 						if option.active is not None and option.rect.collidepoint(self.mouse_pos):
-							hovering = option
+							self.hovering = option
 						else:
 							option.paint()
 				else:
 					if button.active is not None and button.rect.collidepoint(self.mouse_pos):
-						hovering = button
+						self.hovering = button
 					else:
 						button.paint()
 
 			self.screen.blit(self.pane,(0,0))
 
 		### de-hover
-		if hovering:
-			pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-			if hovering.active is False and not str(hovering).endswith("Exit"):
-				hovering.colour = C.BUTTON_LOOM
+		if self.hovering:
+			if issubclass(type(self.hovering) , Button):
+				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+			elif type(self.hovering) is Writer:
+				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+
+			if self.hovering.active is False:
+				if type(self.hovering) is ButtonContextOpen:
+					self.hovering.colour = eval( "C.BACKGR_" + str(self.hovering.context).upper() )
+				elif not str(self.hovering).endswith("Exit"):
+					self.hovering.colour = C.BUTTON_LOOM
 		else:
 			pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
@@ -347,9 +357,10 @@ class Coach:
 								if option.rect.collidepoint(event.pos):
 									hits.append(option)
 
-			### only click top-layer button
+			### only click top-layer button:
 			if hits:
 				hits[-1].click()
+			### tidy on quiet clicks:
 			else:
 				for context in self.contexts:
 					if context.show:
@@ -396,18 +407,17 @@ class Coach:
 
 		elif event.type == pygame.KEYDOWN:
 			# Writers
-			for writer in self.settings.writers.values():
-				if writer.active:
-					if event.key == pygame.K_BACKSPACE:
-						if writer.field:
-							writer.field = writer.field[:-1]
-						else:
-							writer.kill()
-					elif event.key == pygame.K_RETURN:
-						writer.kill()
-					else:
-						writer.field += event.unicode
-					break
+			### file i/o
+			if self.settings.show:
+				for writer in self.settings.writers.values():
+					if writer.active:
+						writer.type(event)
+						break
+
+			### clock controls
+			# elif self.tray:
+			# 	for control in (self.clock.whiteface.dropdown,self.clock.blackface.dropdown):
+			# 		if type(control) is Writer:
 
 			# Navigators
 			else:
