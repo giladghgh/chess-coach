@@ -998,6 +998,14 @@ class ButtonStylePieces(Button):
 					style="Classic",
 					trigger=self
 				),
+				ButtonStylePiecesOption(
+					self.coach,
+					self.display,
+					self.x + C.BUTTON_WIDTH + C.GRID_GAP/2,
+					self.y + 2*C.BUTTON_HEIGHT,
+					style="Chess.com",
+					trigger=self
+				),
 			],
 			trigger=self
 		)

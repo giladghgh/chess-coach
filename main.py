@@ -1,8 +1,8 @@
 import os,time
 import pygame
 
-from src.Coach import Coach
 from src.Constants import C
+from src.Coach import Coach
 
 
 
