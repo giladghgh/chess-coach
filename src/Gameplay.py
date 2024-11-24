@@ -30,6 +30,8 @@ class Board:
 		self.sound_check = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_check.wav")
 		self.sound_void  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_void.wav")
 
+		self.hovering = None
+
 		# Mechanics
 		self.ply   = "w"
 		self.agent = None

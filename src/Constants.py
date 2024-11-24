@@ -151,6 +151,8 @@ class C:
 
 	# DIRECTORIES
 	DIR         = os.getcwd()
+	# DIR         = "\\".join( __file__.split("\\")[:-2] )
+	# DIR         = "D:\Gilad\Documents\GitHub\chess-coach"
 	DIR_MEDIA   = DIR + "\\media\\"
 	DIR_ICONS   = DIR_MEDIA + "icons\\"
 	DIR_SETS    = DIR_MEDIA + "sets\\"

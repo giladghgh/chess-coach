@@ -2,6 +2,7 @@ import pygame,time
 
 from src.Constants import C
 from src.Gameplay import Board,Move,Clock
+from src.Tile import Tile
 from src.Engine import Engine
 from src.Contexts import *
 from src.Elements import *
@@ -196,6 +197,10 @@ class Coach:
 		self.mouse_pos = pygame.mouse.get_pos()
 		self.hovering  = None
 
+		for tile in self.board.all_tiles:
+			if tile.occupant and tile.occupant.colour == self.board.ply and tile.rect.collidepoint(self.mouse_pos):
+				self.hovering = tile
+
 		# Tray
 		if self.tray:
 			self.tray.fill((0,0,0,0))
@@ -308,10 +313,13 @@ class Coach:
 				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
 			elif type(self.hovering) is Writer:
 				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+			elif type(self.hovering) is Tile:
+				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+				return
 
 			if self.hovering.active is False:
 				if type(self.hovering) is ButtonContextOpen:
-					self.hovering.colour = eval( "C.BACKGR_" + str(self.hovering.context).upper() )
+					self.hovering.colour = self.hovering.context.colour
 				elif not str(self.hovering).endswith("Exit"):
 					self.hovering.colour = C.BUTTON_LOOM
 		else:
