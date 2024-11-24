@@ -277,7 +277,6 @@ class Writer:
 		elif event.key == pygame.K_RETURN:
 			self.kill()
 		else:
-			print(event.key,str(event.key))
 			self.field += event.unicode
 
 	def kill(self):
