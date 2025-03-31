@@ -18,20 +18,23 @@ Coach comes fully equipped with:
 - [x]  Basic UI settings
 - [x]  Import/export functionality
 - [x]  Board annotations
-- [x]  Encyclopaedia of Chess Openings (ECO) interpreter
+- [x]  ECO interpreter
 - [ ]  Syzygy interpreter
-- [ ]  Stockfish bot with variable skill
+- [x]  Stockfish bot with variable skill
 - [ ]  Coach's own bot!
+- [ ]  Drills for openings
+- [ ]  Drills for endgames
+- [ ]  Drills for chess vision
 
-The GUI is *unspeakably* simple, give it a whirl.
+The GUI is *unspeakably* simple. Give it a whirl.
 
 
 
 ### Dependencies
 
-**Libraries**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Fully [WIP] specified in `dependencies.txt`, surpringly.
+**Libraries**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Specified in `dependencies.txt`, surpringly.
 
-**Internet**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Just _one_ of coach's many talents requires a live internet connection (Stockfish bot [WIP]), only once, on the first run. Anywhichway, it's optional [WIP].
+**Internet**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Just _one_ of coach's many talents requires a live internet connection (the Stockfish bot), only once, on the first run. Anywhichway, it's optional.
 
 
 
