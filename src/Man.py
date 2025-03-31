@@ -46,10 +46,10 @@ class Man:
 			self.has_moved = True
 			self.has_taken = bool(tile.occupant)
 
-			### pick up the pieces ...
+			### ///\\\
 			move.origin.occupant = None
 			move.target.occupant = move.capture
-			### ...
+			### ... pick up your piece(s)
 
 			# Special Mechanics
 			### promotion
@@ -70,13 +70,13 @@ class Man:
 			if not self.creed:
 				move.ep = False
 				for pawn in self.board.all_men(
-						colour=("w","b")[move.colour == "w"],
-						creed=""
+					colour=("b","w")[move.colour == "b"],
+					creed=""
 				):
 					if all([
-						abs(pawn.f - move.origin.f) == 1,
-						pawn.r == move.origin.r,
 						pawn.just_moved_double,
+						pawn.f == move.target.f,
+						pawn.r == move.origin.r,
 					]):
 						move.ep = move.capture = pawn
 						self.has_taken = True
@@ -114,11 +114,11 @@ class Man:
 			if show:
 				move.animate()
 
-			### ...
+			### ... and put it down.
 			move.target.occupant = move.promo or move.agent
 			if move.ep:
 				self.board.tile(move.ep).occupant = None
-			### ... and put them down.
+			### \\\///
 
 			# Other
 			### epability
@@ -129,11 +129,11 @@ class Man:
 			### more info
 			move.in_checkmate = self.board.is_in_checkmate("w" if move.colour == "b" else "b")
 			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
-			move.note()
+			move.notate()
 
 			### make yaself heard
 			if tell:
-				move.talk()
+				move.sonate()
 
 			return True
 		else:
@@ -179,9 +179,11 @@ class Man:
 
 	@property
 	def image_size(self):
-		squish = -40
-		if self.creed:
-			squish += 15
-			if C.PIECE_STYLE.upper() in ("8-BIT","FONTAWESOME"):
+		squish = -25 if self.creed else -40
+
+		if C.PIECE_DESIGN.upper() in ("8-BIT","FONTAWESOME"):
+			if self.creed:
 				squish -= 10
+
+
 		return [L + squish for L in C.TILE_SIZE]

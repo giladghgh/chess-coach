@@ -14,7 +14,6 @@ if __name__ == "__main__":
 	pygame.display.set_icon(pygame.image.load(C.DIR_MEDIA + "coach_icon.png"))
 	pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_WAIT)
 
-
 	# C.MONITOR_SIZE = (
 	# 	pygame.display.Info().current_w,
 	# 	pygame.display.Info().current_h
@@ -35,33 +34,27 @@ if __name__ == "__main__":
 	done    = False
 	while running:
 		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
+			if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_DELETE):
 				running = False
 
 			# Keyboard
-			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE,pygame.K_LEFT,pygame.K_RIGHT):
+			elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
 				### exit pane or quit
-				if event.key == pygame.K_ESCAPE:
-					for context in coach.contexts:
-						if context.show:
-							context.show = False
-							break
-					else:
-						running = False
+				for context in coach.contexts:
+					if context.show:
+						context.show      = False
+						coach.pane_toggle = 0
+						break
+				else:
+					running = False
 
-				### shut tray
-				elif event.key == pygame.K_LEFT:
-					if coach.tray:
-						coach.toggle_tray.click()
-
-				### open tray
-				elif event.key == pygame.K_RIGHT:
-					if not coach.tray:
-						coach.toggle_tray.click()
+			### toggle tray
+			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_LEFT,pygame.K_RIGHT):
+				coach.btn_toggle_tray.click()
 
 			# Clock
 			elif event in clock.TICKS:
-				coach.clock.handle_tick(event)
+				coach.clock.tick(event)
 
 			# Coach
 			elif event.type in (
@@ -75,19 +68,20 @@ if __name__ == "__main__":
 				coach.handle_click(event)
 
 		if not done:
-			# TODO: CONSUMMATION (king placement at end of game)
 			if coach.is_game_over():
 				done = True
 
-				if board.outcome[0] == "Draw":
-					print("The game is a draw by " + board.outcome[1].lower() + "!")
-				elif board.outcome[1] == "Checkmate":
-					print(board.outcome[0] + " wins by checkmate!")
+				print("###- GAME OVER -###")
+				print("It's a " + board.outcome[0] + " by " + board.outcome[1].lower() + "!")
+				print("####-####-####-####")
 
-			elif engine.scheme[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
-				engine.play()
+			# elif engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
+			# 	engine.play()
 
 		coach.screen.fill(C.BACKGR_PANE)
 		board.render()
 		coach.render()
 		pygame.display.update()
+
+		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
+			engine.play()

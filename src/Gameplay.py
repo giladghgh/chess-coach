@@ -20,8 +20,7 @@ class Board:
 		self.coach = coach
 
 		# Interface
-		self.w = C.BOARD_WIDTH
-		self.h = C.BOARD_HEIGHT
+		self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
 
 		### sounds
 		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_clean.wav")
@@ -156,7 +155,7 @@ class Board:
 
 		# Annotations
 		for arrow in self.this_move.quiver:
-			arrow.shoot()
+			arrow.draw()
 
 
 	def handle_click(self , file , rank , promo=None , show=True):
@@ -216,7 +215,7 @@ class Board:
 					self.agent = None
 					self.this_move.clean()
 
-			# Moot move
+			# Void move
 			else:
 				self.agent = None
 				self.sound_void.play()
@@ -240,9 +239,9 @@ class Board:
 			self.last_move.rulecount_fiftymoves = self.rulecount_fiftymoves
 			self.last_move.rulecount_threereps  = self.rulecount_threereps
 
-		# Counters
-		self.coach.analysis.counters["RULECOUNT_FIFTYMOVES"].field = str(self.rulecount_fiftymoves)
-		self.coach.analysis.counters["RULECOUNT_THREEREPS"].field  = str(self.rulecount_threereps)
+		# Rulecounters
+		self.coach.analysis.counters["RULECOUNT_FIFTYMOVES"].value = self.rulecount_fiftymoves
+		self.coach.analysis.counters["RULECOUNT_THREEREPS"].value  = self.rulecount_threereps
 
 		# Reader
 		self.coach.reader.update()
@@ -250,10 +249,13 @@ class Board:
 		# Graveyard
 		self.coach.graveyard.update()
 
-		###################
-		# self.coach.engine.model.set_fen(self.this_move.fen)
-		# self.coach.analysis.counters["SCORE_SIMPLE"].field = f'{self.coach.engine.evaluate():.2f}'
-		###################
+		# Evaluation(s)
+		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
+		self.coach.analysis.counters["SCORE_HAL90"].value = self.coach.engine.evaluate()
+		if self.coach.engine.stockfish:
+			self.coach.analysis.counters["SCORE_STOCKFISH"].value = self.coach.engine.stockfish.get_evaluation()["value"]/100
+		else:
+			self.coach.analysis.counters["SCORE_STOCKFISH"].value = None
 
 
 	def is_in_check(self , colour , movement=None):
@@ -299,7 +301,7 @@ class Board:
 		# If not, the game is over, one way or another.
 		if self.is_in_check(colour):
 			self.outcome = (
-				"Black" if colour == "w" else "White",
+				"win for " + ("Black","White")[colour == "b"],
 				"Checkmate"
 			)
 		else:
@@ -311,22 +313,24 @@ class Board:
 		return True
 
 
+	@staticmethod
+	def gridify(mouse_pos):
+		return (
+			8 - ((mouse_pos[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
+			1 + (mouse_pos[1] // C.TILE_HEIGHT)
+		) if C.BOARD_FLIPPED else (
+			1 + ((mouse_pos[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
+			8 - (mouse_pos[1] // C.TILE_HEIGHT)
+		)
+
+
 	@property
-	def dreaming(self):
+	def reminiscing(self):
 		return self.halfmovenum != len(self.movelog)
 
 
 
 class Move:
-	# Sounds    (Move sound system uses mixer.Music, not mixer.Sound, to play simulatenous audio)
-	sound_capture   = C.DIR_SOUNDS + "\\move_capture.wav"
-	sound_castle    = C.DIR_SOUNDS + "\\move_castle.wav"
-	sound_check     = C.DIR_SOUNDS + "\\move_check.wav"
-	sound_checkmate = C.DIR_SOUNDS + "\\move_checkmate.wav"
-	sound_promo     = C.DIR_SOUNDS + "\\move_promote.wav"
-	sound_quiet     = C.DIR_SOUNDS + "\\move_quiet.wav"
-	sound_void      = C.DIR_SOUNDS + "\\move_void.wav"
-
 	def __init__(self , board , fen=None):
 		self.board = board
 		self.fen   = fen
@@ -347,7 +351,7 @@ class Move:
 		self.ep     = None
 
 		# Extras
-		self.score = None           ### score of fen AFTER move, NOT before (so unlike move.fen)
+		self.score = None           ### score of fen AFTER move, NOT before (unlike move.fen)
 		self.text  = None
 
 		self.capture 	  = None
@@ -367,9 +371,19 @@ class Move:
 		self.lights = []
 		self.quiver = []
 
+		# Sounds
+		### move sound system uses mixer.Music (not mixer.Sound) for simultaneous audio
+		self.sound_capture   = C.DIR_SOUNDS + "\\move_capture.wav"
+		self.sound_castle    = C.DIR_SOUNDS + "\\move_castle.wav"
+		self.sound_check     = C.DIR_SOUNDS + "\\move_check.wav"
+		self.sound_checkmate = C.DIR_SOUNDS + "\\move_checkmate.wav"
+		self.sound_promo     = C.DIR_SOUNDS + "\\move_promote.mp3"
+		self.sound_quiet     = C.DIR_SOUNDS + "\\move_quiet.wav"
+		self.sound_void      = C.DIR_SOUNDS + "\\move_void.wav"
+
 
 	def __repr__(self):
-		return (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
+		return "M:" + (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
 
 
 	def rewind(self):
@@ -384,22 +398,25 @@ class Move:
 		return unmove
 
 
-	def talk(self):
+	def sonate(self):
+		if self.in_checkmate:
+			self.board.coach.sound_game_end.play()
+			return
+
 		if self.promo:
-			pygame.mixer.music.load(Move.sound_promo)
+			pygame.mixer.music.load(self.sound_promo)
 		elif self.capture:
-			pygame.mixer.music.load(Move.sound_capture)
+			pygame.mixer.music.load(self.sound_capture)
 		elif self.castle:
-			pygame.mixer.music.load(Move.sound_castle)
+			pygame.mixer.music.load(self.sound_castle)
 		else:
-			pygame.mixer.music.load(Move.sound_quiet)
+			pygame.mixer.music.load(self.sound_quiet)
 		pygame.mixer.music.play()
 
-		if self.in_check:           ### checks sound simultaneously
+		if self.in_check:           ### check are simultaneous to other sounds
 			self.board.sound_check.play()
 
-
-	def note(self):
+	def notate(self):
 		self.text = ''
 
 		# Castling
@@ -416,11 +433,11 @@ class Move:
 			if self.agent.creed:
 				cache = self.target.occupant
 				self.target.occupant = None
-				attackers = self.board.all_threats(self.target, self.agent.colour, self.agent.creed)
+				attackers = self.board.all_threats(self.target , self.agent.colour , self.agent.creed)
 				self.target.occupant = cache
 
 				if attackers:
-					# If another chessman of the same creed and colour contends for the target square
+					### if another chessman of the same creed and colour contends for the target square
 					if not any([man.f == self.origin.f for man in attackers]):
 						self.text += self.origin.pgn[0]
 					elif not any([man.r == self.origin.r for man in attackers]):
@@ -447,7 +464,7 @@ class Move:
 		rect   = sprite.get_rect(center=self.origin.rect.center)
 		ox,oy  = rect.x,rect.y
 
-		# 1/3
+		# 1/3 #
 		if self.castle:
 			self.submove.origin.occupant = self.submove.target.occupant = None
 			self.board.tile(*self.submove.target.position).occupant  = None
@@ -458,12 +475,12 @@ class Move:
 			sprite_rook = pygame.Surface.convert_alpha(self.submove.agent.image)
 			rect_rook   = sprite.get_rect(center=self.submove.origin.rect.center)
 			ox_rook,oy_rook = rect_rook.x,rect_rook.y
+		#######
 
 		manhattan 	 = abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r)
 		total_frames = round(C.MOVE_SPEED * manhattan**(1/2))
-		for frame in range(total_frames):
-			if C.SHOW_MOVE_FRESH:
-				self.origin.is_fresh = self.target.is_fresh = True
+		for frame in range(total_frames + 1):
+			self.origin.is_fresh = self.target.is_fresh = C.SHOW_MOVE_FRESH
 
 			self.board.render()
 
@@ -471,18 +488,20 @@ class Move:
 			rect.y = oy - dy*(frame/total_frames)
 			self.board.coach.screen.blit(sprite,rect)
 
-			# 2/3
+			# 2/3 #
 			if self.castle:
 				rect_rook.x = ox_rook + dx_rook*(frame/total_frames)
 				rect_rook.y = oy_rook - dy_rook*(frame/total_frames)
 				self.board.coach.screen.blit(sprite_rook,rect_rook)
+			#######
 
 			pygame.display.update()
 
-		# 3/3
+		# 3/3 #
 		if self.castle:
 			self.board.tile(self.submove.target).occupant = self.submove.agent
 			self.submove.agent.send(self.submove.target)
+		#######
 
 
 	def promote(self , force=None):
@@ -604,7 +623,7 @@ class Move:
 				pygame.display.update()
 
 
-	def enact(self, text, is_white):
+	def enact(self , text , is_white):
 		if "..." in text or not text:
 			return None
 
@@ -724,20 +743,20 @@ class Clock:
 		self.cache = None           ### remembers face activities during turn control
 
 		# Buttons
-		from src.Elements import ButtonClockFace,ButtonClockLinkLock
+		from src.Elements import ButtonClock,ButtonClockLinkLock
 
-		self.whiteface = ButtonClockFace(
+		self.whiteface = ButtonClock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + 2*C.BUTTON_WIDTH + C.GRID_GAP,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 - 3,            ### idiopathic -3
 			C.BOARD_HEIGHT/2 + C.TILE_HEIGHT,
 			clock=self,
 			player="WHITE"
 		)
-		self.blackface = ButtonClockFace(
+		self.blackface = ButtonClock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + 2*C.BUTTON_WIDTH + C.GRID_GAP,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 - 3,            ### idiopathic -3
 			C.BOARD_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
 			clock=self,
 			player="BLACK"
@@ -745,14 +764,18 @@ class Clock:
 		self.linklock  = ButtonClockLinkLock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + + (5/2)*C.BUTTON_WIDTH + C.GRID_GAP - (3/8)*C.BUTTON_WIDTH,
+			C.TRAY_GAP + C.TRAY_WIDTH/2 + 3,            ### idiopathic +3
 			C.BOARD_HEIGHT/2 - (3/8)*C.BUTTON_HEIGHT,
 			[3*L/4 for L in C.BUTTON_SIZE],
 			clock=self
 		)
 		self.buttons = {
 			"WHITE"    : self.whiteface,
+			# "WHITE1"   : self.whiteface.setter,
+			"WHITE2"   : self.whiteface.resetter,
 			"BLACK"    : self.blackface,
+			# "BLACK1"   : self.blackface.setter,
+			"BLACK2"   : self.blackface.resetter,
 			"LINKLOCK" : self.linklock,
 		}
 
@@ -799,23 +822,49 @@ class Clock:
 		)[self.coach.board.ply == "b"]
 
 
-	def handle_tick(self , event):
+	def render(self):
+		hovering  = None
+
+		# Button
+		for button in self.buttons.values():
+			button.render()
+
+			### hover Mechanics
+			if button.rect.collidepoint(local_pos := (
+				self.coach.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
+				self.coach.mouse_pos[1],
+			)):
+				### cursor
+				if button.active is not None:
+					hovering = button
+
+				### tooltip
+				tltip_width = button.font.size(button.tooltip)[0]
+				button.display.blit(
+					button.font.render(
+						button.tooltip,
+						True,
+						(0,0,0),
+						(255,255,255,0)
+					),
+					(
+						local_pos[0] + 15,
+						local_pos[1] + 10
+					) if local_pos[0] + 11 + tltip_width < C.TRAY_SIZE[0] else (    ### idiopathic +11
+						local_pos[0] - 5 - tltip_width,
+						local_pos[1] + 10
+					)
+				)
+
+		return hovering
+
+
+	def tick(self , event):
 		self.time += 1
 
-		# Clocks
-		if event.player is None:
-			### reader
-			if self.coach.buttons_turns["ECOInterpreter"].active and self.coach.board.opening.startswith("."):
-				self.coach.reader._time += 1
-				self.coach.board.opening = {
-					False : "...",
-					True  : ".",
-				}[not self.coach.reader._time%100]
-
-		# Timers
-		if not self.coach.board.dreaming:                                       ### skips when dreaming ...
+		if not self.coach.board.reminiscing:                                    ### paused when dreaming ...
 			for face in (self.whiteface,self.blackface):
-				if face.active is not False and face.player == event.player:    ### ... and if inactive or wrong-colour tick
+				if face.active and face.player == event.player:                 ### ... and when inactive or idle
 					face.timer.tick()
 
 					### scramble
@@ -831,7 +880,7 @@ class Clock:
 						if not face.timer.time % 100:                           ### no correction needed ...
 							self.sound_clock_tick.play(loops=1)
 					else:
-						if not (face.timer.time-50) % 100:                      ### ... but here it is??
+						if not (face.timer.time-50) % 100:                      ### ... but it is needed here??
 							self.sound_clock_tick.play()
 
 
@@ -965,7 +1014,7 @@ class Clock:
 
 	@property
 	def active(self):
-		return self.whiteface.active or self.blackface.active
+		return any(self.actives)
 
 	@property
 	def actives(self):

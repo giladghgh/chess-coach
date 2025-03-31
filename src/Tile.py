@@ -22,12 +22,12 @@ class Tile:
 
 		# Brightness            "bottom right is light"
 		if (self.f + self.r) % 2 == 1:
-			self.rgb_basic = C.BOARD_STYLE[0]
-			self.rgb_fresh = C.BOARD_STYLE[1]
+			self.rgb_basic = C.BOARD_DESIGN[0]
+			self.rgb_fresh = C.BOARD_DESIGN[1]
 			self.rgb_focus = C.TILE_FOCUS_LIGHT
 		else:
-			self.rgb_basic = C.BOARD_STYLE[2]
-			self.rgb_fresh = C.BOARD_STYLE[3]
+			self.rgb_basic = C.BOARD_DESIGN[2]
+			self.rgb_fresh = C.BOARD_DESIGN[3]
 			self.rgb_focus = C.TILE_FOCUS_DARK
 
 		# Decor
@@ -61,7 +61,7 @@ class Tile:
 
 		# Fresh / Legal / Focus decor
 		if self.is_focus or self.is_fresh or self.is_legal:
-			self.veil.fill((0, 0, 0, 0))
+			self.veil.fill((0,0,0,0))
 
 			if self.is_focus:
 				self.veil.fill((*self.rgb_focus,130))

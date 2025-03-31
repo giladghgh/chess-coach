@@ -23,11 +23,11 @@ class Coach:
 		self.settings = Settings(self)
 		self.analysis = Analysis(self)
 		self.coaching = Coaching(self)
-		self.contexts = [
+		self.contexts = (
 			self.settings,
 			self.analysis,
 			self.coaching,
-		]
+		)
 
 		# Interface
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
@@ -38,6 +38,7 @@ class Coach:
 		self.graveyard = Graveyard(self)
 		self.reader    = Reader(self)
 		self.clock     = Clock(self)
+		# self.gauge     = Gauge(self)
 
 		### annotations
 		self.anchor = None
@@ -52,12 +53,14 @@ class Coach:
 		}
 
 		### buttons
-		self.toggle_tray = ToggleTray(
+		self.btn_toggle_tray = ButtonToggleTray(
 			self,
-			self.pane,
-			C.X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH/2,
-			C.Y_MARGIN
+			self.tray,
+			C.TRAY_GAP + C.BUTTON_WIDTH/2,
+			C.BOARD_HEIGHT/2 - C.BUTTON_HEIGHT/2
 		)
+		# self.btn_toggle_tray.click()
+
 		self.buttons_nav = {
 			"COACHING"  : ButtonContextOpen(
 				self,
@@ -76,7 +79,7 @@ class Coach:
 			"SETTINGS"  : ButtonContextOpen(
 				self,
 				self.pane,
-				C.X_MARGIN,
+				C.X_MARGIN + 0*(C.BUTTON_WIDTH + C.GRID_GAP),
 				C.Y_MARGIN,
 				context=self.settings
 			),
@@ -113,31 +116,43 @@ class Coach:
 				self.pane,
 				C.X_MARGIN,
 				self.banners["BOTS"].bottom + C.GRID_GAP,
-				player="BLACK"
+				player="BLACK",
+				persist=True
 			),
 			"BOT_WHITE"	: ButtonBot(
 				self,
 				self.pane,
 				C.X_MARGIN,
 				self.banners["BOTS"].bottom + 2*C.BUTTON_HEIGHT + 3*C.GRID_GAP,
-				player="WHITE"
+				player="WHITE",
+				persist=True
 			),
 		}
-		self.buttons = {				### right->left (& bottom->top if tight enough) so tooltips aren't obscured
+		self.buttons = {				        ### right->left (& bottom->top if tight enough) so tooltips aren't obscured
 			**self.buttons_nav,
 			**self.buttons_turns,
 			**self.buttons_bots,
 		}
 
 		### sounds
-		self.sound_game_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_start.wav")
-		self.sound_game_end   = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
+		self.sound_game_start    = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_start.wav")
+		self.sound_game_end      = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
+		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_start.wav")
+		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_stop.wav")
 
-		self.sound_game_start.play()
+		### hover actions
+		# self.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load("media\\cursors\\this_" + self.board.ply + ".png"))
+		self.CURSOR_THIS = pygame.SYSTEM_CURSOR_HAND
+		self.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load("media\\cursors\\palm_" + self.board.ply + ".png"))
+		self.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load("media\\cursors\\fist_" + self.board.ply + ".png"))
+		self.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load("media\\cursors\\deny_" + self.board.ply + ".png"))
+		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
+		self.CURSOR_CALM = pygame.SYSTEM_CURSOR_ARROW
 
-		### mouse
 		self.mouse_pos = None
 		self.hovering  = None
+
+		self.current_w = pygame.display.Info().current_w
 
 		### file i/o
 		self.tags = {tag : self.settings.writers[tag.upper()].pretext for tag in (
@@ -151,10 +166,12 @@ class Coach:
 		)}
 
 		# Assemble!
+		self.sound_game_start.play()
+
 		### visuals
-		self.screen.fill([(L+D)/2 for L,D in zip(C.BOARD_STYLE[0],C.BOARD_STYLE[2])])
+		self.screen.fill([ (L+D)/2 for L,D in zip(C.BOARD_DESIGN[0],C.BOARD_DESIGN[2]) ])
 		self.pane.fill(C.BACKGR_PANE)
-		self.tray.fill(C.BACKGR_TRAY)
+		self.tray.fill(C.BACKGR_GRAVE)
 		self.screen.blits([
 			(self.pane , (0,0)),
 			(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH,0))
@@ -162,7 +179,9 @@ class Coach:
 		pygame.display.update()
 
 		### mechanics
-		time.sleep(1/5)             ### pause for effect
+		self.pane_toggle = 0
+
+		# time.sleep(1/5)             ### pause for effect
 		self.reset()
 		for context in reversed(self.contexts):     ### plug in AFTER declaring contexts. Reversed for tooltip exposure.
 			context.plug_in()
@@ -177,7 +196,7 @@ class Coach:
 		self.board.movelog   = [self.board.this_move,]
 
 		self.mouse_pos = pygame.mouse.get_pos()
-		pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+		pygame.mouse.set_cursor(self.CURSOR_CALM)
 
 		# For imports:
 		### ply agnostic
@@ -197,32 +216,31 @@ class Coach:
 		self.mouse_pos = pygame.mouse.get_pos()
 		self.hovering  = None
 
+		# Tile cursor
 		for tile in self.board.all_tiles:
-			if tile.occupant and tile.occupant.colour == self.board.ply and tile.rect.collidepoint(self.mouse_pos):
+			if tile.rect.collidepoint(self.mouse_pos) and (self.board.agent or tile.occupant):
 				self.hovering = tile
 
 		# Tray
-		if self.tray:
-			self.tray.fill((0,0,0,0))
-			self.tray.fill(C.BACKGR_TRAY , (C.TRAY_GAP,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
+		self.tray.fill((0,0,0,0))
+		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.TRAY_WIDTH,C.BOARD_HEIGHT))
+		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.BUTTON_WIDTH,0,C.TRAY_WIDTH - C.BUTTON_WIDTH,C.BOARD_HEIGHT))
 
-			### clock
-			for button in self.clock.buttons.values():
-				button.render()
+		### hoverables
+		for element in [
+			self.btn_toggle_tray,
+			self.clock,
+		]:
+			if h := element.render():
+				self.hovering = h
 
-				if button.active is not None and button.rect.collidepoint((
-					self.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
-					self.mouse_pos[1],
-				)):
-					self.hovering = button
-				else:
-					button.paint()
+		### scenery
+		for scenery in [
+			self.graveyard,
+		]:
+			scenery.render()
 
-			### graveyard
-			self.graveyard.render()
-
-			self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
-
+		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
 		# Sidebar
 		### CONTEXT
@@ -235,11 +253,11 @@ class Coach:
 				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , C.TILE_HEIGHT ),
 			]
 
-			for c,context in sorted( enumerate(self.contexts) , key=lambda _:_[1].show ):
+			for c,context in sorted( enumerate(self.contexts) , key=lambda cc:cc[1].show ):
 				if context.show:
 					context.render()
 
-					if h := context.hovering:       ### /hovering/ never redefined to /None/ as that would discard tray hovers
+					if h := context.hovering:
 						self.hovering = h
 
 					shift = [
@@ -257,16 +275,10 @@ class Coach:
 						(0 , c*0.9*C.TILE_HEIGHT),
 					]
 
-				points = []
-				for b,s in zip(begin,shift):
-					points.append(
-						(b[0]+s[0] , b[1]+s[1])
-					)
-
 				pygame.draw.polygon(
 					self.screen,
 					context.colour,
-					points
+					[ (b[0]+s[0] , b[1]+s[1]) for b,s in zip(begin,shift) ]
 				)
 
 		### NO CONTEXT
@@ -293,29 +305,37 @@ class Coach:
 				button.render()
 
 				### hover mechanics
-				if button.dropdown:
+				if button.active is not None and button.rect.collidepoint(self.mouse_pos):
+					self.hovering = button
+				else:
+					button.paint()
+
+				if button.dropdown and (button.dropdown.persist or button.active):
 					for option in button.dropdown:
-						if option.active is not None and option.rect.collidepoint(self.mouse_pos):
+						if option.rect.collidepoint(self.mouse_pos):
 							self.hovering = option
 						else:
 							option.paint()
-				else:
-					if button.active is not None and button.rect.collidepoint(self.mouse_pos):
-						self.hovering = button
-					else:
-						button.paint()
 
 			self.screen.blit(self.pane,(0,0))
 
 		### de-hover
 		if self.hovering:
 			if issubclass(type(self.hovering) , Button):
-				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+				pygame.mouse.set_cursor(self.CURSOR_THIS)
 			elif type(self.hovering) is Writer:
-				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+				pygame.mouse.set_cursor(self.CURSOR_TYPE)
+			elif type(self.hovering) is Slider:
+				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
 			elif type(self.hovering) is Tile:
-				pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-				return
+				if self.hovering.occupant:
+					if self.board.ply == self.hovering.occupant.colour:
+						pygame.mouse.set_cursor(self.CURSOR_FIST if self.board.agent else self.CURSOR_PALM)
+					else:
+						pygame.mouse.set_cursor(self.CURSOR_DENY)
+				else:
+					pygame.mouse.set_cursor(self.CURSOR_FIST if self.board.agent else self.CURSOR_PALM)
+				return              ### since Tiles don't have .active attributes
 
 			if self.hovering.active is False:
 				if type(self.hovering) is ButtonContextOpen:
@@ -323,13 +343,19 @@ class Coach:
 				elif not str(self.hovering).endswith("Exit"):
 					self.hovering.colour = C.BUTTON_LOOM
 		else:
-			pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+			pygame.mouse.set_cursor(self.CURSOR_CALM)
+
+
+		#####   #   LINE   #   #####
+		# x = C.SIDEBAR_WIDTH + C.BOARD_WIDTH + (C.TRAY_WIDTH + C.BUTTON_WIDTH)/2
+		# pygame.draw.line(self.screen,(0,0,0),(x,0),(x,C.BOARD_HEIGHT))
+		####### # ######## # #######
 
 
 	def handle_click(self , event):
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-			hits = []
+			clicks = []
 
 			# Tray
 			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH:
@@ -337,20 +363,25 @@ class Coach:
 					event.pos[0] - C.PANE_WIDTH - C.BOARD_WIDTH + C.TRAY_GAP,
 					event.pos[1],
 				)
+				### navigation
+				if self.btn_toggle_tray.rect.collidepoint(local_pos):
+					clicks.append(self.btn_toggle_tray)
+
+				### clock
 				for button in self.clock.buttons.values():
 					if button.rect.collidepoint(local_pos) and button.active is not None:   ### /None/ used to disable buttons
-						hits.append(button)
+						clicks.append(button)
 
 			# Board
 			elif event.pos[0] > C.PANE_WIDTH:
-				self.board.handle_click(*self.gridify(event.pos))
+				self.board.handle_click(*self.board.gridify(event.pos))
 
 			# Pane
 			else:
 				### CONTEXT
 				for context in self.contexts:
 					if context.show:
-						hits.extend( context.handle_click(event) )
+						clicks.extend( context.handle_click(event) )
 						break
 
 				### NO CONTEXT
@@ -358,16 +389,17 @@ class Coach:
 					# Buttons
 					for button in self.buttons.values():
 						if button.rect.collidepoint(event.pos):
-							hits.append(button)
+							clicks.append(button)
 
 						elif button.dropdown and (button.dropdown.persist or button.active):
 							for option in button.dropdown:                  ### bot dropdowns always clickable
 								if option.rect.collidepoint(event.pos):
-									hits.append(option)
+									clicks.append(option)
 
 			### only click top-layer button:
-			if hits:
-				hits[-1].click()
+			if clicks:
+				clicks[-1].click()
+				# clicks[-1].paint()
 			### tidy on quiet clicks:
 			else:
 				for context in self.contexts:
@@ -376,7 +408,7 @@ class Coach:
 
 		# Annotations
 		elif event.type in (pygame.MOUSEBUTTONDOWN,pygame.MOUSEBUTTONUP) and event.button == 3:
-			f,r = self.gridify(event.pos)
+			f,r = self.board.gridify(event.pos)
 			for coord in (f,r):
 				if coord < 1 or coord > 8:
 					return
@@ -409,7 +441,7 @@ class Coach:
 							)
 						)
 
-		# Reader (scroll)
+		# Readers (scroll)
 		elif event.type == pygame.MOUSEWHEEL:
 			self.reader.scroll(event.y)
 
@@ -427,29 +459,23 @@ class Coach:
 			# 	for control in (self.clock.whiteface.dropdown,self.clock.blackface.dropdown):
 			# 		if type(control) is Writer:
 
-			# Navigators
-			else:
+			# Navigation
+			if event.key in (pygame.K_a,pygame.K_d):
+				if self.pane_toggle:
+					cntxt      = self.contexts[self.pane_toggle - 1]
+					cntxt.show = not cntxt.show
+
 				### port
 				if event.key == pygame.K_a:
-					for c,context in enumerate(self.contexts):
-						if context.show:
-							context.show = False
-							if c:
-								self.contexts[c-1].show = True
-							break
-					else:
-						self.contexts[-1].show = True
+					self.pane_toggle = (self.pane_toggle - 1) % (len(self.contexts) + 1)
 
 				### starboard
 				elif event.key == pygame.K_d:
-					for c,context in enumerate(self.contexts):
-						if context.show:
-							context.show = False
-							if len(self.contexts) - c - 1:
-								self.contexts[c+1].show = True
-							break
-					else:
-						self.contexts[0].show = True
+					self.pane_toggle = (self.pane_toggle + 1) % (len(self.contexts) + 1)
+
+				if self.pane_toggle:
+					cntxt      = self.contexts[self.pane_toggle - 1]
+					cntxt.show = not cntxt.show
 
 		# Sliders
 		if (
@@ -458,27 +484,41 @@ class Coach:
 			event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
 		):
 			for slider in Slider.all:
-				if slider.trigger.active and slider.rect.collidepoint(event.pos):
+				if slider.active and slider.rect.collidepoint(event.pos):
+					self.hovering = slider
 					slider.hold(event.pos)
 
 
-	# TODO: HANDLE END OF GAME
+	# TODO:
+	#  -    END OF GAME
+	#  -    ROYAL BURIALS
 	def is_game_over(self):
 		# Stats
-		if self.board.rulecount_threereps >= 3:
-			print("Draw by repetition!")
-			return True
-		if self.board.rulecount_fiftymoves > 99:
-			print("Draw by boredom!")
-			return True
+		if C.AUTO_DRAW:
+			if self.board.rulecount_threereps >= 3:
+				self.board.outcome = (
+					"Draw",
+					"Repitition"
+				)
+				return True
 
-		# Calculations
+			if self.board.rulecount_fiftymoves > 99:
+				self.board.outcome = (
+					"Draw",
+					"Stagnation"
+				)
+				return True
+
 		whites = [man.creed for man in self.board.all_men("w")]
 		blacks = [man.creed for man in self.board.all_men("b")]
 
-		if len(whites) > 2 or len(blacks) > 2:
-			if self.board.is_in_checkmate():
-				self.sound_game_end.play()
+		# Checkmate?
+		if (len(whites) > 2 or len(blacks) > 2) and (lm := self.board.last_move):
+			if lm.in_checkmate:
+				self.board.outcome = (
+					"win for " + ("Black","White")[lm.colour == "b"],
+					"Checkmate"
+				)
 				return True
 
 		if any([
@@ -539,9 +579,9 @@ class Coach:
 		castlability = ''
 		for king in self.board.all_men(creed="K"):
 			if not king.has_moved and king.position in ((5,1),(5,8)):
-				for rook in self.board.all_men(colour=king.colour, creed="R"):
+				for rook in self.board.all_men(colour=king.colour , creed="R"):
 					if not rook.has_moved and rook.position in (
-							(1,1), (8,1) if rook.colour == "w" else (8, 1), (8, 8)
+							(1,1) , (8,1) if rook.colour == "w" else (8,1) , (8,8)
 					):
 						can_castle = "K" if rook.f > king.f else "Q"
 						castlability += {
@@ -614,7 +654,7 @@ class Coach:
 		if ep_tgt.isalnum():
 			ep_target = self.board.tile(
 				C.FILES.index(ep_tgt[-2]),
-				int(ep_tgt[-1]) + (1 if self.board.ply == "b" else -1)
+				int(ep_tgt[-1]) + (-1,1)[self.board.ply == "b"]
 			)
 			if pawn := ep_target.occupant:
 				pawn.just_moved_double = True
@@ -683,20 +723,6 @@ class Coach:
 
 		if show:
 			time.sleep(0.1)
-
-
-	@staticmethod
-	def gridify(mouseclick):
-		if C.BOARD_FLIPPED:
-			return (
-				8 - ((mouseclick[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
-				1 + (mouseclick[1] // C.TILE_HEIGHT)
-			)
-		else:
-			return (
-				1 + ((mouseclick[0] - C.PANE_WIDTH) // C.TILE_WIDTH),
-				8 - (mouseclick[1] // C.TILE_HEIGHT)
-			)
 
 
 	@staticmethod

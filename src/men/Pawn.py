@@ -104,16 +104,9 @@ class Pawn(Man):
 					pawn.r == self.r,
 					pawn.just_moved_double,
 				]):
-					ep_victim_pos = (pawn.f , pawn.r + (1 if self.colour == "w" else -1))
-
-					### cannot e.p. into a check:
-					if not self.board.is_in_check(
-							self.colour,
-							movement=(
-									self.position,
-									ep_victim_pos
-							)
-					):
-						moves.append(self.board.tile(*ep_victim_pos))
+					moves.append(self.board.tile(
+						pawn.f,
+						pawn.r + (1 if self.colour == "w" else -1)
+					))
 
 		return moves
