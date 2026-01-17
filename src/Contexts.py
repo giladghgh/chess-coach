@@ -20,7 +20,7 @@ class Context:
 			0,
 			0,
 			C.X_MARGIN + C.TEXTBOX_WIDTH + C.X_MARGIN + C.GRID_GAP,
-			C.BOARD_HEIGHT
+			C.WINDOW_HEIGHT
 		)
 
 		self.tab = ()
@@ -32,10 +32,7 @@ class Context:
 		self.counters = {}
 		self.writers  = {}
 
-		self.buttons_nav = {}
-		self.buttons = {
-			**self.buttons_nav,
-		}
+		self.buttons = {}
 
 		self.shapes   = {}
 
@@ -49,23 +46,20 @@ class Context:
 		### populate other contexts with navigation buttons to this one.
 		for context in self.coach.contexts:
 			if context is self:
-				self.buttons_nav["EXIT"] = ButtonContextExit(
+				context.buttons["EXIT"] = ButtonContextExit(
 					self.coach,
 					self.pane,
 					C.X_MARGIN + index*(C.BUTTON_WIDTH + C.GRID_GAP),
 					C.Y_MARGIN
 				)
 			else:
-				context.buttons_nav[str(self).upper()] = ButtonContextOpen(
+				context.buttons[str(self).upper()] = ButtonContextOpen(
 					self.coach,
 					context.pane,
 					C.X_MARGIN + index*(C.BUTTON_WIDTH + C.GRID_GAP),
 					C.Y_MARGIN,
 					context=self
 				)
-			context.buttons.update(
-				**context.buttons_nav,
-			)
 
 
 	def render(self):
@@ -378,14 +372,14 @@ class Analysis(Context):
 			),
 			"DRAW CRITERIA" : pygame.Rect(
 				C.X_MARGIN,
-				C.Y_MARGIN + 7*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				C.Y_MARGIN + 8*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
 		}
 
 		# Counters
 		self.counters = {
-			### drawers
+			### rule counts
 			"RULECOUNT_FIFTYMOVES"	: Counter(
 				self,
 				self.banners["DRAW CRITERIA"].left,
@@ -399,21 +393,21 @@ class Analysis(Context):
 				"Threefold Repetition Rule"
 			),
 			### evaluators
-			"SCORE_HAL90"       : Counter(
+			"EVAL_HAL9"       : Counter(
 				self,
 				self.banners["EVALUATION"].left,
 				self.banners["EVALUATION"].bottom + 1*C.GRID_GAP,
-				"HAL90",
+				"HAL9",
 				polarise=True
 			),
-			"SCORE_STOCKFISH"   : Counter(
+			"EVAL_STOCKFISH"   : Counter(
 				self,
 				self.banners["EVALUATION"].left,
 				self.banners["EVALUATION"].bottom + 4*C.GRID_GAP,
 				"Stockfish",
 				polarise=True
 			),
-			### line display
+			### top lines
 			"TOPLINE1"  : Counter(
 				self,
 				self.banners["TOP LINES"].left,
@@ -438,7 +432,7 @@ class Analysis(Context):
 		}
 
 		# Buttons
-		self.buttons_topl = {
+		self.buttons_topls = {
 			f'TOPLINE{i}' : ButtonTopLine(
 				self.coach,
 				self.pane,
@@ -456,20 +450,20 @@ class Analysis(Context):
 			"BOT_WHITE"	: ButtonBot(
 				self.coach,
 				self.pane,
-				*self.gridify("EVALUATION",2,1,shift=(0,C.BUTTON_HEIGHT+2*C.GRID_GAP)),
+				*self.gridify("EVALUATION",1,2,shift=(0,2*C.BUTTON_HEIGHT+2*C.GRID_GAP)),
 				player="WHITE",
-				persist=False
+				persist=True
 			),
 			"BOT_BLACK"	: ButtonBot(
 				self.coach,
 				self.pane,
 				*self.gridify("EVALUATION",1,1,shift=(0,C.BUTTON_HEIGHT+2*C.GRID_GAP)),
 				player="BLACK",
-				persist=False
+				persist=True
 			),
 		}
 		self.buttons.update(
-			**self.buttons_topl,
+			**self.buttons_topls,
 			**self.buttons_bots,
 		)
 

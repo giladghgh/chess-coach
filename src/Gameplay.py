@@ -19,10 +19,9 @@ class Board:
 	def __init__(self , coach):
 		self.coach = coach
 
-		# Interface
 		self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
 
-		### sounds
+		# Sounds
 		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_clean.wav")
 		self.sound_flipA = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_flipA.wav")
 		self.sound_flipB = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_flipB.wav")
@@ -163,7 +162,7 @@ class Board:
 
 		# Initiate move:
 		if self.agent is None:
-			# Wash annotations:
+			# Remove annotations:
 			if not chosen_tile.occupant:
 				self.this_move.clean()
 
@@ -198,7 +197,7 @@ class Board:
 				# Calibrate
 				self.calibrate()
 
-				### clock
+				# Clock
 				self.coach.clock.tack()
 
 			# Switch agent:
@@ -210,7 +209,7 @@ class Board:
 						self.agent 			= chosen_tile.occupant
 						self.agent.position = chosen_tile.position
 
-				# Deselect agent & clear annotations:
+				# Deselect agent & remove annotations:
 				else:
 					self.agent = None
 					self.this_move.clean()
@@ -235,7 +234,7 @@ class Board:
 				tuple(self.this_move.fen.split()[:3])
 			]
 
-			### update movelog
+			# Movelog
 			self.last_move.rulecount_fiftymoves = self.rulecount_fiftymoves
 			self.last_move.rulecount_threereps  = self.rulecount_threereps
 
@@ -249,13 +248,18 @@ class Board:
 		# Graveyard
 		self.coach.graveyard.update()
 
-		# Evaluation(s)
-		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
-		self.coach.analysis.counters["SCORE_HAL90"].value = self.coach.engine.evaluate()
-		if self.coach.engine.stockfish:
-			self.coach.analysis.counters["SCORE_STOCKFISH"].value = self.coach.engine.stockfish.get_evaluation()["value"]/100
-		else:
-			self.coach.analysis.counters["SCORE_STOCKFISH"].value = None
+		# Evaluation
+		fen = self.coach.board.this_move.fen
+		self.coach.engine.model.set_fen(fen)
+		self.coach.engine.stockfish.set_fen_position(fen)
+		self.coach.gauge.update()
+
+		# Cursors
+		self.coach.CURSOR_CALM = pygame.Cursor((5,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
+		self.coach.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.ply + ".png"))
+		self.coach.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
+		self.coach.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
+		self.coach.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
 
 
 	def is_in_check(self , colour , movement=None):
@@ -748,35 +752,35 @@ class Clock:
 		self.whiteface = ButtonClock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 - 3,            ### idiopathic -3
-			C.BOARD_HEIGHT/2 + C.TILE_HEIGHT,
+			C.TRAY_GAP + (C.GAUGE_WIDTH + C.TRAY_WIDTH)/2,
+			C.WINDOW_HEIGHT/2 + C.TILE_HEIGHT,
 			clock=self,
 			player="WHITE"
 		)
 		self.blackface = ButtonClock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 - 3,            ### idiopathic -3
-			C.BOARD_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
+			C.TRAY_GAP + (C.GAUGE_WIDTH + C.TRAY_WIDTH)/2,
+			C.WINDOW_HEIGHT/2 - C.TILE_HEIGHT - C.BUTTON_HEIGHT,
 			clock=self,
 			player="BLACK"
 		)
 		self.linklock  = ButtonClockLinkLock(
 			self.coach,
 			self.coach.tray,
-			C.TRAY_GAP + C.TRAY_WIDTH/2 + 3,            ### idiopathic +3
-			C.BOARD_HEIGHT/2 - (3/8)*C.BUTTON_HEIGHT,
+			C.TRAY_GAP + (C.GAUGE_WIDTH + C.TRAY_WIDTH)/2 + 6,				### idiopathic +6
+			C.WINDOW_HEIGHT/2 - (3/8)*C.BUTTON_HEIGHT,
 			[3*L/4 for L in C.BUTTON_SIZE],
 			clock=self
 		)
 		self.buttons = {
-			"WHITE"    : self.whiteface,
-			# "WHITE1"   : self.whiteface.setter,
-			"WHITE2"   : self.whiteface.resetter,
-			"BLACK"    : self.blackface,
-			# "BLACK1"   : self.blackface.setter,
-			"BLACK2"   : self.blackface.resetter,
-			"LINKLOCK" : self.linklock,
+			"WHITE_FACE"	: self.whiteface,
+			"WHITE_SET"		: self.whiteface.setter,
+			"WHITE_RESET"	: self.whiteface.resetter,
+			"BLACK_FACE"	: self.blackface,
+			"BLACK_SET"		: self.blackface.setter,
+			"BLACK_RESET"	: self.blackface.resetter,
+			"LINKLOCK"		: self.linklock,
 		}
 
 		# Mechanics
@@ -794,6 +798,8 @@ class Clock:
 		self.sound_clock_tack     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_tack.wav")
 		self.sound_clock_click    = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_click.wav")
 		self.sound_clock_scramble = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_scramble.wav")
+
+		### minor corrections
 		self.sound_clock_tick.set_volume(0.75)
 		self.sound_clock_tack.set_volume(0.5)
 		self.sound_clock_click.set_volume(0.25)
@@ -825,36 +831,18 @@ class Clock:
 	def render(self):
 		hovering  = None
 
-		# Button
+		# Buttons
 		for button in self.buttons.values():
 			button.render()
 
 			### hover Mechanics
-			if button.rect.collidepoint(local_pos := (
-				self.coach.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
+			if button.rect.collidepoint((
+				self.coach.mouse_pos[0] - C.TRAY_OFFSET,
 				self.coach.mouse_pos[1],
 			)):
 				### cursor
 				if button.active is not None:
 					hovering = button
-
-				### tooltip
-				tltip_width = button.font.size(button.tooltip)[0]
-				button.display.blit(
-					button.font.render(
-						button.tooltip,
-						True,
-						(0,0,0),
-						(255,255,255,0)
-					),
-					(
-						local_pos[0] + 15,
-						local_pos[1] + 10
-					) if local_pos[0] + 11 + tltip_width < C.TRAY_SIZE[0] else (    ### idiopathic +11
-						local_pos[0] - 5 - tltip_width,
-						local_pos[1] + 10
-					)
-				)
 
 		return hovering
 

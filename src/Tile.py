@@ -99,11 +99,10 @@ class Tile:
 	def rect(self):
 		return pygame.Rect(
 			C.PANE_WIDTH + self.x,
-			C.BOARD_HEIGHT - C.TILE_HEIGHT - self.y,
+			C.WINDOW_HEIGHT - C.TILE_HEIGHT - self.y,
 			self.w,
 			self.h
 		)
-
 
 	@property
 	def x(self):
@@ -111,13 +110,11 @@ class Tile:
 			(8-self.f) if C.BOARD_FLIPPED else (self.f-1)
 		)
 
-
 	@property
 	def y(self):
 		return self.h * (
 			(8-self.r) if C.BOARD_FLIPPED else (self.r-1)
 		)
-
 
 	@property
 	def id(self):

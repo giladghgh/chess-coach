@@ -48,7 +48,7 @@ class Engine:
 			}
 		)
 
-		self.coach.analysis.counters["SCORE_STOCKFISH"].value = self.stockfish.get_evaluation()["value"]/100
+		self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.stockfish.get_evaluation()["value"]/100
 
 
 	def unload_stockfish(self):
@@ -90,9 +90,9 @@ class Engine:
 
 		# Calculate
 		move = {
-			"RANDOM"    : self.play_random,
-			"HAL90"     : self.play_hal90,
-			"STOCKFISH" : self.play_stockfish,
+			"RANDOM"	: self.play_random,
+			"HAL9"		: self.play_hal9,
+			"STOCKFISH"	: self.play_stockfish,
 		}[self.schema[self.coach.board.ply == "b"]]()
 
 		# Go
@@ -102,7 +102,7 @@ class Engine:
 	def play_random(self):
 		best = random.choice( list(self.model.legal_moves) )
 
-		return self.UCI_to_move(best)
+		return self.uci_to_move(best)
 
 
 	def play_stockfish(self):
@@ -112,14 +112,11 @@ class Engine:
 		if self.stockfish:
 			self.stockfish.set_fen_position(self.model.fen())
 			best = self.stockfish.get_best_move()
-		else:
-			print("random!")
-			best = random.choice( list(self.model.legal_moves) )
 
-		return self.STR_to_move(best)
+		return self.str_to_move(best)
 
 
-	def play_hal90(self):
+	def play_hal9(self):
 		movescores = {}
 		for move in self.model.legal_moves:
 			self.model.push(move)
@@ -145,7 +142,7 @@ class Engine:
 		# print("best:",type(best),best)
 		# print("main:",type(main),main)
 
-		return self.UCI_to_move( best )
+		return self.uci_to_move( best )
 
 
 	def search(self , depth , history):
@@ -169,7 +166,7 @@ class Engine:
 		return lines
 
 
-	def UCI_to_move(self , uci):
+	def uci_to_move(self , uci):
 		move = Move(
 			self.coach.board,
 			self.coach.board.this_move.fen
@@ -188,7 +185,7 @@ class Engine:
 		return move
 
 
-	def STR_to_move(self , string):
+	def str_to_move(self , string):
 		move = Move(
 			self.coach.board,
 			self.coach.board.this_move.fen

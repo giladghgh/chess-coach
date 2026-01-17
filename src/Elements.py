@@ -16,6 +16,7 @@ class Reader:
 		self.y = C.Y_MARGIN + C.BUTTON_HEIGHT + C.TEXTBOX_HEIGHT + C.GRID_GAP
 
 		self.catalogue = {}
+
 		self.lineparts = []
 		self.movetext  = ''
 
@@ -374,7 +375,7 @@ class Slider:
 		self.y        = y
 		self.size     = size
 		self.metric   = metric
-		self.txform   = txform               ### must be a format-ready string
+		self.txform   = txform			### must be a format-ready string
 		self.min_val  = domain[0]
 		self.max_val  = domain[1]
 		self.nrungs	  = nrungs
@@ -424,8 +425,10 @@ class Slider:
 	def hold(self , pos):
 		# Mechanics
 		if self.vertical:
-			self.ratio = round((self.nrungs-1) *
-				(pos[1] - self.rect.bottom) / (self.rect.top - self.rect.bottom)
+			self.ratio = round(
+				(self.nrungs-1) * (pos[1] - self.rect.bottom)
+				/
+				(self.rect.top - self.rect.bottom)
 			) / (self.nrungs-1)
 
 			self.knob.centery = self.max_pos - self.ratio*(self.max_pos - self.min_pos)
@@ -511,8 +514,7 @@ class Slider:
 class Dropdown:
 	def __init__(self , options , trigger , persist=False):
 		self.options = options
-		ref = self.options[0]
-		if all([ref.trigger == item.trigger for item in self.options]):
+		if all([self.options[0].trigger == item.trigger for item in self.options]):
 			self.trigger = trigger
 		else:
 			raise Exception("All dropdown options must have identical .trigger and .persist!")
@@ -786,15 +788,19 @@ class Arrow:
 # TODO: MORE BUTTONS
 #   1) top engine line(s) arrows
 class Button:
-	def __init__(self , coach , display , x , y , size=C.BUTTON_SIZE , base_colour=C.BUTTON_IDLE):
+	def __init__(self , coach , display , x , y , size=C.BUTTON_SIZE):
 		self.coach   = coach
 		self.display = display
 		self.x       = x
 		self.y       = y
 		self.size    = size
-		# self.base_colour = base_colour
 
 		self.dropdown = []
+
+		self.COLOUR_LIVE = C.BUTTON_LIVE
+		self.COLOUR_LOOM = C.BUTTON_LOOM
+		self.COLOUR_IDLE = C.BUTTON_IDLE
+		self.COLOUR_LOCK = C.BUTTON_LOCK
 
 		self.active = False
 		self.colour = None
@@ -831,14 +837,13 @@ class Button:
 		# Hover action
 		self.render_tooltip()
 
+
 	def render_tooltip(self , shift=(0,0)):
-		# Hover Mechanics
 		if self.rect.collidepoint(local_pos := (
 			self.coach.mouse_pos[0] + shift[0],
 			self.coach.mouse_pos[1] + shift[1],
 		)):
-			### tooltip
-			tltip_width = self.font.size(self.tooltip)[0]
+			tltp_width = self.font.size(self.tooltip)[0]
 			self.display.blit(
 				self.font.render(
 					self.tooltip,
@@ -849,21 +854,21 @@ class Button:
 				(
 					local_pos[0] + 15,
 					local_pos[1] + 10
-				) if local_pos[0] + 11 + tltip_width < C.TRAY_SIZE[0] else (      ### if overflowing (idiopathic +11)
-					local_pos[0] - 5 - tltip_width,
+				) if local_pos[0] + tltp_width < self.coach.current_w - C.PANE_WIDTH - C.BOARD_WIDTH + C.GAUGE_WIDTH + C.GRAVE_WIDTH else (      ### if overflowing
+					local_pos[0] - 5 - tltp_width,
 					local_pos[1] + 10
 				)
 			)
 
 	def paint(self):
 		self.colour = {
-			None  : C.BUTTON_LOCK,
-			False : C.BUTTON_IDLE,
-			True  : C.BUTTON_LOOM,
+			None  : self.COLOUR_LOCK,
+			False : self.COLOUR_IDLE,
+			True  : self.COLOUR_LOOM,
 		}[self.dropdown.active] if self.dropdown else {
-			None  : C.BUTTON_LOCK,
-			False : C.BUTTON_IDLE,
-			True  : C.BUTTON_LIVE
+			None  : self.COLOUR_LOCK,
+			False : self.COLOUR_IDLE,
+			True  : self.COLOUR_LIVE
 		}[self.active]
 
 
@@ -873,6 +878,9 @@ class ButtonBot(Button):
 		super().__init__(*args)
 		self.player  = player
 		self.persist = persist
+
+		if self.persist:
+			self.COLOUR_LOOM = (0,0,0)
 
 		self.engine = self.coach.engine
 		self.scheme = self.engine.schema[self.player == "BLACK"]
@@ -916,7 +924,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 2*C.BUTTON_WIDTH
 					),
 					self.y,
-					philosophy="HAL90",
+					philosophy="HAL9",
 					trigger=self
 				),
 				ButtonBotOption(
@@ -936,8 +944,9 @@ class ButtonBot(Button):
 			persist=self.persist
 		)
 		### initial conditions
+		self.active = (None,True)[bool(self.scheme)] if self.persist else False
 		for option in self.dropdown:
-			if type(option) is ButtonBotOption:
+			if type(option) is ButtonBotOption:         ### excludes Slider
 				option.active = self.scheme == option.philosophy.upper()
 
 		self.tooltip = self.player.title() + " bot"
@@ -952,34 +961,20 @@ class ButtonBot(Button):
 		if not self.persist:
 			self.dropdown.active = not self.dropdown.active
 
+
 	def render(self):
 		# Dropdown
-		if self.dropdown.active:
+		if self.dropdown.active or self.dropdown.persist:
 			self.dropdown.render()
 
 		# Myself
-		if bool(self.engine.schema[self.player == "BLACK"]):
-			self.colour = C.BUTTON_LIVE
-		elif self.rect.collidepoint(self.coach.mouse_pos) or self.dropdown.active:
-			self.colour = (0,0,0,50) if self.persist else C.BUTTON_LOOM
-		else:
-			self.colour = C.BUTTON_IDLE
-		super().render()
-
-		# Slider
 		if self.active:
-			### skill label
-			self.display.blit(
-				self.font.render(
-					self.slider.value_nice,
-					True,
-					(100,0,0)
-				),
-				(
-					self.x + 0.85*C.BUTTON_WIDTH,
-					self.y + 0.05*C.BUTTON_HEIGHT
-				)
-			)
+			self.colour = self.COLOUR_LIVE
+		elif self.persist:
+			self.colour = (0,0,0,35)
+		else:
+			self.colour = self.COLOUR_LOOM if self.rect.collidepoint(self.coach.mouse_pos) or self.dropdown.active else self.COLOUR_IDLE
+		super().render()
 
 
 
@@ -1001,20 +996,11 @@ class ButtonBotOption(Button):
 		)
 
 	def click(self):
-		# Mechanics
-		for option in self.trigger.dropdown:
-			option.active = not self.active if option is self else False
-
 		# Function
 		incumbent = self.engine.schema[self.player.upper() == "BLACK"]
 		candidate = self.philosophy.upper()
-		if candidate != incumbent:
-			appointed = candidate
 
-			self.trigger.active        = False
-			self.trigger.slider.active = True
-		else:
-			appointed = None
+		appointed = candidate if candidate != incumbent else None
 
 		### apply
 		self.engine.schema[self.player.upper() == "BLACK"] = appointed
@@ -1024,14 +1010,20 @@ class ButtonBotOption(Button):
 			case "STOCKFISH":
 				self.engine.load_stockfish()
 
-		# Mechanics again
-		self.trigger.active = bool(appointed)
-		self.trigger.paint()
-
+		# Mechanics
 		for trigger in [
 			self.coach.buttons_bots["BOT_" + self.player],
 			self.coach.analysis.buttons_bots["BOT_" + self.player],
 		]:
+			trigger.active = (None,True)[bool(appointed)]
+			for option in trigger.dropdown:
+				if type(option) is ButtonBotOption:
+					option.active = (False,not option.active)[self.philosophy == option.philosophy]
+				else:
+					option.active = bool(trigger.active)
+
+			trigger.paint()
+
 			trigger.image  = pygame.transform.scale(
 				pygame.image.load(
 					C.DIR_ICONS + "\\bots\\bot_" + self.player.lower() + "_" + (
@@ -1302,14 +1294,15 @@ class ButtonContextOpen(Button):
 		super().__init__(*args)
 		self.context = context
 
+		self.COLOUR_IDLE = [int(CC/0.85) for CC in self.context.colour]
+
 		self.tooltip = str(self.context).title()
-		self.image = pygame.transform.scale(
+		self.image   = pygame.transform.scale(
 			pygame.image.load(C.DIR_ICONS + "\\context_" + str(self.context).lower() + ".png"),
 			self.size
 		)
 
 	def click(self):
-		self.coach.pane_toggle = self.coach.contexts.index(self.context) + 1
 		for context in self.coach.contexts:
 			context.show = context is self.context
 
@@ -1337,81 +1330,11 @@ class ButtonContextExit(Button):
 		)
 
 	def click(self):
-		self.coach.pane_toggle = 0
 		for context in self.coach.contexts:
 			context.show = False
 
 	def paint(self):
 		self.colour = (85,75,75)
-
-
-
-class ButtonToggleTray(Button):
-	def __init__(self , *args):
-		super().__init__(*args)
-
-		self.active = True
-
-		self.tooltip = "Tray open"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
-			self.size
-		)
-
-
-	def click(self):
-		self.active = not self.active
-
-		if self.active:
-			self.tooltip = "Shut tray"
-			self.image   = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
-				self.size
-			)
-
-			self.coach.screen    = pygame.display.set_mode(C.WINDOW_SIZE)
-			self.coach.current_w = pygame.display.Info().current_w
-
-		else:
-			self.tooltip = "Open tray"
-			self.image   = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_shut.png"),
-				self.size
-			)
-
-			self.coach.screen    = pygame.display.set_mode((C.PANE_WIDTH + C.BOARD_WIDTH + C.BUTTON_WIDTH , C.BOARD_HEIGHT))
-			self.coach.current_w = pygame.display.Info().current_w
-
-
-	def render(self):
-		# Drawer
-		self.display.blit(self.image,self.rect)
-
-		# Hover Mechanics
-		if self.rect.collidepoint(local_pos := (
-			self.coach.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
-			self.coach.mouse_pos[1],
-		)):
-			### tooltip
-			tltip_width = self.font.size(self.tooltip)[0]
-			self.display.blit(
-				self.font.render(
-					self.tooltip,
-					True,
-					(0,0,0),
-					(255,255,255,0)
-				),
-				(
-					local_pos[0] + 15,
-					local_pos[1] + 10
-				) if self.coach.mouse_pos[0] + tltip_width < self.coach.current_w else (      ### if overflowing (idiopathic +11)
-					local_pos[0] - 5 - tltip_width,
-					local_pos[1] + 10
-				)
-			)
-
-			### cursor
-			return self
 
 
 
@@ -1722,14 +1645,25 @@ class ButtonFlip(Button):
 			C.BOARD_FLIPPED = True
 			self.coach.board.sound_flipB.play()
 
-		# Collateral flips
+		# Definitions
 		### bots
-		w_bot = self.coach.buttons["BOT_WHITE"]
-		b_bot = self.coach.buttons["BOT_BLACK"]
+		w_c_bot = self.coach.buttons["BOT_WHITE"]
+		b_c_bot = self.coach.buttons["BOT_BLACK"]
+
+		w_a_bot = self.coach.analysis.buttons_bots["BOT_WHITE"]
+		b_a_bot = self.coach.analysis.buttons_bots["BOT_BLACK"]
 
 		### clocks
 		w_clock = self.coach.clock.whiteface
 		b_clock = self.coach.clock.blackface
+		w_clock_elems = [
+			w_clock.timer,
+			w_clock.resetter,
+		]
+		b_clock_elems = [
+			b_clock.timer,
+			b_clock.resetter,
+		]
 
 		### graves
 		w_graves = self.coach.graveyard.w_rect
@@ -1737,15 +1671,24 @@ class ButtonFlip(Button):
 		w_plaque = self.coach.graveyard.w_plaque
 		b_plaque = self.coach.graveyard.b_plaque
 
-		for a,b in zip(
-			[ w_bot , w_bot.slider , *w_bot.dropdown , w_clock , w_clock.timer , w_graves , w_plaque ],
-			[ b_bot , b_bot.slider , *b_bot.dropdown , b_clock , b_clock.timer , b_graves , b_plaque ],
+		### gauge
+		w_gauge = self.coach.gauge.w_rect
+		b_gauge = self.coach.gauge.b_rect
+
+		# Mechanics
+		### specialist
+		w_gauge.y = b_gauge.h - w_gauge.y
+		b_gauge.y = w_gauge.h - b_gauge.y
+
+		### generic
+		for w,b in zip(
+			[ w_c_bot , *w_c_bot.dropdown , w_a_bot , *w_a_bot.dropdown , w_clock , *w_clock_elems , w_graves , w_plaque ],
+			[ b_c_bot , *b_c_bot.dropdown , b_a_bot , *b_a_bot.dropdown , b_clock , *b_clock_elems , b_graves , b_plaque ],
 		):
-			a.x , b.x = a.x , a.x
-			a.y , b.y = b.y , a.y
+			w.y , b.y = b.y , w.y
 
 			try:
-				a.rect , b.rect = b.rect , a.rect
+				w.rect , b.rect = b.rect , w.rect
 			except AttributeError:
 				pass
 
@@ -2004,8 +1947,8 @@ class ButtonAutoPromote(Button):
 			self.colour = C.BUTTON_LIVE
 		elif self.rect.collidepoint(self.coach.mouse_pos) or self.dropdown.active:
 			self.colour = C.BUTTON_LOOM
-		else:
-			self.colour = C.BUTTON_IDLE
+		# else:
+		# 	self.colour = C.BUTTON_IDLE
 		super().render()
 
 
@@ -2107,7 +2050,8 @@ class ButtonDrills(Button):
 		)
 
 	def click(self):
-		self.dropdown.active = not self.dropdown.active
+		self.active          = not self.active
+		self.dropdown.active = self.active
 
 	def render(self):
 		# Dropdown
@@ -2171,6 +2115,60 @@ class ButtonDrillOption(Button):
 
 
 
+class ButtonToggleTray(Button):
+	def __init__(self , *args):
+		super().__init__(*args)
+
+		self.active = True
+
+		self.tooltip = "Tray open"
+		self.image   = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
+			self.size
+		)
+
+
+	def render(self):
+		# Draw
+		self.display.blit(self.image,self.rect)
+
+		# Hover Mechanics
+		if self.rect.collidepoint((
+			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
+			self.coach.mouse_pos[1],
+		)):
+			### tooltip
+			self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+
+			### cursor
+			return self
+
+
+	def click(self):
+		self.active = not self.active
+
+		if self.active:
+			self.tooltip = "Shut tray"
+			self.image   = pygame.transform.scale(
+				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
+				self.size
+			)
+
+			self.coach.screen    = pygame.display.set_mode(C.WINDOW_SIZE)
+			self.coach.current_w = pygame.display.Info().current_w
+
+		else:
+			self.tooltip = "Open tray"
+			self.image   = pygame.transform.scale(
+				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_shut.png"),
+				self.size
+			)
+
+			self.coach.screen    = pygame.display.set_mode((C.PANE_WIDTH + C.GAUGE_WIDTH + C.BOARD_WIDTH + C.GRAVE_WIDTH , C.WINDOW_HEIGHT))
+			self.coach.current_w = pygame.display.Info().current_w
+
+
+
 class ButtonClock(Button):
 	def __init__(self , *args , clock , player):
 		super().__init__(*args)
@@ -2178,57 +2176,46 @@ class ButtonClock(Button):
 		self.player = player
 		self.p      = player[0].lower()
 
-		starter = (C.TIME_STARTER_WHITE,C.TIME_STARTER_BLACK)[self.p=="b"]
+		# Mechanics
+		starter = (C.TIME_STARTER_WHITE,C.TIME_STARTER_BLACK)[self.p == "b"]
 		self.start_str = ":".join(str(s) for s in starter)
-		self.start_sec = 60*(60*starter[0] + starter[1]) + starter[2]
-		self.bonus = (C.TIME_BONUS_WHITE,C.TIME_BONUS_BLACK)[self.p=="b"]
+		self.start_num = 60*(60*starter[0] + starter[1]) + starter[2]
+		self.bonus = (C.TIME_BONUS_WHITE,C.TIME_BONUS_BLACK)[self.p == "b"]
 
-		if self.start_sec + self.bonus > 60*60:
-			size = (      ### HH:MM:SS
-				self.x - C.BUTTON_WIDTH,
-				(3*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT)
-			)
-		else:
-			size = (      ### MM:SS
-				self.x - C.BUTTON_WIDTH/2,
-				(2*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT)
-			)
+		# Interface
+		### HH:MM:SS or MM:SS
+		hour_plus = self.start_num + self.bonus >= 60*60
 
 		self.timer = Timer(
 			self.display,
-			x=size[0],
+			x=(self.x - C.BUTTON_WIDTH) if hour_plus else self.x - C.BUTTON_WIDTH/2,
 			y=(
 				self.y - (5/6)*C.BUTTON_HEIGHT - 2*C.GRID_GAP,
 				self.y + C.BUTTON_HEIGHT + 2*C.GRID_GAP
 			)[self.p == "b"],
-			size=size[1],
-			start=self.start_sec,
+			size=(3*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT) if hour_plus else (2*C.BUTTON_WIDTH , (5/6)*C.BUTTON_HEIGHT),
+			start=self.start_num,
 			bonus=self.bonus,
 			trigger=self
 		)
-		# TODO: IMPLEMENT TIME SETTER AND RESETTER
-		# self.setter = ButtonClockSet(
+		self.setter = ButtonClockSet(
+			self.coach,
+			self.display,
+			self.x - C.BUTTON_WIDTH - C.GRID_GAP,
+			self.timer.y + 3,
+			[2*L/3 for L in C.BUTTON_SIZE],
+			timer=self.timer
+		)
 		self.resetter = ButtonClockReset(
 			self.coach,
 			self.display,
-			C.TRAY_GAP + (C.BUTTON_WIDTH + C.TRAY_WIDTH)/2 + self.timer.case.w/2,
+			self.x + 1.5*C.BUTTON_WIDTH,
 			self.timer.y + 3,
 			[2*L/3 for L in C.BUTTON_SIZE],
 			timer=self.timer
 		)
 
-		self.dropdown = Dropdown(
-			options=[
-				self.timer,
-				# self.setter,
-				self.resetter,
-				# TODO: WHEN Writer.click() FIND CLEANER WAY TO DEACTIVATE OTHER WRITERS
-				### writers
-			],
-			trigger=self,
-			persist=True
-		)
-
+		self.active  = None
 		self.tooltip = self.player.title() + " timer"
 		self.image   = pygame.transform.scale(
 			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),
@@ -2242,7 +2229,6 @@ class ButtonClock(Button):
 
 	def render(self):
 		# Button
-
 		pygame.draw.rect(
 			self.display,
 			self.colour,
@@ -2254,29 +2240,21 @@ class ButtonClock(Button):
 		)
 
 		# Elements
-		self.dropdown.render()
+		self.timer.render()
+		self.resetter.render()
 
 		# Hover action
-		if self.rect.collidepoint(local_pos := (
-			self.coach.mouse_pos[0] + C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH,
+		if self.rect.collidepoint(
+			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
 			self.coach.mouse_pos[1],
-		)):
+		):
 			### tooltip
-			self.display.blit(
-				self.font.render(
-					self.tooltip,
-					True,
-					(0,0,0),
-					(255,255,255,0)
-				),
-				(local_pos[0] + 15 , local_pos[1] + 10)
-			)
+			self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 			### cursor
 			return self
 		else:
 			self.paint()
-
 
 
 	def click(self):
@@ -2287,7 +2265,7 @@ class ButtonClock(Button):
 		### linked
 		if self.clock.linklock.linked:
 			white.active = black.active = not self.active
-			# white.colour = black.colour = C.BUTTON_LIVE
+			white.colour = black.colour = C.BUTTON_LIVE
 
 			if self.active:
 				if board.ply == "w":
@@ -2304,7 +2282,7 @@ class ButtonClock(Button):
 		### unlinked
 		else:
 			self.active = not self.active
-			# self.colour = C.BUTTON_LIVE
+			self.colour = C.BUTTON_LIVE
 
 			if self.active:
 				if self.p == board.ply:
@@ -2314,7 +2292,6 @@ class ButtonClock(Button):
 
 			else:
 				self.timer.stop()
-
 
 		### sound
 		self.clock.sound_clock_click.play()
@@ -2342,11 +2319,8 @@ class ButtonClockLinkLock(Button):
 
 
 	def render(self):
-		# Button
 		self.display.blit(self.image,self.rect)
-
-		# Hover Mechanics
-		self.render_tooltip(shift=(C.TRAY_GAP-C.PANE_WIDTH-C.BOARD_WIDTH,0))
+		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 
 	def click(self):
@@ -2368,6 +2342,8 @@ class ButtonClockLinkLock(Button):
 				self.linked = True
 
 				self.w.active = self.b.active = None
+				self.w.colour = self.b.colour = C.BUTTON_LOCK
+
 				self.w.timer.stop()
 				self.b.timer.stop()
 
@@ -2419,10 +2395,32 @@ class ButtonClockReset(Button):
 
 
 	def render(self):
-		# Draw
 		self.display.blit(self.image,self.rect)
+		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
-		# self.render_tooltip(shift=(C.TRAY_GAP - C.PANE_WIDTH - C.BOARD_WIDTH , 0))
+
+
+class ButtonClockSet(Button):
+	def __init__(self , *args , timer):
+		super().__init__(*args)
+		self.timer = timer
+
+		self.trigger = self.timer.trigger
+
+		self.tooltip = "Set clock"
+		self.image   = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "clock\\btn_clock_set.png"),
+			self.size
+		)
+
+
+	def click(self):
+		pass
+
+
+	def render(self):
+		self.display.blit(self.image,self.rect)
+		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 
 
@@ -2594,35 +2592,33 @@ class Graveyard:
 		# Rendering
 		self.h = 2*C.TILE_HEIGHT
 
-		self.w_afterlife = pygame.Surface((1.5*C.BUTTON_WIDTH , self.h),pygame.SRCALPHA)
-		self.b_afterlife = pygame.Surface((1.5*C.BUTTON_WIDTH , self.h),pygame.SRCALPHA)
+		self.w_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH, self.h),pygame.SRCALPHA)
+		self.b_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH, self.h),pygame.SRCALPHA)
 
 		self.w_rect = pygame.Rect(
 			C.TRAY_GAP,
 			0,
-			C.BUTTON_WIDTH,
+			C.GRAVE_WIDTH,
 			self.h
 		)
 		self.b_rect = pygame.Rect(
 			C.TRAY_GAP,
-			C.BOARD_HEIGHT - self.h,
-			C.BUTTON_WIDTH,
+			C.WINDOW_HEIGHT - self.h,
+			C.GRAVE_WIDTH,
 			self.h
 		)
 
 		# Plaque
 		self.mat_bal = 0
 		self.w_plaque = pygame.Rect(
-			C.TRAY_GAP + C.GRID_GAP,
+			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
 			self.h + C.GRID_GAP,
-			25,
-			9                       ### approx height of Consolas text at size 12
+			0,0						### auto sizes with text
 		)
 		self.b_plaque = pygame.Rect(
-			C.TRAY_GAP + C.GRID_GAP,
-			C.BOARD_HEIGHT - self.h - 9 - C.GRID_GAP,
-			25,
-			9
+			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
+			C.WINDOW_HEIGHT - self.h - self.font.size("-")[1] - C.GRID_GAP,
+			0,0
 		)
 
 
@@ -2632,15 +2628,15 @@ class Graveyard:
 			(False , self.blacks , self.b_afterlife),
 		]:
 			r = 0
-			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (0,0,C.BUTTON_WIDTH,self.h) )
+			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (C.GAUGE_WIDTH/2,0,C.GAUGE_WIDTH/2 + C.GRAVE_WIDTH,self.h) )
 			for graves in graveyard.values():
 				for c,fallen in enumerate(graves):
 					if c < 4:
 						afterlife.blit(
 							pygame.transform.scale(fallen.image , [L/4 for L in C.TILE_SIZE]),
 							(
-								(5 +  8*c),
-								(8 + 35*r) if is_white else (self.h - 35*(r+1)),
+								(20 +  8*c),
+								( 8 + 35*r) if is_white else (self.h - 35*(r+1)),
 							)
 						)
 					else:
@@ -2650,7 +2646,7 @@ class Graveyard:
 						afterlife.blit(
 							pygame.transform.scale(fallen.image , (25,25)),
 							(
-								( 9 +  8*(c-4)),
+								(25 +  8*(c-4)),
 								(10 + 35*r) if is_white else (self.h - 35*(r+1)),
 							)
 						)
@@ -2687,3 +2683,124 @@ class Graveyard:
 		for move in self.coach.board.movelog[:self.coach.board.halfmovenum - 1]:
 			if move.capture:
 				self.bury(move.capture)
+
+
+
+class Gauge:
+	def __init__(self , coach):
+		self.coach = coach
+
+		# Mechanics
+		self.active = True
+
+		self.emax = 15
+		self.eval = 0
+
+		# Interface
+		self.font  = pygame.font.SysFont("Consolas",15)
+		self.label = None
+
+		self.bg_rect = pygame.Rect(C.TRAY_GAP,0,C.GAUGE_WIDTH,C.WINDOW_HEIGHT)
+		self.w_rect  = pygame.Rect(
+			C.TRAY_GAP,
+			C.WINDOW_HEIGHT/2,
+			C.GAUGE_WIDTH,
+			C.WINDOW_HEIGHT/2,
+		)
+		self.b_rect  = pygame.Rect(
+			C.TRAY_GAP,
+			C.WINDOW_HEIGHT/2,
+			C.GAUGE_WIDTH,
+			C.WINDOW_HEIGHT/2,
+		)
+
+		self.bg_bar = pygame.Surface(self.bg_rect.size,pygame.SRCALPHA)
+		self.w_bar  = None
+		self.b_bar  = None
+
+
+	def render(self):
+		# Bars
+		if self.active:
+			self.coach.tray.blits([
+				(self.w_bar,self.w_rect),
+				(self.b_bar,self.b_rect),
+			])
+		else:
+			self.bg_bar.fill((*C.BACKGR_GRAVE,135))
+			self.coach.tray.blit(self.bg_bar,self.bg_rect)
+
+		# Label
+		if self.bg_rect.collidepoint(
+			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
+			self.coach.mouse_pos[1]
+		):
+			if self.active:
+				label_size = self.font.size(self.label)
+				self.coach.tray.blit(
+					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
+					(
+						C.TRAY_GAP + C.GAUGE_WIDTH/2 - label_size[0]/2,
+						C.WINDOW_HEIGHT/2 - label_size[1]/2
+					)
+				)
+
+			### cursor
+			return self
+
+
+	def click(self):
+		self.active = not self.active
+
+		if self.active:
+			self.bg_rect.w *= 2
+		else:
+			self.bg_rect.w /= 2
+
+
+	def update(self):
+		# Evaluate
+		# self.eval = self.coach.engine.evaluate()
+		# print(self.coach.engine.stockfish.get_best_move())
+		match (score := self.coach.engine.stockfish.get_evaluation())["type"]:
+			case "cp":
+				self.eval = score["value"]/100
+			case "mate":
+				self.eval = self.emax if score["value"]>0 else -self.emax
+
+		# Update engines
+		### HAL9
+		self.coach.analysis.counters["EVAL_HAL9"].value = None
+
+		### stockfish
+		if self.coach.engine.stockfish:
+			self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.eval#self.coach.engine.stockfish.get_evaluation()["value"]/100
+		else:
+			self.coach.analysis.counters["EVAL_STOCKFISH"].value = None
+
+		# Update meter
+		### mechanics
+		self.w_rect.h = (1 + self.eval/self.emax)*C.WINDOW_HEIGHT/2
+		self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
+
+		if C.BOARD_FLIPPED:
+			self.w_rect.y = 0
+			self.b_rect.y = self.w_rect.h
+		else:
+			self.w_rect.y = self.b_rect.h
+			self.b_rect.y = 0
+
+		### visuals
+		self.w_bar = pygame.Surface(self.w_rect.size)
+		self.b_bar = pygame.Surface(self.b_rect.size)
+		self.w_bar.fill((255,255,255))
+		self.b_bar.fill((  0,  0,  0))
+
+		### label
+		if self.eval > 0:
+			self.label = "+"
+		elif self.eval < 0:
+			self.label = "-"
+		else:
+			self.label = ""
+		self.label += str(abs(self.eval))

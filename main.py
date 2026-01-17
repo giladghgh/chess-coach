@@ -1,7 +1,7 @@
 import os,time
 import pygame
 
-from src.Constants import C
+from src.Constants import C,E
 from src.Coach import Coach
 
 
@@ -13,15 +13,6 @@ if __name__ == "__main__":
 	pygame.display.set_caption("Chess Coach")
 	pygame.display.set_icon(pygame.image.load(C.DIR_MEDIA + "coach_icon.png"))
 	pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_WAIT)
-
-	# C.MONITOR_SIZE = (
-	# 	pygame.display.Info().current_w,
-	# 	pygame.display.Info().current_h
-	# )
-	# C.WINDOW_POS = (
-	# 	(19/20)*C.MONITOR_SIZE[0] - (C.PANE_WIDTH + C.BOARD_WIDTH),
-	# 	C.MONITOR_SIZE[1]/10
-	# )
 
 	os.environ["SDL_VIDEO_WINDOW_POS"] = "%d,%d" % C.WINDOW_POS
 
@@ -39,18 +30,22 @@ if __name__ == "__main__":
 
 			# Keyboard
 			elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-				### exit pane or quit
+				### exit pane, or quit
 				for context in coach.contexts:
 					if context.show:
-						context.show      = False
-						coach.pane_toggle = 0
+						context.show = False
 						break
 				else:
 					running = False
 
-			### toggle tray
-			elif event.type == pygame.KEYDOWN and event.key in (pygame.K_LEFT,pygame.K_RIGHT):
-				coach.btn_toggle_tray.click()
+			### prev/next move
+			elif event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_LEFT:
+					coach.buttons_turns["PREV"].click()
+				elif event.key == pygame.K_RIGHT:
+					coach.buttons_turns["NEXT"].click()
+				elif event.key in (pygame.K_UP,pygame.K_DOWN):
+					print(E.BOT_DEPTH_WHITE , E.BOT_DEPTH_BLACK)
 
 			# Clock
 			elif event in clock.TICKS:
@@ -74,9 +69,6 @@ if __name__ == "__main__":
 				print("###- GAME OVER -###")
 				print("It's a " + board.outcome[0] + " by " + board.outcome[1].lower() + "!")
 				print("####-####-####-####")
-
-			# elif engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
-			# 	engine.play()
 
 		coach.screen.fill(C.BACKGR_PANE)
 		board.render()
