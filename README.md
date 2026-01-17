@@ -2,14 +2,13 @@
 
 <br>
 
-#### My attempt at a simple chess platform, to help explore openings and endgames.
-
 <p align="center">
   <img src="media/coach_poster.png" width="600"/>
 </p>
 
 <br>
 
+#### My attempt at a simple chess platform, to help explore openings and endgames.
 
 
 ## Briefing
@@ -21,12 +20,10 @@ Coach comes fully equipped with:
 - [x]  ECO interpreter
 - [ ]  Syzygy interpreter
 - [x]  Stockfish bot with variable skill
-- [ ]  Coach's own bot!
+- [x]  Coach's own bot!
 - [ ]  Drills for openings
 - [ ]  Drills for endgames
 - [ ]  Drills for chess vision
-
-The GUI is *unspeakably* simple. Give it a whirl.
 
 
 
@@ -53,8 +50,4 @@ So that coach works offline, I cleaned & converted this ECO catalogue to CSV for
 
 ### License
 
-[Unlincensed](LICENSE).
-
----
-
-[Back Up Top](#chess-coach)
+[Unlincensed](LICENSE)
