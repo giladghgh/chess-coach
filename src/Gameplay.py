@@ -48,7 +48,7 @@ class Board:
 		self.outcome = (None,None)
 
 		# Rule Counts
-		self.rulecount_fiftymoves = 0
+		self.rulecount_fiftymovs = 0
 		self.rulecount_threereps  = 1
 
 
@@ -224,9 +224,9 @@ class Board:
 		if self.last_move:
 			# Fifty move rule
 			if self.last_move.agent.creed and not self.last_move.capture:
-				self.rulecount_fiftymoves += 1
+				self.rulecount_fiftymovs += 1
 			else:
-				self.rulecount_fiftymoves = 0
+				self.rulecount_fiftymovs = 0
 
 			# Threefold repetition rule
 			fenlog = [tuple(move.fen.split()[:3]) for move in self.movelog[:self.halfmovenum+1]]
@@ -235,11 +235,11 @@ class Board:
 			]
 
 			# Movelog
-			self.last_move.rulecount_fiftymoves = self.rulecount_fiftymoves
-			self.last_move.rulecount_threereps  = self.rulecount_threereps
+			self.last_move.rulecount_fiftymovs = self.rulecount_fiftymovs
+			self.last_move.rulecount_threereps = self.rulecount_threereps
 
 		# Rulecounters
-		self.coach.analysis.counters["RULECOUNT_FIFTYMOVES"].value = self.rulecount_fiftymoves
+		self.coach.analysis.counters["RULECOUNT_FIFTYMOVS"].value = self.rulecount_fiftymovs
 		self.coach.analysis.counters["RULECOUNT_THREEREPS"].value  = self.rulecount_threereps
 
 		# Reader
@@ -249,9 +249,8 @@ class Board:
 		self.coach.graveyard.update()
 
 		# Evaluation
-		fen = self.coach.board.this_move.fen
-		self.coach.engine.model.set_fen(fen)
-		self.coach.engine.stockfish.set_fen_position(fen)
+		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
+		self.coach.engine.stockfish.set_fen_position(self.coach.board.this_move.fen)
 		self.coach.gauge.update()
 
 		# Cursors
@@ -355,7 +354,7 @@ class Move:
 		self.ep     = None
 
 		# Extras
-		self.score = None           ### score of fen AFTER move, NOT before (unlike move.fen)
+		self.score = None               ### score of fen AFTER move, NOT before (unlike move.fen)
 		self.text  = None
 
 		self.capture 	  = None
@@ -363,8 +362,8 @@ class Move:
 		self.in_checkmate = None
 
 		# Draw criteria
-		self.rulecount_fiftymoves = None
-		self.rulecount_threereps  = None
+		self.rulecount_fiftymovs = None
+		self.rulecount_threereps = None
 
 		# Clock
 		self.commence = None
@@ -419,6 +418,7 @@ class Move:
 
 		if self.in_check:           ### check are simultaneous to other sounds
 			self.board.sound_check.play()
+
 
 	def notate(self):
 		self.text = ''
@@ -509,30 +509,30 @@ class Move:
 
 
 	def promote(self , force=None):
-		if force or C.AUTO_PROMOTE:
+		if force or C.AUTO_PROMO:
 			# Reading movetext
-			if "Q" in (force,C.AUTO_PROMOTE):
+			if "Q" in (force,C.AUTO_PROMO):
 				from src.men.Queen import Queen
 				self.promo = Queen(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif "R" in (force,C.AUTO_PROMOTE):
+			elif "R" in (force,C.AUTO_PROMO):
 				from src.men.Rook import Rook
 				self.promo = Rook(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif "B" in (force,C.AUTO_PROMOTE):
+			elif "B" in (force,C.AUTO_PROMO):
 				from src.men.Bishop import Bishop
 				self.promo = Bishop(
 					self.board,
 					self.colour,
 					self.agent.position,
 				)
-			elif "N" in (force,C.AUTO_PROMOTE):
+			elif "N" in (force,C.AUTO_PROMO):
 				from src.men.Knight import Knight
 				self.promo = Knight(
 					self.board,
@@ -850,9 +850,9 @@ class Clock:
 	def tick(self , event):
 		self.time += 1
 
-		if not self.coach.board.reminiscing:                                    ### paused when dreaming ...
+		if not self.coach.board.reminiscing:                        ### paused when dreaming ...
 			for face in (self.whiteface,self.blackface):
-				if face.active and face.player == event.player:                 ### ... and when inactive or idle
+				if face.active and face.player == event.player:     ### ... and when inactive or idle
 					face.timer.tick()
 
 					### scramble
@@ -865,17 +865,21 @@ class Clock:
 
 					### tick sound
 					if face.timer.scramble:
-						if not face.timer.time % 100:                           ### no correction needed ...
+						### in a scramble, tick on the second
+						if not face.timer.time % 100:               ### no correction needed ...
 							self.sound_clock_tick.play(loops=1)
 					else:
-						if not (face.timer.time-50) % 100:                      ### ... but it is needed here??
+						### otherwise, tick on the minute
+						if not (face.timer.time-50) % 6000:         ### ... but it is needed here??
 							self.sound_clock_tick.play()
 
 
 	def tack(self):
 		board  = self.coach.board
-		wtimer = self.whiteface.timer
-		btimer = self.blackface.timer
+		wface  = self.whiteface
+		bface  = self.blackface
+		wtimer = wface.timer
+		btimer = bface.timer
 
 		if board.ply == "w":
 			board.this_move.commence = wtimer.time
@@ -883,10 +887,10 @@ class Clock:
 
 			wtimer.case_colour = C.TIMER_CASE_LIVE
 			btimer.case_colour = C.TIMER_CASE_IDLE
-			if self.whiteface.active:      ### is None when locked
+			if wface.active:               ### is None when locked
 				wtimer.play()
 				self.sound_clock_tack.play()
-			if self.blackface.active:
+			if bface.active:
 				btimer.time += btimer.bonus
 				btimer.wait()
 
@@ -896,10 +900,10 @@ class Clock:
 
 			wtimer.case_colour = C.TIMER_CASE_IDLE
 			btimer.case_colour = C.TIMER_CASE_LIVE
-			if self.whiteface.active:
+			if wface.active:
 				wtimer.time += wtimer.bonus
 				wtimer.wait()
-			if self.blackface.active:
+			if bface.active:
 				btimer.play()
 				self.sound_clock_tack.play()
 
@@ -973,13 +977,13 @@ class Clock:
 
 			if ply_is_white:
 				white.timer.text = self.read(board.this_move.commence)
-				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start_sec)
+				black.timer.text = self.read(board.last_move.conclude if board.last_move else 100*black.start_num)
 
 				white.timer.case_colour = C.TIMER_CASE_LIVE
 				black.timer.case_colour = C.TIMER_CASE_IDLE
 
 			else:
-				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start_sec)
+				white.timer.text = self.read(board.last_move.conclude if board.last_move else 100*white.start_num)
 				black.timer.text = self.read(board.this_move.commence)
 
 				white.timer.case_colour = C.TIMER_CASE_IDLE
@@ -994,7 +998,6 @@ class Clock:
 		if scramble:
 			s,ms = divmod( round(time_sec) , 100 )
 			return f'{s:02d}.{ms:02d}'
-
 		else:
 			m,s = divmod( round(time_sec/100) , 60 )
 			h,m = divmod(m,60)

@@ -380,7 +380,7 @@ class Analysis(Context):
 		# Counters
 		self.counters = {
 			### rule counts
-			"RULECOUNT_FIFTYMOVES"	: Counter(
+			"RULECOUNT_FIFTYMOVS"	: Counter(
 				self,
 				self.banners["DRAW CRITERIA"].left,
 				self.banners["DRAW CRITERIA"].bottom + 1*C.GRID_GAP,

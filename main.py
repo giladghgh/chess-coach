@@ -67,7 +67,7 @@ if __name__ == "__main__":
 				done = True
 
 				print("###- GAME OVER -###")
-				print("It's a " + board.outcome[0] + " by " + board.outcome[1].lower() + "!")
+				print(board.outcome[0] + " by " + board.outcome[1].lower() + "!")
 				print("####-####-####-####")
 
 		coach.screen.fill(C.BACKGR_PANE)

@@ -476,16 +476,16 @@ class Coach:
 	#  -    END OF GAME
 	#  -    ROYAL BURIALS
 	def is_game_over(self):
-		# Stats
+		# Optional auto-draw?
 		if C.AUTO_DRAW:
 			if self.board.rulecount_threereps >= 3:
 				self.board.outcome = (
 					"Draw",
-					"Repitition"
+					"Repetition"
 				)
 				return True
 
-			if self.board.rulecount_fiftymoves > 99:
+			if self.board.rulecount_fiftymovs > 99:
 				self.board.outcome = (
 					"Draw",
 					"Stagnation"
@@ -504,6 +504,7 @@ class Coach:
 				)
 				return True
 
+		# Draw?
 		if any([
 			set(whites) == {"K"} and not all([
 				set(blacks) - {"K"},
@@ -564,7 +565,7 @@ class Coach:
 			if not king.has_moved and king.position in ((5,1),(5,8)):
 				for rook in self.board.all_men(colour=king.colour , creed="R"):
 					if not rook.has_moved and rook.position in (
-							(1,1) , (8,1) if rook.colour == "w" else (8,1) , (8,8)
+							((1,1),(8,1)) if rook.colour == "w" else ((1,8),(8,8))
 					):
 						can_castle = "K" if rook.f > king.f else "Q"
 						castlability += {
@@ -583,7 +584,7 @@ class Coach:
 		fen_config.append(epability or "-")
 
 		### fifty move rule clock...	must compute before turnover
-		fen_config.append(str(self.board.rulecount_fiftymoves))
+		fen_config.append(str(self.board.rulecount_fiftymovs))
 
 		### fullmove clock
 		fen_config.append(str(self.board.movenum))
@@ -643,7 +644,7 @@ class Coach:
 				pawn.just_moved_double = True
 
 		### halfmove capture clock
-		self.board.rulecount_fiftymoves = int(fen[4])
+		self.board.rulecount_fiftymovs = int(fen[4])
 
 		### fullmove clock
 		self.board.movenum = int(fen[5])

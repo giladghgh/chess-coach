@@ -1875,7 +1875,7 @@ class ButtonVolume(Button):
 class ButtonAutoPromote(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
-		self.active = bool(C.AUTO_PROMOTE)
+		self.active = bool(C.AUTO_PROMO)
 
 		self.names = {
 			"Q"  : "Queen",
@@ -1923,14 +1923,14 @@ class ButtonAutoPromote(Button):
 		)
 		### initial conditions
 		for option in self.dropdown:
-			option.active = option.creed.upper() == C.AUTO_PROMOTE
+			option.active = option.creed.upper() == C.AUTO_PROMO
 
-		if C.AUTO_PROMOTE:
-			self.tooltip = "Auto-" + self.names[C.AUTO_PROMOTE]
+		if C.AUTO_PROMO:
+			self.tooltip = "Auto-" + self.names[C.AUTO_PROMO]
 		else:
 			self.tooltip = "Ask to promote"
 		self.image = pygame.transform.scale(
-			pygame.image.load(C.DIR_SETS + "promo_" + (self.names[C.AUTO_PROMOTE].lower() or "pawn") + ".png"),
+			pygame.image.load(C.DIR_SETS + "promo_" + (self.names[C.AUTO_PROMO].lower() or "pawn") + ".png"),
 			self.size
 		)
 
@@ -1976,10 +1976,10 @@ class ButtonAutoPromoteOption(Button):
 			option.active = not self.active if option is self else False
 
 		# Function
-		C.AUTO_PROMOTE = None if self.creed.upper() == C.AUTO_PROMOTE else self.creed.upper()
+		C.AUTO_PROMO = None if self.creed.upper() == C.AUTO_PROMO else self.creed.upper()
 
 		# Mechanics again
-		self.trigger.active = bool(C.AUTO_PROMOTE)
+		self.trigger.active = bool(C.AUTO_PROMO)
 		self.trigger.paint()
 
 		if self.trigger.active:
@@ -2217,8 +2217,20 @@ class ButtonClock(Button):
 
 		self.active  = None
 		self.tooltip = self.player.title() + " timer"
-		self.image   = pygame.transform.scale(
+		self.image_a  = pygame.transform.scale(
 			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),
+			self.size
+		)
+		self.image_ba = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-ba.png"),
+			self.size
+		)
+		self.image_bb = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-bb.png"),
+			self.size
+		)
+		self.image_c = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-c.png"),
 			self.size
 		)
 
@@ -2235,7 +2247,7 @@ class ButtonClock(Button):
 			self.rect
 		)
 		self.display.blit(
-			self.image,
+			(self.image_ba if self.timer.active else self.image_bb) if self.active else (self.image_c if self.active is None else self.image_a),
 			self.rect
 		)
 
@@ -2448,7 +2460,7 @@ class Timer:
 		# self.buzz()
 		# self.bang()
 
-		# Rendering
+		# Interface
 		self.body_colour = C.TIMER_DEAD
 		self.text_colour = C.TIMER_IDLE
 		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
@@ -2529,7 +2541,7 @@ class Timer:
 		self.elapsed += 1
 
 		self.time -= 1
-		self.text  = self.trigger.clock.read(self.time , self.scramble)
+		self.text  = self.trigger.clock.read(self.time,self.scramble)
 
 		if self.scramble and not (self.time % 50):
 			self.scramble_toggle = not self.scramble_toggle
