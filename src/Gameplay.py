@@ -171,6 +171,10 @@ class Board:
 				self.agent 			= chosen_tile.occupant
 				self.agent.position = chosen_tile.position
 
+			# Void click:
+			else:
+				self.sound_void.play()
+
 		# Continue move:
 		else:
 			# Complete move:
@@ -200,8 +204,9 @@ class Board:
 				# Clock
 				self.coach.clock.tack()
 
-			# Switch agent:
+			# New agent:
 			elif chosen_tile.occupant:
+				# Switch agent:
 				if chosen_tile.occupant.colour == self.ply:
 					if chosen_tile.occupant is self.agent:
 						self.agent = None
@@ -209,15 +214,15 @@ class Board:
 						self.agent 			= chosen_tile.occupant
 						self.agent.position = chosen_tile.position
 
-				# Deselect agent & remove annotations:
+				# Void agent:
 				else:
 					self.agent = None
 					self.this_move.clean()
+					self.sound_void.play()
 
-			# Void move
+			# Void move:
 			else:
 				self.agent = None
-				self.sound_void.play()
 
 
 	def calibrate(self):
@@ -259,6 +264,8 @@ class Board:
 		self.coach.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
 		self.coach.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
 		self.coach.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
+		self.coach.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.ply + ".png"))
+		self.coach.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.ply + ".png"))
 
 
 	def is_in_check(self , colour , movement=None):

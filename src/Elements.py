@@ -2217,22 +2217,11 @@ class ButtonClock(Button):
 
 		self.active  = None
 		self.tooltip = self.player.title() + " timer"
-		self.image_a  = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),
-			self.size
-		)
-		self.image_ba = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-ba.png"),
-			self.size
-		)
-		self.image_bb = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-bb.png"),
-			self.size
-		)
-		self.image_c = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-c.png"),
-			self.size
-		)
+
+		self.image_a  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),self.size)
+		self.image_ba = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-ba.png"),self.size)
+		self.image_bb = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-bb.png"),self.size)
+		self.image_c  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-c.png"),self.size)
 
 
 	def reset(self):

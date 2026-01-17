@@ -151,15 +151,17 @@ class Coach:
 		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_start.wav")
 		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_stop.wav")
 
-		# self.sound_game_start.play()
+		self.sound_game_start.play()
 
 		### cursors
 		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
-		self.CURSOR_CALM = pygame.Cursor((5,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
+		self.CURSOR_CALM = pygame.Cursor((3,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
 		self.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
 		self.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "palm_" + self.board.ply + ".png"))
 		self.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "fist_" + self.board.ply + ".png"))
 		self.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
+		self.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.board.ply + ".png"))
+		self.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.board.ply + ".png"))
 
 		### cursor mechanics
 		self.mouse_pos = None
@@ -315,7 +317,7 @@ class Coach:
 
 			self.screen.blit(self.pane,(0,0))
 
-		# De-hover
+		# Hover action
 		if self.hovering:
 			if any([
 				issubclass(type(self.hovering),Button),
@@ -327,13 +329,12 @@ class Coach:
 			elif type(self.hovering) is Slider:
 				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
 			elif type(self.hovering) is Tile:
-				if self.hovering.occupant:
-					if self.board.ply == self.hovering.occupant.colour:
-						pygame.mouse.set_cursor(self.CURSOR_FIST if self.board.agent else self.CURSOR_PALM)
-					else:
-						pygame.mouse.set_cursor(self.CURSOR_DENY)
+				# if self.board.agent:
+				# 	pygame.mouse.set_cursor(self.CURSOR_HOLD)
+				if self.hovering.occupant and (self.hovering.occupant.colour == self.board.ply):
+					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
-					pygame.mouse.set_cursor(self.CURSOR_FIST if self.board.agent else self.CURSOR_PALM)
+					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_DENY)
 				return              ### since Tiles don't have .active attributes
 
 			if self.hovering.active is False:
