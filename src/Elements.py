@@ -2415,7 +2415,7 @@ class ButtonClockSet(Button):
 
 
 	def click(self):
-		pass
+		print("testing123testing")
 
 
 	def render(self):
