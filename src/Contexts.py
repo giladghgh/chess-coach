@@ -107,16 +107,22 @@ class Context:
 				if writer.rect.collidepoint(self.coach.mouse_pos):
 					self.hovering = writer
 
+		### counters
+		for counter in self.counters.values():
+			counter.render()
+
 		### buttons
 		for button in self.buttons.values():
 			button.render()
 
 			### hover mechanics
+			### ### button
 			if button.active is not None and button.rect.collidepoint(self.coach.mouse_pos):
 				self.hovering = button
 			else:
 				button.paint()
 
+			### ### dropdown
 			if button.dropdown and (button.dropdown.persist or button.dropdown.active):
 				for option in button.dropdown:
 					if option.active is not None and option.rect.collidepoint(self.coach.mouse_pos):
@@ -124,9 +130,12 @@ class Context:
 					else:
 						option.paint()
 
-		### counters
-		for counter in self.counters.values():
-			counter.render()
+			### ### slider
+			try:
+				if button.active and button.slider.rect.collidepoint(self.coach.mouse_pos):
+					self.hovering = button.slider
+			except AttributeError:
+				pass
 
 		self.coach.screen.blit(self.pane,(0,0))
 
@@ -143,9 +152,11 @@ class Context:
 				for option in button.dropdown:
 					if option.rect.collidepoint(event.pos):
 						clicks.append(option)
-						break                                   ### so Sliders can be held
-					button.active          = False              ### so opening one dropdown closes all others
-					button.dropdown.active = False
+						break
+				else:
+					if type(button) not in (ButtonBot,ButtonAutoPromote,):      ### so opening one dropdown closes all others, except constant-linked buttons
+						button.active          = False
+						button.dropdown.active = False
 
 		# Writers
 		for writer in self.writers.values():
@@ -156,8 +167,11 @@ class Context:
 
 		# Counters
 		for counter in self.counters.values():
-			if counter.bkgr.get_rect(topleft=(counter.x,counter.y)).collidepoint(event.pos):
+			if counter.bg.get_rect(topleft=(counter.x,counter.y)).collidepoint(event.pos):
 				clicks.append(counter)
+
+		# if not clicks:
+		# 	self.tidy()
 
 		return clicks
 
@@ -166,6 +180,7 @@ class Context:
 		# Collapse dropdowns
 		for button in self.buttons.values():
 			if button.dropdown and not button.dropdown.persist:
+				button.active          = False
 				button.dropdown.active = False
 
 		# Deactivate writers
@@ -433,33 +448,31 @@ class Analysis(Context):
 
 		# Buttons
 		self.buttons_topls = {
-			f'TOPLINE{i}' : ButtonTopLine(
+			f'TOPLINE{i+1}' : ButtonTopLine(
 				self.coach,
 				self.pane,
-				self.counters[f'TOPLINE{i}'].x,
-				self.counters[f'TOPLINE{i}'].y,
+				self.counters[f'TOPLINE{i+1}'].x,
+				self.counters[f'TOPLINE{i+1}'].y,
 				(
-					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{i}'].size[0],
+					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{i+1}'].size[0],
 					C.TEXTBOX_HEIGHT + 1
 				),
-				i=i
+				i=i+1
 			)
-			for i in range(1,4)
+			for i in range(3)
 		}
 		self.buttons_bots = {
 			"BOT_WHITE"	: ButtonBot(
 				self.coach,
 				self.pane,
 				*self.gridify("EVALUATION",1,2,shift=(0,2*C.BUTTON_HEIGHT+2*C.GRID_GAP)),
-				player="WHITE",
-				persist=True
+				player="WHITE"
 			),
 			"BOT_BLACK"	: ButtonBot(
 				self.coach,
 				self.pane,
 				*self.gridify("EVALUATION",1,1,shift=(0,C.BUTTON_HEIGHT+2*C.GRID_GAP)),
-				player="BLACK",
-				persist=True
+				player="BLACK"
 			),
 		}
 		self.buttons.update(

@@ -39,13 +39,15 @@ if __name__ == "__main__":
 					running = False
 
 			### prev/next move
-			elif event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_LEFT:
-					coach.buttons_turns["PREV"].click()
-				elif event.key == pygame.K_RIGHT:
-					coach.buttons_turns["NEXT"].click()
-				elif event.key in (pygame.K_UP,pygame.K_DOWN):
-					print(E.BOT_DEPTH_WHITE , E.BOT_DEPTH_BLACK)
+			elif event.type == pygame.KEYDOWN and any([
+				event.key == pygame.K_LEFT,
+				event.key == pygame.K_RIGHT,
+			]):
+				match event.key:
+					case pygame.K_LEFT:
+						coach.buttons_turns["PREV"].click()
+					case pygame.K_RIGHT:
+						coach.buttons_turns["NEXT"].click()
 
 			# Clock
 			elif event in clock.TICKS:
@@ -71,7 +73,6 @@ if __name__ == "__main__":
 				print("####-####-####-####")
 
 		coach.screen.fill(C.BACKGR_PANE)
-		board.render()
 		coach.render()
 		pygame.display.update()
 

@@ -63,12 +63,11 @@ class Tile:
 		if self.is_focus or self.is_fresh or self.is_legal:
 			self.veil.fill((0,0,0,0))
 
-			if self.is_focus:
-				self.veil.fill((*self.rgb_focus,130))
-				self.display.blit(self.veil,self.rect)
-
-			elif self.is_fresh:
+			if self.is_fresh:
 				self.veil.fill((*self.rgb_fresh,180))
+				self.display.blit(self.veil,self.rect)
+			elif self.is_focus:
+				self.veil.fill((*self.rgb_focus,130))
 				self.display.blit(self.veil,self.rect)
 
 			if self.is_legal:

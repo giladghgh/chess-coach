@@ -223,6 +223,7 @@ class Board:
 			# Void move:
 			else:
 				self.agent = None
+				self.this_move.clean()
 
 
 	def calibrate(self):
@@ -259,11 +260,11 @@ class Board:
 		self.coach.gauge.update()
 
 		# Cursors
-		self.coach.CURSOR_CALM = pygame.Cursor((5,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
+		self.coach.CURSOR_CALM = pygame.Cursor((3,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
 		self.coach.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.ply + ".png"))
-		self.coach.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
-		self.coach.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
-		self.coach.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
+		self.coach.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
+		self.coach.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
+		self.coach.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
 		self.coach.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.ply + ".png"))
 		self.coach.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.ply + ".png"))
 

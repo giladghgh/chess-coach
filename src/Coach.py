@@ -108,7 +108,7 @@ class Coach:
 				C.X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
 				self.reader.rect.bottom + C.GRID_GAP
 			),
-			"RESET"	: ButtonReset(
+			"RESET"	: ButtonBoardReset(
 				self,
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - 3*C.BUTTON_WIDTH,
@@ -127,16 +127,14 @@ class Coach:
 				self.pane,
 				C.X_MARGIN,
 				self.banners["BOTS"].bottom + C.GRID_GAP,
-				player="BLACK",
-				persist=True
+				player="BLACK"
 			),
 			"BOT_WHITE"	: ButtonBot(
 				self,
 				self.pane,
 				C.X_MARGIN,
 				self.banners["BOTS"].bottom + 2*C.BUTTON_HEIGHT + 3*C.GRID_GAP,
-				player="WHITE",
-				persist=True
+				player="WHITE"
 			),
 		}
 		self.buttons = {				        ### right->left (& bottom->top if tight enough) so tooltips aren't obscured
@@ -157,9 +155,9 @@ class Coach:
 		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
 		self.CURSOR_CALM = pygame.Cursor((3,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
 		self.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
-		self.CURSOR_PALM = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "palm_" + self.board.ply + ".png"))
-		self.CURSOR_FIST = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "fist_" + self.board.ply + ".png"))
-		self.CURSOR_DENY = pygame.Cursor((9,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
+		self.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.board.ply + ".png"))
+		self.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.board.ply + ".png"))
+		self.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
 		self.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.board.ply + ".png"))
 		self.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.board.ply + ".png"))
 
@@ -233,8 +231,8 @@ class Coach:
 			self.gauge,
 			self.btn_toggle_tray,
 		]:
-			if h := element.render():
-				self.hovering = h
+			if hover := element.render():
+				self.hovering = hover
 
 		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
@@ -253,8 +251,8 @@ class Coach:
 				if context.show:
 					context.render()
 
-					if h := context.hovering:
-						self.hovering = h
+					if hover := context.hovering:
+						self.hovering = hover
 
 					### manila folder tabs
 					shift = [
@@ -303,11 +301,13 @@ class Coach:
 				button.render()
 
 				### hover mechanics
+				### ### button
 				if button.active is not None and button.rect.collidepoint(self.mouse_pos):
 					self.hovering = button
 				else:
 					button.paint()
 
+				### ### dropdown
 				if button.dropdown and (button.dropdown.persist or button.active):
 					for option in button.dropdown:
 						if option.rect.collidepoint(self.mouse_pos):
@@ -315,22 +315,32 @@ class Coach:
 						else:
 							option.paint()
 
+				### ### slider
+				try:
+					if button.active and button.slider.rect.collidepoint(self.mouse_pos):
+						self.hovering = button.slider
+				except AttributeError:
+					pass
+
 			self.screen.blit(self.pane,(0,0))
+
+		# Board
+		self.board.render()
 
 		# Hover action
 		if self.hovering:
+			T = type(self.hovering)
+
 			if any([
-				issubclass(type(self.hovering),Button),
-				type(self.hovering) is Gauge,
+				issubclass(T,Button) and T is not ButtonBot,
+				T is Gauge,
 			]):
 				pygame.mouse.set_cursor(self.CURSOR_THIS)
-			elif type(self.hovering) is Writer:
+			elif T is Writer:
 				pygame.mouse.set_cursor(self.CURSOR_TYPE)
-			elif type(self.hovering) is Slider:
+			elif T is Slider:
 				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
-			elif type(self.hovering) is Tile:
-				# if self.board.agent:
-				# 	pygame.mouse.set_cursor(self.CURSOR_HOLD)
+			elif T is Tile:
 				if self.hovering.occupant and (self.hovering.occupant.colour == self.board.ply):
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
@@ -338,10 +348,10 @@ class Coach:
 				return              ### since Tiles don't have .active attributes
 
 			if self.hovering.active is False:
-				if type(self.hovering) is ButtonContextOpen:
+				if T is ButtonContextOpen:
 					self.hovering.colour = self.hovering.context.colour
 				elif not str(self.hovering).endswith("Exit"):
-					self.hovering.colour = C.BUTTON_LOOM
+					self.hovering.colour = self.hovering.COLOUR_LOOM
 		else:
 			pygame.mouse.set_cursor(self.CURSOR_CALM)
 
@@ -399,14 +409,9 @@ class Coach:
 							clicks.append(button)
 
 						elif button.dropdown and (button.dropdown.persist or button.active):
-							for option in button.dropdown:                  ### bot dropdowns always clickable
+							for option in button.dropdown:
 								if option.rect.collidepoint(event.pos):
 									clicks.append(option)
-
-			### tidy first
-			for context in self.contexts:
-				if context.show:
-					context.tidy()
 
 			### only click topmost button:
 			if clicks:
@@ -468,8 +473,7 @@ class Coach:
 			event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
 		):
 			for slider in Slider.all:
-				if slider.trigger.dropdown.active and slider.active and slider.rect.collidepoint(event.pos):
-					self.hovering = slider
+				if slider.trigger.active and slider.rect.collidepoint(event.pos):
 					slider.hold(event.pos)
 
 

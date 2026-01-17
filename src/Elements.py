@@ -247,6 +247,7 @@ class Writer:
 			font , colour = self.font , (255,255,255)
 		else:
 			font , colour = self.pre_font , (185,185,185)
+
 		self.display.blit(
 			font.render(self.text,True,colour),
 			(
@@ -299,7 +300,7 @@ class Counter:
 
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
 		self.size = self.font.size(self.field)
-		self.bkgr = pygame.Surface((
+		self.bg   = pygame.Surface((
 			self.size[0] + 8,
 			self.size[1] + 5
 		))
@@ -307,7 +308,7 @@ class Counter:
 	def render(self):
 		# Calculate
 		self.size = self.font.size(self.field)
-		self.bkgr = pygame.Surface((
+		self.bg = pygame.Surface((
 			self.size[0] + 13,
 			self.size[1] + 5
 		))
@@ -315,7 +316,7 @@ class Counter:
 
 		# Metric
 		### panel
-		self.pane.blit(self.bkgr , (self.x,self.y))
+		self.pane.blit(self.bg , (self.x,self.y))
 
 		### field
 		if self.polarise:
@@ -451,7 +452,7 @@ class Slider:
 
 
 	def render(self):
-		self.trackbed.fill(C.SLIDER_COLOUR if self.active else (215,215,215,50))
+		self.trackbed.fill(C.SLIDER_COLOUR_LIVE if self.trigger.active else C.SLIDER_COLOUR_DEAD)
 		pygame.draw.rect(
 			self.trackbed,
 			(0,0,0,15),
@@ -502,8 +503,10 @@ class Slider:
 	def paint(self):
 		pass
 
+
 	def click(self):
 		pass
+
 
 	@property
 	def value_nice(self):
@@ -519,8 +522,7 @@ class Dropdown:
 		else:
 			raise Exception("All dropdown options must have identical .trigger and .persist!")
 		self.persist = persist
-
-		self.active = persist
+		self.active  = persist
 
 		self.i = 0
 		self.I = len(self.options)
@@ -783,9 +785,6 @@ class Arrow:
 
 
 # TODO: MORE ELEMENTS
-#   1) EVAL BAR (IS ITS OWN SHOW/HIDE BUTTON)
-
-# TODO: MORE BUTTONS
 #   1) top engine line(s) arrows
 class Button:
 	def __init__(self , coach , display , x , y , size=C.BUTTON_SIZE):
@@ -803,8 +802,7 @@ class Button:
 		self.COLOUR_LOCK = C.BUTTON_LOCK
 
 		self.active = False
-		self.colour = None
-		self.paint()
+		self.colour = C.BUTTON_IDLE
 
 		self.font = pygame.font.SysFont("Consolas",12)
 		self.rect = pygame.Rect(
@@ -816,11 +814,14 @@ class Button:
 		self.tooltip = None
 		self.image   = None
 
+
 	def __repr__(self):
 		return type(self).__name__
 
+
 	def click(self):
 		pass
+
 
 	def render(self):
 		# Myself
@@ -854,11 +855,12 @@ class Button:
 				(
 					local_pos[0] + 15,
 					local_pos[1] + 10
-				) if local_pos[0] + tltp_width < self.coach.current_w - C.PANE_WIDTH - C.BOARD_WIDTH + C.GAUGE_WIDTH + C.GRAVE_WIDTH else (      ### if overflowing
+				) if local_pos[0] + tltp_width < self.coach.current_w - C.TRAY_OFFSET else (      ### overflow
 					local_pos[0] - 5 - tltp_width,
 					local_pos[1] + 10
 				)
 			)
+
 
 	def paint(self):
 		self.colour = {
@@ -874,13 +876,10 @@ class Button:
 
 
 class ButtonBot(Button):
-	def __init__(self , *args , player , persist):
+	def __init__(self , *args , player):
 		super().__init__(*args)
 		self.player  = player
-		self.persist = persist
-
-		if self.persist:
-			self.COLOUR_LOOM = (0,0,0)
+		self.persist = True         ### all ButtonBots are persistent
 
 		self.engine = self.coach.engine
 		self.scheme = self.engine.schema[self.player == "BLACK"]
@@ -890,7 +889,7 @@ class ButtonBot(Button):
 			x=self.x,
 			y=self.y + C.BUTTON_HEIGHT + C.GRID_GAP,
 			size=(
-				C.TEXTBOX_WIDTH if self.persist else 4*C.BUTTON_WIDTH + C.GRID_GAP/2,
+				C.TEXTBOX_WIDTH,
 				0.85*C.BUTTON_HEIGHT
 			),
 			metric="E.BOT_DEPTH_"+self.player.upper(),
@@ -900,9 +899,8 @@ class ButtonBot(Button):
 			trigger=self,
 		)
 
-		self.dropdown = Dropdown(
+		self.dropdown = Dropdown(       ### excludes Slider
 			options=[
-				self.slider,
 				ButtonBotOption(
 					self.coach,
 					self.display,
@@ -941,13 +939,12 @@ class ButtonBot(Button):
 				),
 			],
 			trigger=self,
-			persist=self.persist
+			persist=True
 		)
 		### initial conditions
-		self.active = (None,True)[bool(self.scheme)] if self.persist else False
+		self.active = (None,True)[bool(self.scheme)]
 		for option in self.dropdown:
-			if type(option) is ButtonBotOption:         ### excludes Slider
-				option.active = self.scheme == option.philosophy.upper()
+			option.active = self.scheme == option.philosophy.upper()
 
 		self.tooltip = self.player.title() + " bot"
 		self.image   = pygame.transform.scale(
@@ -958,22 +955,17 @@ class ButtonBot(Button):
 		)
 
 	def click(self):
-		if not self.persist:
-			self.dropdown.active = not self.dropdown.active
-
+		pass
 
 	def render(self):
 		# Dropdown
-		if self.dropdown.active or self.dropdown.persist:
-			self.dropdown.render()
+		self.dropdown.render()
+
+		# Slider
+		self.slider.render()
 
 		# Myself
-		if self.active:
-			self.colour = self.COLOUR_LIVE
-		elif self.persist:
-			self.colour = (0,0,0,35)
-		else:
-			self.colour = self.COLOUR_LOOM if self.rect.collidepoint(self.coach.mouse_pos) or self.dropdown.active else self.COLOUR_IDLE
+		self.colour = self.COLOUR_LIVE if self.active else self.COLOUR_LOCK
 		super().render()
 
 
@@ -1017,10 +1009,7 @@ class ButtonBotOption(Button):
 		]:
 			trigger.active = (None,True)[bool(appointed)]
 			for option in trigger.dropdown:
-				if type(option) is ButtonBotOption:
-					option.active = (False,not option.active)[self.philosophy == option.philosophy]
-				else:
-					option.active = bool(trigger.active)
+				option.active = (False,not option.active)[self.philosophy == option.philosophy]
 
 			trigger.paint()
 
@@ -1457,6 +1446,25 @@ class ButtonNext(Button):
 
 
 
+class ButtonBoardReset(Button):
+	def __init__(self , *args):
+		super().__init__(*args)
+
+		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_reset.wav")
+
+		self.tooltip = "Reset"
+		self.image   = pygame.transform.scale(
+			pygame.image.load(C.DIR_ICONS + "\\btn_reset.png"),
+			self.size
+		)
+
+	def click(self):
+		self.coach.reset()
+
+		self.sound_game_reset.play()
+
+
+
 class ButtonECOInterpreter(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
@@ -1752,25 +1760,6 @@ class ButtonCoords(Button):
 
 
 
-class ButtonReset(Button):
-	def __init__(self , *args):
-		super().__init__(*args)
-
-		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_reset.wav")
-
-		self.tooltip = "Reset"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_reset.png"),
-			self.size
-		)
-
-	def click(self):
-		self.coach.reset()
-
-		self.sound_game_reset.play()
-
-
-
 class ButtonSpedometer(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
@@ -1857,7 +1846,7 @@ class ButtonVolume(Button):
 		self.slider.active   = self.active
 
 	def render(self):
-		# Slider is in dropdown
+		# Slider
 		if self.active:
 			self.dropdown.render()
 
@@ -1875,13 +1864,13 @@ class ButtonVolume(Button):
 class ButtonAutoPromote(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
-		self.active = bool(C.AUTO_PROMO)
 
 		self.names = {
 			"Q"  : "Queen",
 			"R"  : "Rook",
 			"B"  : "Bishop",
 			"N"  : "Knight",
+			None : "Pawn",
 		}
 
 		self.dropdown = Dropdown(
@@ -1925,11 +1914,8 @@ class ButtonAutoPromote(Button):
 		for option in self.dropdown:
 			option.active = option.creed.upper() == C.AUTO_PROMO
 
-		if C.AUTO_PROMO:
-			self.tooltip = "Auto-" + self.names[C.AUTO_PROMO]
-		else:
-			self.tooltip = "Ask to promote"
-		self.image = pygame.transform.scale(
+		self.tooltip = ("Auto-" + self.names[C.AUTO_PROMO]) if C.AUTO_PROMO else "Ask to promote"
+		self.image   = pygame.transform.scale(
 			pygame.image.load(C.DIR_SETS + "promo_" + (self.names[C.AUTO_PROMO].lower() or "pawn") + ".png"),
 			self.size
 		)
@@ -1938,18 +1924,18 @@ class ButtonAutoPromote(Button):
 		self.dropdown.active = not self.dropdown.active
 
 	def render(self):
-		# Dropdown
 		if self.dropdown.active:
 			self.dropdown.render()
 
-		# Myself
-		if self.active:
-			self.colour = C.BUTTON_LIVE
-		elif self.rect.collidepoint(self.coach.mouse_pos) or self.dropdown.active:
-			self.colour = C.BUTTON_LOOM
-		# else:
-		# 	self.colour = C.BUTTON_IDLE
 		super().render()
+
+	def paint(self):
+		if bool(C.AUTO_PROMO):
+			self.colour = self.COLOUR_LIVE
+		elif self.dropdown.active:
+			self.colour = self.COLOUR_LOOM
+		else:
+			self.colour = self.COLOUR_IDLE
 
 
 
