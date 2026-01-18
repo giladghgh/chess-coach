@@ -148,13 +148,13 @@ class Coach:
 		self.sound_game_end      = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
 		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_start.wav")
 		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_stop.wav")
-
+		self.settings.buttons_ui["VOLUME"].apply()
 		self.sound_game_start.play()
 
 		### cursors
 		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
-		self.CURSOR_CALM = pygame.Cursor((3,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
-		self.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
+		self.CURSOR_CALM = pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
+		self.CURSOR_THIS = pygame.Cursor((10,3),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
 		self.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.board.ply + ".png"))
 		self.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.board.ply + ".png"))
 		self.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
@@ -350,7 +350,7 @@ class Coach:
 					str(self.hovering).endswith("Exit"),
 					hover_type is Gauge,
 				]):
-					self.hovering.colour = self.hovering.COLOUR_LOOM
+					self.hovering.colour = C.BUTTON_LOOM
 		else:
 			pygame.mouse.set_cursor(self.CURSOR_CALM)
 
@@ -365,10 +365,10 @@ class Coach:
 
 
 	def handle_click(self , event):
-		clicks = []
-
 		# Left click
 		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+			clicks = []
+
 			# Tray
 			if event.pos[0] > C.PANE_WIDTH + C.BOARD_WIDTH:
 				local_pos = (

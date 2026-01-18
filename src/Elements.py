@@ -855,7 +855,7 @@ class Button:
 				(
 					local_pos[0] + 15,
 					local_pos[1] + 10
-				) if local_pos[0] + tltp_width < self.coach.current_w - C.TRAY_OFFSET else (      ### overflow
+				) if local_pos[0] + tltp_width < self.coach.current_w + shift[0] else (      ### overflow (no clue why this works)
 					local_pos[0] - 5 - tltp_width,
 					local_pos[1] + 10
 				)
@@ -965,7 +965,7 @@ class ButtonBot(Button):
 		self.slider.render()
 
 		# Myself
-		self.colour = self.COLOUR_LIVE if self.active else self.COLOUR_LOCK
+		self.colour = self.COLOUR_LIVE if self.active else self.COLOUR_LOOM
 		super().render()
 
 
@@ -1772,7 +1772,7 @@ class ButtonSpedometer(Button):
 				0.85*C.BUTTON_WIDTH,
 				3*C.BUTTON_HEIGHT,
 			),
-			metric="C.MOVE_SPEED",
+			metric="C.GAME_SPEED",
 			txform=" = 50/",
 			domain=(1,10),
 			nrungs=10,
@@ -1786,7 +1786,7 @@ class ButtonSpedometer(Button):
 
 		self.tooltip = "Animation speed"
 		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_spedometer" + str(int(C.MOVE_SPEED)) + ".png"),
+			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_spedometer" + str(int(C.GAME_SPEED)) + ".png"),
 			self.size
 		)
 
@@ -1814,6 +1814,8 @@ class ButtonVolume(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
+		self.vol_max = 3
+
 		self.slider = Slider(
 			self.display,
 			x=self.x + 1.085*C.BUTTON_WIDTH + C.GRID_GAP,      ### .085 looks best even tho it's not actually centered
@@ -1824,8 +1826,8 @@ class ButtonVolume(Button):
 			),
 			metric="C.GAME_VOLUME",
 			txform=" = ",
-			domain=(0,3),
-			nrungs=4,
+			domain=(0,self.vol_max),
+			nrungs=1+self.vol_max,
 			trigger=self,
 			vertical=True
 		)
@@ -1836,14 +1838,40 @@ class ButtonVolume(Button):
 
 		self.tooltip = "Volume"
 		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(C.GAME_VOLUME)) + ".png"),
+			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(self.slider.value)) + ".png"),
 			self.size
 		)
 
 	def click(self):
+		# Mechanics
 		self.active          = not self.active
 		self.dropdown.active = self.active
 		self.slider.active   = self.active
+
+		# Function
+		self.apply()
+
+	def apply(self):
+		vol = C.GAME_VOLUME / self.vol_max
+
+		### music
+		pygame.mixer.music.set_volume(vol)
+
+		### sounds
+		for sound in (
+				### ### Coach
+				self.coach.sound_game_start,
+				self.coach.sound_game_end,
+				self.coach.sound_whistle_start,
+				self.coach.sound_whistle_stop,
+				### ### Board
+				self.coach.board.sound_clean,
+				self.coach.board.sound_flipA,
+				self.coach.board.sound_flipB,
+				self.coach.board.sound_check,
+				self.coach.board.sound_void,
+		):
+			sound.set_volume(vol)
 
 	def render(self):
 		# Slider
@@ -1851,9 +1879,9 @@ class ButtonVolume(Button):
 			self.dropdown.render()
 
 		# Slider changes trigger image
-		if pygame.mouse.get_pressed() and (slider := self.dropdown[0]).rect.collidepoint(pygame.mouse.get_pos()):
+		if pygame.mouse.get_pressed() and self.slider.rect.collidepoint(pygame.mouse.get_pos()):
 			self.image = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(slider.value)) + ".png"),
+				pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(self.slider.value))  + ".png"),
 				self.size
 			)
 

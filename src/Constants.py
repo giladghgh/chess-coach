@@ -47,11 +47,11 @@ class C:
 	TIME_STARTER_BLACK = (0,1,15)
 	TIME_BONUS_BLACK   = 0
 
+	GAME_SPEED 	= 8     ### 1 - 10
+	GAME_VOLUME = 2     ### 0 -  3
+
 
 	# INTERFACE
-	MOVE_SPEED 	= 8     ### out of 10 (non-zero)
-	GAME_VOLUME = 1     ### out of 3
-
 	GRID_GAP = 10
 
 	X_MARGIN = 15
@@ -112,7 +112,7 @@ class C:
 	BACKGR_GRAVE    = ( 50, 45, 45)
 	BACKGR_SHELF    = ( 43, 40, 40)
 	BACKGR_SETTINGS = (120,120,120)
-	BACKGR_ANALYSIS = (100,100,125)
+	BACKGR_ANALYSIS = (100,100,115)
 	BACKGR_COACHING = (105,125,105)
 
 	BUTTON_LIVE = (100,110,100)
@@ -178,11 +178,8 @@ class C:
 
 	BOARD_DESIGN = BOARD_DESIGN_BROWN
 
+
 	# DIRECTORIES
-	# try:
-	# 	DIR = sys._MEIPASS          ### for PyInstaller
-	# except Exception:
-	# 	DIR = os.getcwd()
 	DIR = sys._MEIPASS if hasattr(sys,"_MEIPASS") else os.getcwd()
 
 	DIR_MEDIA   = DIR + "\\media\\"

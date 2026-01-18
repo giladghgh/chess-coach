@@ -266,8 +266,8 @@ class Board:
 		self.coach.gauge.update()
 
 		# Cursors
-		self.coach.CURSOR_CALM = pygame.Cursor((3,1),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
-		self.coach.CURSOR_THIS = pygame.Cursor((10,1),pygame.image.load(C.DIR_CURSORS + "this_" + self.ply + ".png"))
+		self.coach.CURSOR_CALM = pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
+		self.coach.CURSOR_THIS = pygame.Cursor((10,3),pygame.image.load(C.DIR_CURSORS + "this_" + self.ply + ".png"))
 		self.coach.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
 		self.coach.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
 		self.coach.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
@@ -496,7 +496,7 @@ class Move:
 		#######
 
 		manhattan 	 = abs(self.target.f - self.origin.f) + abs(self.target.r - self.origin.r)
-		total_frames = round(C.MOVE_SPEED * manhattan**(1/2))
+		total_frames = round(C.GAME_SPEED * manhattan**(1/2))
 		for frame in range(total_frames + 1):
 			self.origin.is_fresh = self.target.is_fresh = C.SHOW_MOVE_FRESH
 

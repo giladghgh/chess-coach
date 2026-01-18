@@ -88,14 +88,14 @@ class Context:
 			)
 
 		# Elements
-		### shapes
-		# for colour,x,y,w,h in self.shapes.values():
-		# 	surf = pygame.Surface(
-		# 		(w,h),
-		# 		flags=pygame.SRCALPHA
-		# 	)
-		# 	surf.fill(colour)
-		# 	self.pane.blit(surf,(x,y))
+		## shapes
+		for colour,x,y,w,h in self.shapes.values():
+			surf = pygame.Surface(
+				(w,h),
+				flags=pygame.SRCALPHA
+			)
+			surf.fill(colour)
+			self.pane.blit(surf,(x,y))
 
 		### writers
 		for writer in self.writers.values():
@@ -154,9 +154,11 @@ class Context:
 						clicks.append(option)
 						break
 				else:
-					if type(button) not in (ButtonBot,ButtonAutoPromote,):      ### so opening one dropdown closes all others, except constant-linked buttons
-						button.active          = False
-						button.dropdown.active = False
+					### so opening one dropdown closes all others, except constant-linked buttons:
+					if button.dropdown.active and not button.dropdown.persist:
+						button.click()
+					# button.active          = False
+					# button.dropdown.active = False
 
 		# Writers
 		for writer in self.writers.values():
@@ -225,32 +227,43 @@ class Settings(Context):
 			),
 		}
 
+		# Shapes
+		self.shapes = {
+			"I/O FRAME"     : (
+				(*C.BUTTON_IDLE,100),
+				self.banners["FILE I/O"].x,
+				self.banners["FILE I/O"].bottom + 1.5*C.GRID_GAP + C.BUTTON_HEIGHT,
+				C.TEXTBOX_WIDTH,
+				10*C.GRID_GAP + C.TEXTBOX_HEIGHT,
+			),
+		}
+
 		# Writers
 		self.writers = {
 			"EVENT" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN,
+				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 1*C.GRID_GAP,
-				C.TEXTBOX_WIDTH,
+				C.TEXTBOX_WIDTH - C.GRID_GAP,
 				C.TEXTBOX_HEIGHT,
 				"Event"
 			),
 			"SITE" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN,
+				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
-				C.TEXTBOX_WIDTH,
+				C.TEXTBOX_WIDTH - C.GRID_GAP,
 				C.TEXTBOX_HEIGHT,
 				"Gilad's Bedroom, U.K."
 			),
 			"WHITE" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN,
+				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
-				(5.25/11)*C.TEXTBOX_WIDTH,
+				(5/11)*C.TEXTBOX_WIDTH,
 				C.TEXTBOX_HEIGHT,
 				"Jack White"
 			),
@@ -259,14 +272,14 @@ class Settings(Context):
 				self.pane,
 				C.X_MARGIN + (5.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
-				(5.25/11)*C.TEXTBOX_WIDTH,
+				(5/11)*C.TEXTBOX_WIDTH,
 				C.TEXTBOX_HEIGHT,
 				"Jack Black"
 			),
 			"DATE" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN,
+				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(4/11)*C.TEXTBOX_WIDTH,
 				C.TEXTBOX_HEIGHT,
@@ -275,16 +288,16 @@ class Settings(Context):
 			"ROUND" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN + (4.5/11)*C.TEXTBOX_WIDTH,
+				C.X_MARGIN + (4.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
-				(3/11)*C.TEXTBOX_WIDTH,
+				(2.5/11)*C.TEXTBOX_WIDTH,
 				C.TEXTBOX_HEIGHT,
 				"Round"
 			),
 			"MODE" : Writer(
 				self,
 				self.pane,
-				C.X_MARGIN + (8/11)*C.TEXTBOX_WIDTH,
+				C.X_MARGIN + (7.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(3/11)*C.TEXTBOX_WIDTH,
 				C.TEXTBOX_HEIGHT,
@@ -479,31 +492,6 @@ class Analysis(Context):
 			**self.buttons_topls,
 			**self.buttons_bots,
 		)
-
-		# Shapes
-		# self.shapes = {
-		# 	"TOPLINE1_LABEL"    : (
-		# 		(*C.TEXTBOX_LOOM,100),
-		# 		self.counters["TOPLINE1"].x + self.counters["TOPLINE1"].size[0],
-		# 		self.counters["TOPLINE1"].y,
-		# 		C.TEXTBOX_WIDTH - self.counters["TOPLINE1"].size[0],
-		# 		C.TEXTBOX_HEIGHT + 1,
-		# 	),
-		# 	"TOPLINE2_LABEL"    : (
-		# 		(*C.TEXTBOX_LOOM,100),
-		# 		self.counters["TOPLINE2"].x + self.counters["TOPLINE2"].size[0],
-		# 		self.counters["TOPLINE2"].y,
-		# 		C.TEXTBOX_WIDTH - self.counters["TOPLINE1"].size[0],
-		# 		C.TEXTBOX_HEIGHT + 1,
-		# 	),
-		# 	"TOPLINE3_LABEL"    : (
-		# 		(*C.TEXTBOX_LOOM,100),
-		# 		self.counters["TOPLINE3"].x + self.counters["TOPLINE3"].size[0],
-		# 		self.counters["TOPLINE3"].y,
-		# 		C.TEXTBOX_WIDTH - self.counters["TOPLINE3"].size[0],
-		# 		C.TEXTBOX_HEIGHT + 1,
-		# 	),
-		# }
 
 
 
