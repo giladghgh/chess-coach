@@ -2747,13 +2747,8 @@ class Gauge:
 
 	def update(self):
 		# Evaluate
-		# self.eval = self.coach.engine.evaluate()
 		# print(self.coach.engine.stockfish.get_best_move())
-		match (score := self.coach.engine.stockfish.get_evaluation())["type"]:
-			case "cp":
-				self.eval = score["value"]/100
-			case "mate":
-				self.eval = self.emax if score["value"]>0 else -self.emax
+		self.eval = self.coach.engine.evaluate()
 
 		# Update engines
 		### HAL9
@@ -2761,7 +2756,12 @@ class Gauge:
 
 		### stockfish
 		if self.coach.engine.stockfish:
-			self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.eval#self.coach.engine.stockfish.get_evaluation()["value"]/100
+			self.coach.engine.stockfish.set_fen_position(self.coach.board.this_move.fen)
+			match (score := self.coach.engine.stockfish.get_evaluation())["type"]:
+				case "cp":
+					self.coach.analysis.counters["EVAL_STOCKFISH"].value = score["value"]/100
+				case "mate":
+					self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.emax if score["value"]>0 else -self.emax
 		else:
 			self.coach.analysis.counters["EVAL_STOCKFISH"].value = None
 
@@ -2789,5 +2789,5 @@ class Gauge:
 		elif self.eval < 0:
 			self.label = "-"
 		else:
-			self.label = ""
-		self.label += str(abs(self.eval))
+			self.label = "±"
+		self.label += f'{abs(self.eval):.2f}'

@@ -179,10 +179,11 @@ class C:
 	BOARD_DESIGN = BOARD_DESIGN_BROWN
 
 	# DIRECTORIES
-	try:
-		DIR = sys._MEIPASS
-	except Exception:
-		DIR = os.getcwd()
+	# try:
+	# 	DIR = sys._MEIPASS          ### for PyInstaller
+	# except Exception:
+	# 	DIR = os.getcwd()
+	DIR = sys._MEIPASS if hasattr(sys,"_MEIPASS") else os.getcwd()
 
 	DIR_MEDIA   = DIR + "\\media\\"
 	DIR_CURSORS = DIR_MEDIA + "cursors\\"

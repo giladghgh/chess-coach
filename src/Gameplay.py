@@ -121,6 +121,8 @@ class Board:
 
 
 	def render(self):
+		hovering = None
+
 		# Tiles
 		### legal (high overhead so separate loop)
 		if C.SHOW_MOVE_LEGAL and self.agent:
@@ -152,9 +154,14 @@ class Board:
 			tile.is_legal = False
 			tile.is_focus = False
 
+			if tile.rect.collidepoint(self.coach.mouse_pos) and (self.agent or tile.occupant):
+				hovering = tile
+
 		# Annotations
 		for arrow in self.this_move.quiver:
 			arrow.draw()
+
+		return hovering
 
 
 	def handle_click(self , file , rank , promo=None , show=True):
@@ -256,7 +263,6 @@ class Board:
 
 		# Evaluation
 		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
-		self.coach.engine.stockfish.set_fen_position(self.coach.board.this_move.fen)
 		self.coach.gauge.update()
 
 		# Cursors
