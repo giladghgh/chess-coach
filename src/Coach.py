@@ -15,7 +15,7 @@ class Coach:
 	def __init__(self):
 		self.screen = pygame.display.set_mode(C.WINDOW_SIZE)
 
-		### cosmetic effects
+		### cosmetics
 		self.icon = pygame.transform.scale(pygame.image.load(C.DIR_MEDIA + "coach_icon.png"),(150,150))
 		self.screen.blit(
 			self.icon,
@@ -38,7 +38,7 @@ class Coach:
 			self.coaching,
 		)
 
-		self.engine.load_stockfish()
+		# self.engine.load_stockfish()
 
 		# Interfaces
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
@@ -213,28 +213,9 @@ class Coach:
 		self.mouse_pos = pygame.mouse.get_pos()
 		self.hovering  = None
 
-		# Tile cursor
-		for tile in self.board.all_tiles:
-			if tile.rect.collidepoint(self.mouse_pos) and (self.board.agent or tile.occupant):
-				self.hovering = tile
-
-		# Tray
-		self.tray.fill((0,0,0,0))
-		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.GAUGE_WIDTH + C.GRAVE_WIDTH,0,C.SHELF_WIDTH,C.SHELF_HEIGHT))
-		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,C.GRAVE_HEIGHT))
-		self.tray.fill(C.BACKGR_GAUGE , (C.TRAY_GAP,0,C.GAUGE_WIDTH/2,C.GAUGE_HEIGHT))					### fill half width for gauge resizing
-
-		### elements
-		for element in [
-			self.clock,
-			self.graveyard,
-			self.gauge,
-			self.btn_toggle_tray,
-		]:
-			if hover := element.render():
-				self.hovering = hover
-
-		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
+		# Board
+		if hover := self.board.render():
+			self.hovering = hover
 
 		# Pane
 		### CONTEXT
@@ -324,23 +305,38 @@ class Coach:
 
 			self.screen.blit(self.pane,(0,0))
 
-		# Board
-		self.board.render()
+		# Tray
+		self.tray.fill((0,0,0,0))
+		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.GAUGE_WIDTH + C.GRAVE_WIDTH,0,C.SHELF_WIDTH,C.SHELF_HEIGHT))
+		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,C.GRAVE_HEIGHT))
+		self.tray.fill(C.BACKGR_GAUGE , (C.TRAY_GAP,0,C.GAUGE_WIDTH/2,C.GAUGE_HEIGHT))					### fill half width for gauge resizing
+
+		### elements
+		for element in [
+			self.clock,
+			self.graveyard,
+			self.gauge,
+			self.btn_toggle_tray,
+		]:
+			if hover := element.render():
+				self.hovering = hover
+
+		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
 		# Hover action
 		if self.hovering:
-			T = type(self.hovering)
+			hover_type = type(self.hovering)
 
 			if any([
-				issubclass(T,Button) and T is not ButtonBot,
-				T is Gauge,
+				issubclass(hover_type,Button) and hover_type is not ButtonBot,
+				hover_type is Gauge,
 			]):
 				pygame.mouse.set_cursor(self.CURSOR_THIS)
-			elif T is Writer:
+			elif hover_type is Writer:
 				pygame.mouse.set_cursor(self.CURSOR_TYPE)
-			elif T is Slider:
+			elif hover_type is Slider:
 				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
-			elif T is Tile:
+			elif hover_type is Tile:
 				if self.hovering.occupant and (self.hovering.occupant.colour == self.board.ply):
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
@@ -348,9 +344,12 @@ class Coach:
 				return              ### since Tiles don't have .active attributes
 
 			if self.hovering.active is False:
-				if T is ButtonContextOpen:
+				if hover_type is ButtonContextOpen:
 					self.hovering.colour = self.hovering.context.colour
-				elif not str(self.hovering).endswith("Exit"):
+				elif not any([
+					str(self.hovering).endswith("Exit"),
+					hover_type is Gauge,
+				]):
 					self.hovering.colour = self.hovering.COLOUR_LOOM
 		else:
 			pygame.mouse.set_cursor(self.CURSOR_CALM)

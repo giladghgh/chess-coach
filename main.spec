@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('.', '.')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -18,6 +18,8 @@ pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
+    Tree('data', prefix='data'),
+    Tree('media', prefix='media'),
     a.scripts,
     a.binaries,
     a.datas,
@@ -35,5 +37,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['media\\coach_icon.ico'],
+    icon=['D:\\Gilad\\Documents\\GitHub\\chess-coach\\media\\coach_icon.ico'],
 )
