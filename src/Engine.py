@@ -1,7 +1,4 @@
-import operator
-
 import chess,time,random
-import pygame.display
 
 from src.Constants import C,E
 
@@ -19,7 +16,8 @@ class Engine:
 
 		# Mechanics
 		self.schema = E.INIT_SCHEMA
-		self.model	= chess.Board(fen=C.INIT_FEN)
+
+		self.model = chess.Board(fen=C.INIT_FEN)
 
 		### for convenience
 		chess.COLORS = (
@@ -40,7 +38,7 @@ class Engine:
 		from stockfish import Stockfish
 
 		self.stockfish = Stockfish(
-			path="data\\stockfish\\stockfish-windows-x86-64-avx2.exe",
+			path="data"+C.SEP+"stockfish"+C.SEP+"stockfish-windows-x86-64-avx2.exe",
 			depth=15,
 			parameters={
 				"Minimum Thinking Time":0,
@@ -48,10 +46,11 @@ class Engine:
 			}
 		)
 
-		self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.stockfish.get_evaluation()["value"]/100
+		self.coach.analysis.counters["EVAL_SF"].value = self.stockfish.get_evaluation()["value"]/100
 
 
 	def unload_stockfish(self):
+		del self.stockfish
 		self.stockfish = None
 
 
@@ -79,7 +78,7 @@ class Engine:
 			if self.model.is_check() and self.model.turn == colour:
 				score += 5
 
-			### perspective
+			### gain perspective
 			value += score * (1,-1)[colour == self.model.turn]
 
 		return round(value,4)
@@ -95,7 +94,7 @@ class Engine:
 			"STOCKFISH"	: self.play_stockfish,
 		}[self.schema[self.coach.board.ply == "b"]]()
 
-		# Go
+		# Move
 		self.coach.force_move(move)
 
 
@@ -109,9 +108,8 @@ class Engine:
 		if not self.stockfish:
 			self.load_stockfish()
 
-		if self.stockfish:
-			self.stockfish.set_fen_position(self.model.fen())
-			best = self.stockfish.get_best_move()
+		self.stockfish.set_fen_position(self.model.fen())
+		best = self.stockfish.get_best_move()
 
 		return self.str_to_move(best)
 
@@ -127,14 +125,12 @@ class Engine:
 
 			self.model.pop()
 
-
 		###########################################
 		# for step,line in movescores.items():
 		# 	print(step,end="")
 		# 	for branch in line:
 		# 		print("\t\t",branch)
 		###########################################
-
 
 		best , main = max( movescores.items() , key=lambda m:m[1].eval )
 

@@ -5,13 +5,8 @@ import sys,os
 
 
 class C:
-	# INITIALS
+	# INITIAL CONDITIONS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	# INIT_FEN = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q w - - 0 1"    # disambiguation test
-	# INIT_FEN = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"       # castle test
-	# INIT_FEN = "1r6/P6K/8/8/8/8/p6k/8 w - - 0 1"            # promote away from check
-	# INIT_FEN = "8/8/8/8/8/8/8/k3K2R w K - 0 1"              # castle into check
-	# INIT_FEN = "1Q5K/8/8/5q2/1p6/8/P7/1k6 w - - 0 1"        # e.p. into check
 
 	PIECE_DESIGN = (
 		"CLASSIC",
@@ -27,25 +22,18 @@ class C:
 	BOARD_FLIPPED   = False
 
 
-
 	# MECHANICS
 	FILES = (None,"a","b","c","d","e","f","g","h")
-
-	IMPORT_FEN_DEFAULT = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"             # basic engine search practice
-	# IMPORT_FEN_DEFAULT = "k7/1p2n3/1p6/8/8/8/5P1R/7K w - - 1 1"             # harder engine search practice
-	# IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
-	# IMPORT_FEN_DEFAULT = "K1k1n2r/b7/b2P4/NP6/2p5/p2p1N1P/7R/4B3 w - - 0 1" # eval practice
-
 
 	# GAMEPLAY
 	AUTO_PROMO = "Q"
 	AUTO_DRAW  = True
 
-	TIME_STARTER_WHITE = (0,1,15)
-	TIME_BONUS_WHITE   = 0
+	TIME_STARTER_WHITE = (0,10,0)
+	TIME_BONUS_WHITE   = 10
 
-	TIME_STARTER_BLACK = (0,1,15)
-	TIME_BONUS_BLACK   = 0
+	TIME_STARTER_BLACK = (0,10,0)
+	TIME_BONUS_BLACK   = 10
 
 	GAME_SPEED 	= 8     ### 1 - 10
 	GAME_VOLUME = 2     ### 0 -  3
@@ -106,14 +94,14 @@ class C:
 	WINDOW_POS = (250,100)
 
 
-	# COACH DESIGNS
+	# COACH COLOURS
 	BACKGR_PANE     = (165,165,165)
 	BACKGR_GAUGE	= (115,115,125)
 	BACKGR_GRAVE    = ( 50, 45, 45)
 	BACKGR_SHELF    = ( 43, 40, 40)
-	BACKGR_SETTINGS = (120,120,120)
+	BACKGR_SETTINGS = (115,115,115)
 	BACKGR_ANALYSIS = (100,100,115)
-	BACKGR_COACHING = (105,125,105)
+	BACKGR_COACHING = (115,125,120)
 
 	BUTTON_LIVE = (100,110,100)
 	BUTTON_IDLE = (250,250,250)
@@ -122,7 +110,6 @@ class C:
 
 	TEXTBOX_LIGHT = (155,155,155)
 	TEXTBOX_LOOM  = (60,60,70)
-	# TEXTBOX_LOOM  = (155,155,155,75)
 	TEXTBOX_DARK  = (100,105,105)
 
 	TIMER_LIVE      = ( 80, 25, 20)
@@ -132,14 +119,17 @@ class C:
 	TIMER_CASE_LIVE = (215,215,215)
 	TIMER_CASE_IDLE = (115,115,115)
 
-	SLIDER_COLOUR_LIVE = (215,215,215,150)
-	SLIDER_COLOUR_DEAD = (215,215,215,15)
+	SLIDER_LIVE = (215,215,215,150)
+	SLIDER_DEAD = (215,215,215,15)
+
+	COUNTER_BUTTON_LIVE = (0,0,0,75)
+	COUNTER_BUTTON_DEAD = (0,0,0,25)
 
 	BANNER_COLOUR = ( 75, 75, 75)
 	ARROW_COLOUR  = (250,175, 35,215)
 
 
-	# BOARD STYLES
+	# BOARD COLOURS
 	TILE_FOCUS_LIGHT = (215, 80, 70)
 	TILE_FOCUS_DARK  = (200, 65, 60)
 
@@ -180,14 +170,23 @@ class C:
 
 
 	# DIRECTORIES
+	SEP = os.sep
 	DIR = sys._MEIPASS if hasattr(sys,"_MEIPASS") else os.getcwd()
 
-	DIR_MEDIA   = DIR + "\\media\\"
-	DIR_CURSORS = DIR_MEDIA + "cursors\\"
-	DIR_ICONS   = DIR_MEDIA + "icons\\"
-	DIR_SETS    = DIR_MEDIA + "sets\\"
-	DIR_SET     = DIR_SETS + PIECE_DESIGN + "\\"
-	DIR_SOUNDS  = DIR_MEDIA + "sounds\\"
+	DIR_MEDIA   = DIR + SEP + "media" + SEP
+	DIR_CURSORS = DIR_MEDIA + "cursors" + SEP
+	DIR_ICONS   = DIR_MEDIA + "icons" + SEP
+	DIR_SETS    = DIR_MEDIA + "sets" + SEP
+	DIR_SET     = DIR_SETS + PIECE_DESIGN + SEP
+	DIR_SOUNDS  = DIR_MEDIA + "sounds" + SEP
+
+
+	# MISC
+	IMPORT_FEN_DEFAULT = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"             # basic engine search practice
+	# IMPORT_FEN_DEFAULT = "k7/1p2n3/1p6/8/8/8/5P1R/7K w - - 1 1"             # harder engine search practice
+	# IMPORT_FEN_DEFAULT = "3r3r/2k5/8/1R6/4Q2Q/8/1K6/R6Q b - - 0 1"          # disambiguation practice
+	# IMPORT_FEN_DEFAULT = "K1k1n2r/b7/b2P4/NP6/2p5/p2p1N1P/7R/4B3 w - - 0 1" # eval practice
+
 
 
 
@@ -196,7 +195,7 @@ class C:
 
 
 class E:
-	# INITIALS
+	# INITIAL CONDITIONS
 	INIT_SCHEMA = [None,None]
 	# INIT_SCHEMA = [None,"STOCKFISH"]
 	# INIT_SCHEMA = [None,"HAL9"]
@@ -205,6 +204,7 @@ class E:
 	BOT_DEPTH_BLACK = 2		### out of 4
 	BOT_DEPTH_WHITE = 1		### out of 4
 
+	GAUGE_ENGINE = "H9"
 
 
 	# SCOREBOARDS

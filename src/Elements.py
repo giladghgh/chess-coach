@@ -49,7 +49,7 @@ class Reader:
 	def unload(self):
 		self.catalogue.clear()
 
-	def load(self , filepath=C.DIR+"\\data\\openings\\catalogue.tsv"):
+	def load(self , filepath=C.DIR + C.SEP + "data" + C.SEP + "openings" + C.SEP + "catalogue.tsv"):
 		import csv
 
 		with open(filepath,"r") as file:
@@ -286,21 +286,21 @@ class Writer:
 
 
 class Counter:
-	def __init__(self , context , x , y , label , polarise=False):
-		self.context  = context
-		self.x        = x
-		self.y        = y
-		self.label    = label
-		self.polarise = polarise
-
-		self.value = None if self.polarise else 0
+	def __init__(self , context , x , y , label , polar=False):
+		self.context = context
+		self.x       = x
+		self.y       = y
+		self.label   = label
+		self.polar   = polar
 
 		self.coach = self.context.coach
 		self.pane  = self.context.pane
 
+		self.value = None if self.polar else 0
+
 		self.font = pygame.font.SysFont("Consolas",14,bold=True)
 		self.size = self.font.size(self.field)
-		self.bg   = pygame.Surface((
+		self.base = pygame.Surface((
 			self.size[0] + 8,
 			self.size[1] + 5
 		))
@@ -308,18 +308,17 @@ class Counter:
 	def render(self):
 		# Calculate
 		self.size = self.font.size(self.field)
-		self.bg = pygame.Surface((
+		self.base = pygame.Surface((
 			self.size[0] + 13,
 			self.size[1] + 5
 		))
-		# self.bkgr.fill((82,82,88) if self.value is None else (0,0,0))
 
 		# Metric
 		### panel
-		self.pane.blit(self.bg , (self.x,self.y))
+		self.pane.blit(self.base,(self.x,self.y))
 
 		### field
-		if self.polarise:
+		if self.polar:
 			self.pane.blit(
 				self.font.render(self.field[0] , True , (255,255,255)),
 				(self.x + 4 , self.y + 3)
@@ -351,12 +350,13 @@ class Counter:
 		if self.value is None:
 			return " -.--"
 
-		if self.polarise:
+		if self.polar:
 			sign = "±"
 			if float(self.value) > 0:
 				sign = "+"
 			elif float(self.value) < 0:
 				sign = "-"
+
 			return sign + f'{abs(self.value):.2f}'
 
 		elif int(self.value) == self.value:
@@ -452,7 +452,7 @@ class Slider:
 
 
 	def render(self):
-		self.trackbed.fill(C.SLIDER_COLOUR_LIVE if self.trigger.active else C.SLIDER_COLOUR_DEAD)
+		self.trackbed.fill(C.SLIDER_LIVE if self.trigger.active else C.SLIDER_DEAD)
 		pygame.draw.rect(
 			self.trackbed,
 			(0,0,0,15),
@@ -510,7 +510,7 @@ class Slider:
 
 	@property
 	def value_nice(self):
-		return str(round(self.value))
+		return str(int(round(self.value)))
 
 
 
@@ -825,7 +825,7 @@ class Button:
 
 	def render(self):
 		# Myself
-		pygame.draw.rect(       ### background
+		pygame.draw.rect(       ### base
 			self.display,
 			self.colour,
 			self.rect
@@ -860,6 +860,10 @@ class Button:
 					local_pos[1] + 10
 				)
 			)
+
+			return self
+		else:
+			return None
 
 
 	def paint(self):
@@ -949,7 +953,7 @@ class ButtonBot(Button):
 		self.tooltip = self.player.title() + " bot"
 		self.image   = pygame.transform.scale(
 			pygame.image.load(
-				C.DIR_ICONS + "\\bots\\bot_" + self.player.lower() + "_" + (self.scheme or "") + ".png"
+				C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + (self.scheme or "") + ".png"
 			),
 			self.size
 		)
@@ -980,27 +984,25 @@ class ButtonBotOption(Button):
 		self.engine = self.trigger.engine
 
 		self.tooltip = self.philosophy
-		self.image   = pygame.transform.scale(
-			pygame.image.load(
-				C.DIR_ICONS + "\\bots\\bot_" + self.player.lower() + "_" + self.philosophy.lower() + ".png"
-			),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + self.philosophy.lower() + ".png") , self.size)
+
 
 	def click(self):
 		# Function
 		incumbent = self.engine.schema[self.player.upper() == "BLACK"]
 		candidate = self.philosophy.upper()
 
-		appointed = candidate if candidate != incumbent else None
+		appointed = None if candidate == incumbent else candidate
 
 		### apply
 		self.engine.schema[self.player.upper() == "BLACK"] = appointed
 
-		### import foreign(s)
+		### import foreigns
 		match appointed:
 			case "STOCKFISH":
-				self.engine.load_stockfish()
+				if not self.engine.stockfish:
+					self.engine.load_stockfish()
 
 		# Mechanics
 		for trigger in [
@@ -1015,7 +1017,7 @@ class ButtonBotOption(Button):
 
 			trigger.image  = pygame.transform.scale(
 				pygame.image.load(
-					C.DIR_ICONS + "\\bots\\bot_" + self.player.lower() + "_" + (
+					C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + (
 						appointed or ""
 					) + ".png"
 				),
@@ -1080,10 +1082,9 @@ class ButtonDesignPieces(Button):
 			option.active        = C.PIECE_DESIGN == option.style.upper()
 
 		self.tooltip = "Piece design"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_design_pieces.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_design_pieces.png") , self.size)
+
 
 	def click(self):
 		self.active          = not self.active
@@ -1105,10 +1106,9 @@ class ButtonDesignPiecesOption(Button):
 		self.trigger = trigger
 
 		self.tooltip = self.style + " set"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_pstyle_" + self.style.lower() + ".png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_pstyle_" + self.style.lower() + ".png") , self.size)
+
 
 	def click(self):
 		# Mechanics
@@ -1121,7 +1121,7 @@ class ButtonDesignPiecesOption(Button):
 
 		# Function
 		C.PIECE_DESIGN = self.style.upper()
-		C.DIR_SET     = C.DIR_MEDIA + "sets\\" + C.PIECE_DESIGN + "\\"
+		C.DIR_SET     = C.DIR_MEDIA + "sets" + C.SEP + C.PIECE_DESIGN + C.SEP
 		for man in self.trigger.board.all_men():
 			man.image = pygame.transform.scale(
 				pygame.image.load(
@@ -1169,10 +1169,9 @@ class ButtonDesignBoard(Button):
 		)
 
 		self.tooltip = "Board design"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_design_board.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_design_board.png") , self.size)
+
 
 	def click(self):
 		self.active          = not self.active
@@ -1189,10 +1188,12 @@ class ButtonDesignBoard(Button):
 class ButtonDesignBoardOption(Button):
 	def __init__(self , *args , style , trigger):
 		super().__init__(*args)
+
 		self.style 	 = eval("C.BOARD_DESIGN_" + style)
 		self.trigger = trigger
 
 		self.tooltip = style.title() + " board"
+
 
 	def click(self):
 		# Mechanics
@@ -1283,13 +1284,12 @@ class ButtonContextOpen(Button):
 		super().__init__(*args)
 		self.context = context
 
-		self.COLOUR_IDLE = [int(CC/0.85) for CC in self.context.colour]
+		self.COLOUR_IDLE = tuple(int(cc/0.85) for cc in self.context.colour)
 
 		self.tooltip = str(self.context).title()
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\context_" + str(self.context).lower() + ".png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "context_" + str(self.context).lower() + ".png") , self.size)
+
 
 	def click(self):
 		for context in self.coach.contexts:
@@ -1300,6 +1300,8 @@ class ButtonContextOpen(Button):
 class ButtonContextExit(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
+
+		self.colour = (85,75,75)
 
 		self.scale = 0.85
 
@@ -1313,29 +1315,27 @@ class ButtonContextExit(Button):
 		)
 
 		self.tooltip = "Exit"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "btn_exit.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "btn_exit.png") , self.size)
+
 
 	def click(self):
 		for context in self.coach.contexts:
 			context.show = False
 
 	def paint(self):
-		self.colour = (85,75,75)
+		pass
 
 
 
-class ButtonPrevious(Button):
+class ButtonTurnPrevious(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
 		self.tooltip = "Previous"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_prev.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "btn_prev.png") , self.size)
+
 
 	def click(self):
 		# print("--- PREV ---")
@@ -1385,15 +1385,14 @@ class ButtonPrevious(Button):
 
 
 
-class ButtonNext(Button):
+class ButtonTurnNext(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
 		self.tooltip = "Next"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_next.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "btn_next.png") , self.size)
+
 
 	def click(self):
 		# print("--- NEXT ---")
@@ -1450,13 +1449,12 @@ class ButtonBoardReset(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
-		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_reset.wav")
+		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "game_reset.wav")
 
 		self.tooltip = "Reset"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_reset.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "btn_reset.png") , self.size)
+
 
 	def click(self):
 		self.coach.reset()
@@ -1472,10 +1470,9 @@ class ButtonECOInterpreter(Button):
 		self.active = True
 
 		self.tooltip = "Interpret opening"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_eco_interpreter.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_eco_interpreter.png") , self.size)
+
 
 	def click(self):
 		self.active = not self.active
@@ -1490,36 +1487,14 @@ class ButtonECOInterpreter(Button):
 
 
 
-class ButtonTopLine(Button):
-	def __init__(self , *args , i):
-		super().__init__(*args)
-
-		self.i = i
-
-		self.movetext = f'Line {i}'
-
-	def click(self):
-		print(f'top line {self.i}')
-
-	def render(self):
-		surf = pygame.Surface(
-			(C.TEXTBOX_WIDTH , C.TEXTBOX_HEIGHT + 1),
-			flags=pygame.SRCALPHA
-		)
-		surf.fill( (60,60,70,100) )
-		self.display.blit(surf,(self.x,self.y))
-
-
-
 class ButtonImport(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
 		self.tooltip = "Import"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_import.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_import.png") , self.size)
+
 
 	def click(self):
 		# Imports
@@ -1577,10 +1552,9 @@ class ButtonExport(Button):
 		super().__init__(*args)
 
 		self.tooltip = "Export"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\btn_export.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_export.png") , self.size)
+
 
 	def click(self):
 		# Tags
@@ -1618,7 +1592,7 @@ class ButtonExport(Button):
 
 		# Write
 		filename = tags["Event"] + "__" + tags["Date"]
-		with open(C.DIR + "\\games\\" + filename + ".pgn" , "w") as file:
+		with open(C.DIR + "games" + C.SEP + filename + ".pgn" , "w") as file:
 			### tags
 			for tag,val in tags.items():
 				file.write("[" + tag + " \"" + val + "\"]\n")
@@ -1640,10 +1614,9 @@ class ButtonFlip(Button):
 		super().__init__(*args)
 
 		self.tooltip = "Flip board"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_flip.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_flip.png") , self.size)
+
 
 	def click(self):
 		if C.BOARD_FLIPPED:
@@ -1695,10 +1668,11 @@ class ButtonFlip(Button):
 		):
 			w.y , b.y = b.y , w.y
 
-			try:
+			if all([
+				hasattr(w,"rect"),
+				hasattr(b,"rect"),
+			]):
 				w.rect , b.rect = b.rect , w.rect
-			except AttributeError:
-				pass
 
 
 
@@ -1708,16 +1682,14 @@ class ButtonFreshMoves(Button):
 		self.active = C.SHOW_MOVE_FRESH
 
 		self.tooltip = "Show recent moves"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_fresh_moves.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_fresh_moves.png") , self.size)
 
 	def click(self):
-		self.active = not self.active
-		self.paint()
-
 		C.SHOW_MOVE_FRESH = not C.SHOW_MOVE_FRESH
+
+		self.active = C.SHOW_MOVE_FRESH
+		self.paint()
 
 
 
@@ -1727,36 +1699,36 @@ class ButtonLegalMoves(Button):
 		self.active = C.SHOW_MOVE_LEGAL
 
 		self.tooltip = "Show legal moves"
-		self.image   = pygame.transform.rotozoom(
-			image_raw := pygame.image.load(C.DIR_ICONS + "\\ui\\btn_legal_moves.png"),
+
+		self.image = pygame.transform.rotozoom(
+			image_raw := pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_legal_moves.png"),
 			angle=45,
 			scale=self.size[0]/(image_raw.get_size()[0]*(2**.5))
 		)
 
 	def click(self):
-		self.active = not self.active
-		self.paint()
-
 		C.SHOW_MOVE_LEGAL = not C.SHOW_MOVE_LEGAL
 
+		self.active = C.SHOW_MOVE_LEGAL
+		self.paint()
 
 
-class ButtonCoords(Button):
+
+class ButtonShowCoordinates(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
+
 		self.active = C.SHOW_TILE_COORD
 
 		self.tooltip = "Show coordinates"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_coordinates.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_coords.png") , self.size)
 
 	def click(self):
-		self.active = not self.active
-		self.paint()
-
 		C.SHOW_TILE_COORD = not C.SHOW_TILE_COORD
+
+		self.active = C.SHOW_TILE_COORD
+		self.paint()
 
 
 
@@ -1785,10 +1757,19 @@ class ButtonSpedometer(Button):
 		)
 
 		self.tooltip = "Animation speed"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_spedometer" + str(int(C.GAME_SPEED)) + ".png"),
-			self.size
-		)
+
+		self.image_a = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer1.png") , self.size)
+		self.image_b = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer2.png") , self.size)
+		self.image_c = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer3.png") , self.size)
+		self.image_d = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer4.png") , self.size)
+		self.image_e = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer5.png") , self.size)
+		self.image_f = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer6.png") , self.size)
+		self.image_g = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer7.png") , self.size)
+		self.image_h = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer8.png") , self.size)
+		self.image_i = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer9.png") , self.size)
+		self.image_j = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer10.png") , self.size)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_spedometer" + self.slider.value_nice + ".png") , self.size)
 
 	def click(self):
 		self.active          = not self.active
@@ -1800,11 +1781,19 @@ class ButtonSpedometer(Button):
 			self.dropdown.render()
 
 		# Slider changes trigger image
-		if pygame.mouse.get_pressed() and (slider := self.dropdown[0]).rect.collidepoint(self.coach.mouse_pos):
-			self.image = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "\\ui\\btn_spedometer" + str(int(slider.value)) + ".png"),
-				self.size
-			)
+		if pygame.mouse.get_pressed() and self.slider.rect.collidepoint(self.coach.mouse_pos):
+			self.image = {
+				"1"  : self.image_a,
+				"2"  : self.image_b,
+				"3"  : self.image_c,
+				"4"  : self.image_d,
+				"5"  : self.image_e,
+				"6"  : self.image_f,
+				"7"  : self.image_g,
+				"8"  : self.image_h,
+				"9"  : self.image_i,
+				"10" : self.image_j,
+			}[self.slider.value_nice]
 
 		super().render()
 
@@ -1837,10 +1826,14 @@ class ButtonVolume(Button):
 		)
 
 		self.tooltip = "Volume"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(self.slider.value)) + ".png"),
-			self.size
-		)
+
+		self.image_a = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_volume0.png") , self.size)
+		self.image_b = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_volume1.png") , self.size)
+		self.image_c = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_volume2.png") , self.size)
+		self.image_d = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_volume3.png") , self.size)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_volume" + self.slider.value_nice + ".png") , self.size)
+
 
 	def click(self):
 		# Mechanics
@@ -1852,10 +1845,8 @@ class ButtonVolume(Button):
 		self.apply()
 
 	def apply(self):
-		vol = C.GAME_VOLUME / self.vol_max
-
 		### music
-		pygame.mixer.music.set_volume(vol)
+		pygame.mixer.music.set_volume(C.GAME_VOLUME / self.vol_max)
 
 		### sounds
 		for sound in (
@@ -1871,19 +1862,21 @@ class ButtonVolume(Button):
 				self.coach.board.sound_check,
 				self.coach.board.sound_void,
 		):
-			sound.set_volume(vol)
+			sound.set_volume(C.GAME_VOLUME / self.vol_max)
 
 	def render(self):
 		# Slider
 		if self.active:
 			self.dropdown.render()
 
-		# Slider changes trigger image
+		# Trigger
 		if pygame.mouse.get_pressed() and self.slider.rect.collidepoint(pygame.mouse.get_pos()):
-			self.image = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "\\ui\\btn_volume" + str(int(self.slider.value))  + ".png"),
-				self.size
-			)
+			self.image = {
+				"0" : self.image_a,
+				"1" : self.image_b,
+				"2" : self.image_c,
+				"3" : self.image_d,
+			}[self.slider.value_nice]
 
 		super().render()
 
@@ -1943,10 +1936,8 @@ class ButtonAutoPromote(Button):
 			option.active = option.creed.upper() == C.AUTO_PROMO
 
 		self.tooltip = ("Auto-" + self.names[C.AUTO_PROMO]) if C.AUTO_PROMO else "Ask to promote"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_SETS + "promo_" + (self.names[C.AUTO_PROMO].lower() or "pawn") + ".png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "promo_" + self.names[C.AUTO_PROMO] + ".png") , self.size)
 
 	def click(self):
 		self.dropdown.active = not self.dropdown.active
@@ -1976,10 +1967,8 @@ class ButtonAutoPromoteOption(Button):
 		self.name = self.trigger.names[self.creed]
 
 		self.tooltip = self.name.title()
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_SETS + "agnostic_" + self.name.lower() + ".png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "promo_agnostic_" + self.name.lower() + ".png") , self.size)
 
 	def click(self):
 		# Mechanics
@@ -1992,19 +1981,14 @@ class ButtonAutoPromoteOption(Button):
 		# Function
 		C.AUTO_PROMO = None if self.creed.upper() == C.AUTO_PROMO else self.creed.upper()
 
-		# Mechanics again
+		# Trigger mechanics
 		self.trigger.active = bool(C.AUTO_PROMO)
 		self.trigger.paint()
 
-		if self.trigger.active:
-			image_dir            = C.DIR_SETS + "promo_" + self.name.lower()
-			self.trigger.tooltip = "Auto-" + self.name.title()
-		else:
-			image_dir            = C.DIR_SETS + "promo_pawn"
-			self.trigger.tooltip = "Ask to promote"
+		self.trigger.tooltip = ("Auto-" + self.name.title()) if self.trigger.active else "Ask to promote"
 
 		self.trigger.image = pygame.transform.scale(
-			pygame.image.load(image_dir+".png"),
+			pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "promo_" + self.trigger.names[C.AUTO_PROMO].lower() + ".png"),
 			self.trigger.size
 		)
 
@@ -2016,10 +2000,8 @@ class ButtonAutoDraw(Button):
 		self.active = C.AUTO_DRAW
 
 		self.tooltip = "Auto-draw"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\ui\\btn_auto_draw.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "gameplay" + C.SEP + "btn_auto_draw.png") , self.size)
 
 		self.active = True
 
@@ -2059,7 +2041,7 @@ class ButtonDrills(Button):
 
 		self.tooltip = "Drills"
 		self.image = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "btn_drills.png"),
+			pygame.image.load(C.DIR_ICONS + "drills" + C.SEP + "btn_drills.png"),
 			self.size
 		)
 
@@ -2090,10 +2072,9 @@ class ButtonDrillOption(Button):
 		self.trigger = trigger
 
 		self.tooltip = self.course.title()
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "drill_" + self.course.lower() + ".png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "drills" + C.SEP + "drill_" + self.course.lower() + ".png") , self.size)
+
 
 	def click(self):
 		# Mechanics
@@ -2111,7 +2092,7 @@ class ButtonDrillOption(Button):
 			self.coach.coaching.drilling = self.course.upper()
 			self.coach.sound_whistle_start.play()
 
-		# Mechanics again
+		# Trigger mechanics
 		self.trigger.active = bool(self.coach.coaching.drilling)
 		self.trigger.paint()
 
@@ -2129,6 +2110,26 @@ class ButtonDrillOption(Button):
 
 
 
+class ButtonTopLine(Button):
+	def __init__(self , *args , i):
+		super().__init__(*args)
+		self.i = i
+
+		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
+		self.base.fill(C.COUNTER_BUTTON_DEAD)
+
+		self.label = f'Line {i}'
+
+
+	def click(self):
+		print(f'top line {self.i}')
+
+
+	def render(self):
+		self.display.blit(self.base,(self.x,self.y))
+
+
+
 class ButtonToggleTray(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
@@ -2136,15 +2137,17 @@ class ButtonToggleTray(Button):
 		self.active = True
 
 		self.tooltip = "Tray open"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
-			self.size
-		)
+
+		self.image_a = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_tray_a.png") , self.size)
+		self.image_b = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "settings" + C.SEP + "btn_tray_b.png") , self.size)
 
 
 	def render(self):
 		# Draw
-		self.display.blit(self.image,self.rect)
+		self.display.blit(
+			self.image_a if self.active else self.image_b,
+			self.rect
+		)
 
 		# Hover Mechanics
 		if self.rect.collidepoint((
@@ -2162,22 +2165,12 @@ class ButtonToggleTray(Button):
 		self.active = not self.active
 
 		if self.active:
-			self.tooltip = "Shut tray"
-			self.image   = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_open.png"),
-				self.size
-			)
-
+			self.tooltip         = "Shut tray"
 			self.coach.screen    = pygame.display.set_mode(C.WINDOW_SIZE)
 			self.coach.current_w = pygame.display.Info().current_w
 
 		else:
-			self.tooltip = "Open tray"
-			self.image   = pygame.transform.scale(
-				pygame.image.load(C.DIR_ICONS + "ui\\btn_tray_shut.png"),
-				self.size
-			)
-
+			self.tooltip         = "Open tray"
 			self.coach.screen    = pygame.display.set_mode((C.PANE_WIDTH + C.GAUGE_WIDTH + C.BOARD_WIDTH + C.GRAVE_WIDTH , C.WINDOW_HEIGHT))
 			self.coach.current_w = pygame.display.Info().current_w
 
@@ -2229,13 +2222,14 @@ class ButtonClock(Button):
 			timer=self.timer
 		)
 
-		self.active  = None
+		self.active = None
+
 		self.tooltip = self.player.title() + " timer"
 
-		self.image_a  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-a.png"),self.size)
-		self.image_ba = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-ba.png"),self.size)
-		self.image_bb = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-bb.png"),self.size)
-		self.image_c  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "\\clock\\clock_" + self.player.lower() + "-c.png"),self.size)
+		self.image_a  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "clock_" + self.player.lower() + "-a.png") , self.size)
+		self.image_ba = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "clock_" + self.player.lower() + "-ba.png") , self.size)
+		self.image_bb = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "clock_" + self.player.lower() + "-bb.png") , self.size)
+		self.image_c  = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "clock_" + self.player.lower() + "-c.png") , self.size)
 
 
 	def reset(self):
@@ -2250,13 +2244,16 @@ class ButtonClock(Button):
 			self.rect
 		)
 		self.display.blit(
-			(self.image_ba if self.timer.active else self.image_bb) if self.active else (self.image_c if self.active is None else self.image_a),
+			(
+				self.image_ba if self.timer.active else self.image_bb
+			) if self.active else (
+				self.image_c if self.active is None else self.image_a
+			),
 			self.rect
 		)
 
-		# Elements
+		# Timer
 		self.timer.render()
-		self.resetter.render()
 
 		# Hover action
 		if self.rect.collidepoint(
@@ -2267,7 +2264,7 @@ class ButtonClock(Button):
 			self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 			### cursor
-			return self
+			return self if self.active is not None else None
 		else:
 			self.paint()
 
@@ -2327,6 +2324,13 @@ class ButtonClockLinkLock(Button):
 		self.states = None
 		self.state  = None
 
+		self.image_a = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_linklock-a.png") , self.size)
+		self.image_b = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_linklock-b.png") , self.size)
+		self.image_c = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_linklock-c.png") , self.size)
+		self.image_a.set_alpha(200)
+		self.image_b.set_alpha(200)
+		self.image_c.set_alpha(200)
+
 
 	def reset(self):
 		self.states = self.toggle_states()
@@ -2334,9 +2338,15 @@ class ButtonClockLinkLock(Button):
 
 
 	def render(self):
-		self.display.blit(self.image,self.rect)
-		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+		self.image = {
+			"LOCKED"   : self.image_a,
+			"UNLOCKED" : self.image_b,
+			"UNLINKED" : self.image_c,
+		}[self.state]
 
+		self.display.blit(self.image,self.rect)
+
+		return self.render_tooltip(shift=(-C.TRAY_OFFSET,0))        ### returns directly from .render_tooltip() for efficiency
 
 	def click(self):
 		self.state = next(self.states)
@@ -2345,11 +2355,6 @@ class ButtonClockLinkLock(Button):
 
 	def apply(self):
 		self.tooltip = self.state.title()
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "\\clock\\btn_linklock-" + self.state.lower() + ".png"),
-			self.size
-		)
-		self.image.set_alpha(200)
 
 		match self.state:
 			case "LOCKED":          ### LOCKED implies LINKED
@@ -2392,10 +2397,8 @@ class ButtonClockReset(Button):
 		self.trigger = self.timer.trigger
 
 		self.tooltip = "Reset clock"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "clock\\btn_clock_reset.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_clock_reset.png") , self.size)
 
 
 	def click(self):
@@ -2411,7 +2414,8 @@ class ButtonClockReset(Button):
 
 	def render(self):
 		self.display.blit(self.image,self.rect)
-		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+
+		return self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 
 
@@ -2423,10 +2427,8 @@ class ButtonClockSet(Button):
 		self.trigger = self.timer.trigger
 
 		self.tooltip = "Set clock"
-		self.image   = pygame.transform.scale(
-			pygame.image.load(C.DIR_ICONS + "clock\\btn_clock_set.png"),
-			self.size
-		)
+
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_clock_set.png") , self.size)
 
 
 	def click(self):
@@ -2435,7 +2437,8 @@ class ButtonClockSet(Button):
 
 	def render(self):
 		self.display.blit(self.image,self.rect)
-		self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+
+		return self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
 
 
 
@@ -2706,28 +2709,24 @@ class Gauge:
 		self.coach = coach
 
 		# Mechanics
-		self.active = True
-
 		self.emax = 15
 		self.eval = 0
+
+		self.evals = {
+			None : 0,
+			"H9" : None,
+			"SF" : None,
+		}
+
+		self.active = bool(E.GAUGE_ENGINE)
 
 		# Interface
 		self.font  = pygame.font.SysFont("Consolas",15)
 		self.label = None
 
 		self.bg_rect = pygame.Rect(C.TRAY_GAP,0,C.GAUGE_WIDTH,C.WINDOW_HEIGHT)
-		self.w_rect  = pygame.Rect(
-			C.TRAY_GAP,
-			C.WINDOW_HEIGHT/2,
-			C.GAUGE_WIDTH,
-			C.WINDOW_HEIGHT/2,
-		)
-		self.b_rect  = pygame.Rect(
-			C.TRAY_GAP,
-			C.WINDOW_HEIGHT/2,
-			C.GAUGE_WIDTH,
-			C.WINDOW_HEIGHT/2,
-		)
+		self.w_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
+		self.b_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
 
 		self.bg_bar = pygame.Surface(self.bg_rect.size,pygame.SRCALPHA)
 		self.w_bar  = None
@@ -2750,7 +2749,7 @@ class Gauge:
 			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
 			self.coach.mouse_pos[1]
 		):
-			if self.active:
+			if self.active or E.GAUGE_ENGINE:
 				label_size = self.font.size(self.label)
 				self.coach.tray.blit(
 					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
@@ -2775,25 +2774,34 @@ class Gauge:
 
 	def update(self):
 		# Evaluate
-		# print(self.coach.engine.stockfish.get_best_move())
-		self.eval = self.coach.engine.evaluate()
-
-		# Update engines
 		### HAL9
-		self.coach.analysis.counters["EVAL_HAL9"].value = None
+		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
+		self.evals["H9"] = min( max( self.coach.engine.evaluate() , 0 ) , self.emax )
 
-		### stockfish
+		### Stockfish
 		if self.coach.engine.stockfish:
 			self.coach.engine.stockfish.set_fen_position(self.coach.board.this_move.fen)
 			match (score := self.coach.engine.stockfish.get_evaluation())["type"]:
 				case "cp":
-					self.coach.analysis.counters["EVAL_STOCKFISH"].value = score["value"]/100
+					self.evals["SF"] = score["value"]/100
 				case "mate":
-					self.coach.analysis.counters["EVAL_STOCKFISH"].value = self.emax if score["value"]>0 else -self.emax
-		else:
-			self.coach.analysis.counters["EVAL_STOCKFISH"].value = None
+					self.evals["SF"] = self.emax if score["value"]>0 else -self.emax
 
-		# Update meter
+		# Update counters
+		### HAL9
+		self.coach.analysis.counters["EVAL_H9"].value = self.evals["H9"]
+
+		### Stockfish
+		if self.coach.engine.stockfish:
+			self.coach.analysis.counters["EVAL_SF"].value = self.evals["SF"]
+		else:
+			self.coach.analysis.counters["EVAL_SF"].value = None
+
+		# print(self.coach.engine.stockfish.get_best_move())
+
+		# Update gauge meter
+		self.eval = self.evals[E.GAUGE_ENGINE]
+
 		### mechanics
 		self.w_rect.h = (1 + self.eval/self.emax)*C.WINDOW_HEIGHT/2
 		self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
@@ -2819,3 +2827,44 @@ class Gauge:
 		else:
 			self.label = "±"
 		self.label += f'{abs(self.eval):.2f}'
+
+
+
+class ButtonGaugeEngine(Button):
+	def __init__(self , *args , code):
+		super().__init__(*args)
+		self.code  = code
+
+		self.active = E.GAUGE_ENGINE == self.code
+
+		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
+		self.base.fill(C.COUNTER_BUTTON_LIVE if self.active else C.COUNTER_BUTTON_DEAD)
+
+
+	def click(self):
+		# Function
+		incumbent = E.GAUGE_ENGINE
+		candidate = self.code
+
+		appointed = None if candidate == incumbent else candidate
+
+		### import foreigns
+		match appointed:
+			case "SF":
+				if not self.coach.engine.stockfish:
+					self.coach.engine.load_stockfish()
+			case None:
+				self.coach.gauge.active = False
+
+		### apply
+		E.GAUGE_ENGINE = appointed
+		self.coach.gauge.update()
+
+		# Mechanics
+		for eng in self.coach.analysis.buttons_engs.values():
+			eng.active = not eng.active if eng.code == E.GAUGE_ENGINE else False
+			eng.base.fill(C.COUNTER_BUTTON_LIVE if eng.active else C.COUNTER_BUTTON_DEAD)
+
+
+	def render(self):
+		self.display.blit(self.base,(self.x,self.y))

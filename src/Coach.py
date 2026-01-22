@@ -41,6 +41,8 @@ class Coach:
 		# self.engine.load_stockfish()
 
 		# Interfaces
+		self.current_w = pygame.display.Info().current_w
+
 		self.pane = pygame.Surface(C.PANE_SIZE,pygame.SRCALPHA)
 		self.tray = pygame.Surface(C.TRAY_SIZE,pygame.SRCALPHA)
 
@@ -96,13 +98,13 @@ class Coach:
 			),
 		}
 		self.buttons_turns = {
-			"NEXT"  : ButtonNext(
+			"NEXT"  : ButtonTurnNext(
 				self,
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - C.BUTTON_WIDTH,
 				self.reader.rect.bottom + C.GRID_GAP
 			),
-			"PREV"	: ButtonPrevious(
+			"PREV"	: ButtonTurnPrevious(
 				self,
 				self.pane,
 				C.X_MARGIN + C.TEXTBOX_WIDTH - 2*C.BUTTON_WIDTH,
@@ -144,14 +146,16 @@ class Coach:
 		}
 
 		### sounds
-		self.sound_game_start    = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_start.wav")
-		self.sound_game_end      = pygame.mixer.Sound(C.DIR_SOUNDS + "\\game_end.wav")
-		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_start.wav")
-		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\whistle_stop.wav")
+		self.sound_game_start    = pygame.mixer.Sound(C.DIR_SOUNDS + "game_start.wav")
+		self.sound_game_end      = pygame.mixer.Sound(C.DIR_SOUNDS + "game_end.wav")
+		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "whistle_start.wav")
+		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "whistle_stop.wav")
 		self.settings.buttons_ui["VOLUME"].apply()
 		self.sound_game_start.play()
 
 		### cursors
+		self.mouse_pos = None
+
 		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
 		self.CURSOR_CALM = pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
 		self.CURSOR_THIS = pygame.Cursor((10,3),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
@@ -160,12 +164,6 @@ class Coach:
 		self.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
 		self.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.board.ply + ".png"))
 		self.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.board.ply + ".png"))
-
-		### cursor mechanics
-		self.mouse_pos = None
-		self.hovering  = None
-
-		self.current_w = pygame.display.Info().current_w
 
 		### file i/o
 		self.tags = {tag : self.settings.writers[tag.upper()].pretext for tag in (
@@ -199,6 +197,7 @@ class Coach:
 		### ply agnostic
 		if self.board.ply == "b":
 			self.reader.halfmove_offset = True
+
 		### movenum agnostic
 		self.reader.fullmove_offset = self.board.movenum
 
@@ -211,11 +210,12 @@ class Coach:
 
 	def render(self):
 		self.mouse_pos = pygame.mouse.get_pos()
-		self.hovering  = None
+
+		hovering = None
 
 		# Board
-		if hover := self.board.render():
-			self.hovering = hover
+		if h := self.board.render():
+			hovering = h
 
 		# Pane
 		### CONTEXT
@@ -230,10 +230,8 @@ class Coach:
 
 			for c,context in sorted( enumerate(self.contexts) , key=lambda cc:cc[1].show ):
 				if context.show:
-					context.render()
-
-					if hover := context.hovering:
-						self.hovering = hover
+					if h := context.render():
+						hovering = h
 
 					### manila folder tabs
 					shift = [
@@ -284,7 +282,7 @@ class Coach:
 				### hover mechanics
 				### ### button
 				if button.active is not None and button.rect.collidepoint(self.mouse_pos):
-					self.hovering = button
+					hovering = button
 				else:
 					button.paint()
 
@@ -292,16 +290,14 @@ class Coach:
 				if button.dropdown and (button.dropdown.persist or button.active):
 					for option in button.dropdown:
 						if option.rect.collidepoint(self.mouse_pos):
-							self.hovering = option
+							hovering = option
 						else:
 							option.paint()
 
 				### ### slider
-				try:
+				if hasattr(button,"slider"):
 					if button.active and button.slider.rect.collidepoint(self.mouse_pos):
-						self.hovering = button.slider
-				except AttributeError:
-					pass
+						hovering = button.slider
 
 			self.screen.blit(self.pane,(0,0))
 
@@ -318,14 +314,14 @@ class Coach:
 			self.gauge,
 			self.btn_toggle_tray,
 		]:
-			if hover := element.render():
-				self.hovering = hover
+			if h := element.render():
+				hovering = h
 
 		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
 		# Hover action
-		if self.hovering:
-			hover_type = type(self.hovering)
+		if hovering:
+			hover_type = type(hovering)
 
 			if any([
 				issubclass(hover_type,Button) and hover_type is not ButtonBot,
@@ -337,20 +333,19 @@ class Coach:
 			elif hover_type is Slider:
 				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
 			elif hover_type is Tile:
-				if self.hovering.occupant and (self.hovering.occupant.colour == self.board.ply):
+				if hovering.occupant and (hovering.occupant.colour == self.board.ply):
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_DENY)
-				return              ### since Tiles don't have .active attributes
 
-			if self.hovering.active is False:
-				if hover_type is ButtonContextOpen:
-					self.hovering.colour = self.hovering.context.colour
-				elif not any([
-					str(self.hovering).endswith("Exit"),
-					hover_type is Gauge,
-				]):
-					self.hovering.colour = C.BUTTON_LOOM
+			if hasattr(hovering,"active"):
+				if hovering.active is False:
+					if hover_type is ButtonContextOpen:
+						hovering.colour = hovering.context.colour
+					elif hover_type is Writer:
+						hovering.colour = C.TEXTBOX_LOOM
+					elif not str(hovering).endswith("Exit"):
+						hovering.colour = C.BUTTON_LOOM
 		else:
 			pygame.mouse.set_cursor(self.CURSOR_CALM)
 

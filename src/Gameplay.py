@@ -22,13 +22,11 @@ class Board:
 		self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
 
 		# Sounds
-		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_clean.wav")
-		self.sound_flipA = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_flipA.wav")
-		self.sound_flipB = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_flipB.wav")
-		self.sound_check = pygame.mixer.Sound(C.DIR_SOUNDS + "\\move_check.wav")
-		self.sound_void  = pygame.mixer.Sound(C.DIR_SOUNDS + "\\board_void.wav")
-
-		self.hovering = None
+		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "board_clean.wav")
+		self.sound_flipA = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipA.wav")
+		self.sound_flipB = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipB.wav")
+		self.sound_check = pygame.mixer.Sound(C.DIR_SOUNDS + "move_check.wav")
+		self.sound_void  = pygame.mixer.Sound(C.DIR_SOUNDS + "board_void.wav")
 
 		# Mechanics
 		self.ply   = "w"
@@ -262,7 +260,6 @@ class Board:
 		self.coach.graveyard.update()
 
 		# Evaluation
-		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
 		self.coach.gauge.update()
 
 		# Cursors
@@ -281,13 +278,13 @@ class Board:
 		if movement:
 			for tile in self.all_tiles:
 				if tile.position == movement[0]:
-					origin_tile = tile
-					origin_man  = tile.occupant
+					origin_tile          = tile
+					origin_man           = tile.occupant
 					origin_tile.occupant = None
 			for tile in self.all_tiles:
 				if tile.position == movement[1]:
-					target_tile = tile
-					target_man  = tile.occupant
+					target_tile          = tile
+					target_man           = tile.occupant
 					target_tile.occupant = origin_man
 
 		for man in self.all_men(colour=("w" if colour == "b" else "b")):
@@ -390,13 +387,13 @@ class Move:
 
 		# Sounds
 		### move sound system uses mixer.Music (not mixer.Sound) for simultaneous audio
-		self.sound_capture   = C.DIR_SOUNDS + "\\move_capture.wav"
-		self.sound_castle    = C.DIR_SOUNDS + "\\move_castle.wav"
-		self.sound_check     = C.DIR_SOUNDS + "\\move_check.wav"
-		self.sound_checkmate = C.DIR_SOUNDS + "\\move_checkmate.wav"
-		self.sound_promo     = C.DIR_SOUNDS + "\\move_promote.mp3"
-		self.sound_quiet     = C.DIR_SOUNDS + "\\move_quiet.wav"
-		self.sound_void      = C.DIR_SOUNDS + "\\move_void.wav"
+		self.sound_capture   = C.DIR_SOUNDS + "move_capture.wav"
+		self.sound_castle    = C.DIR_SOUNDS + "move_castle.wav"
+		self.sound_check     = C.DIR_SOUNDS + "move_check.wav"
+		self.sound_checkmate = C.DIR_SOUNDS + "move_checkmate.wav"
+		self.sound_promo     = C.DIR_SOUNDS + "move_promote.mp3"
+		self.sound_quiet     = C.DIR_SOUNDS + "move_quiet.wav"
+		self.sound_void      = C.DIR_SOUNDS + "move_void.wav"
 
 
 	def __repr__(self):
@@ -808,10 +805,10 @@ class Clock:
 		)
 
 		# Sounds
-		self.sound_clock_tick     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_tick.wav")
-		self.sound_clock_tack     = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_tack.wav")
-		self.sound_clock_click    = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_click.wav")
-		self.sound_clock_scramble = pygame.mixer.Sound(C.DIR_SOUNDS + "\\clock_scramble.wav")
+		self.sound_clock_tick     = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_tick.wav")
+		self.sound_clock_tack     = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_tack.wav")
+		self.sound_clock_click    = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_click.wav")
+		self.sound_clock_scramble = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_scramble.wav")
 
 		### minor corrections
 		self.sound_clock_tick.set_volume(0.75)
@@ -847,16 +844,8 @@ class Clock:
 
 		# Buttons
 		for button in self.buttons.values():
-			button.render()
-
-			### hover Mechanics
-			if button.rect.collidepoint((
-				self.coach.mouse_pos[0] - C.TRAY_OFFSET,
-				self.coach.mouse_pos[1],
-			)):
-				### cursor
-				if button.active is not None:
-					hovering = button
+			if h := button.render():
+				hovering = h
 
 		return hovering
 
@@ -1027,12 +1016,13 @@ class Clock:
 
 	@property
 	def times_elapsed(self):
-		w,b = 0,0
-		for move in self.coach.board.movelog:
-			match move.colour:
-				case "w":
-					w += move.duration
-				case "b":
-					b += move.duration
-
-		return w,b
+		print([m.duration for m in self.coach.board.movelog])
+		# w,b = 0,0
+		# for move in self.coach.board.movelog:
+		# 	match move.colour:
+		# 		case "w":
+		# 			w += move.duration
+		# 		case "b":
+		# 			b += move.duration
+		#
+		# return w,b

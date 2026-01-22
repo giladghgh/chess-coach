@@ -16,10 +16,11 @@ if __name__ == "__main__":
 
 	os.environ["SDL_VIDEO_WINDOW_POS"] = "%d,%d" % C.WINDOW_POS
 
-	coach  = Coach()
-	clock  = coach.clock
+	coach = Coach()
+
 	board  = coach.board
 	engine = coach.engine
+	clock  = coach.clock
 
 	running = True
 	done    = False
@@ -30,19 +31,15 @@ if __name__ == "__main__":
 
 			# Keyboard
 			elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-				### exit pane, or quit
-				for context in coach.contexts:
-					if context.show:
-						context.show = False
-						break
-				else:
-					running = False
+				### exit
+				running = False
 
 			### prev/next move
 			elif event.type == pygame.KEYDOWN and any([
 				event.key == pygame.K_LEFT,
 				event.key == pygame.K_RIGHT,
 			]):
+				print(clock.times_elapsed)
 				match event.key:
 					case pygame.K_LEFT:
 						coach.buttons_turns["PREV"].click()
@@ -64,6 +61,9 @@ if __name__ == "__main__":
 			):
 				coach.handle_click(event)
 
+		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
+			engine.play()
+
 		if not done:
 			if coach.is_game_over():
 				done = True
@@ -76,5 +76,5 @@ if __name__ == "__main__":
 		coach.render()
 		pygame.display.update()
 
-		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
-			engine.play()
+		if running and done:
+			print("running and done")

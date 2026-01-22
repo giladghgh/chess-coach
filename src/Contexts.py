@@ -16,7 +16,8 @@ class Context:
 
 		# Rendering
 		self.colour = None
-		self.rect   = pygame.Rect(
+
+		self.rect = pygame.Rect(
 			0,
 			0,
 			C.X_MARGIN + C.TEXTBOX_WIDTH + C.X_MARGIN + C.GRID_GAP,
@@ -24,8 +25,6 @@ class Context:
 		)
 
 		self.tab = ()
-
-		self.hovering = None
 
 		# Elements
 		self.banners  = {}
@@ -36,6 +35,7 @@ class Context:
 
 		self.shapes   = {}
 
+
 	def __repr__(self):
 		return type(self).__name__
 
@@ -43,7 +43,7 @@ class Context:
 	def plug_in(self):
 		index = self.coach.contexts.index(self)
 
-		### populate other contexts with navigation buttons to this one.
+		# Navigation buttons
 		for context in self.coach.contexts:
 			if context is self:
 				context.buttons["EXIT"] = ButtonContextExit(
@@ -66,7 +66,7 @@ class Context:
 		self.pane.fill((0,0,0,0))
 		self.pane.fill(self.colour,self.rect)
 
-		self.hovering = None
+		hovering = None
 
 		# Title
 		for i,char in enumerate(myself := str(self).upper()):
@@ -105,7 +105,7 @@ class Context:
 			if writer.active is not None:
 				writer.paint()
 				if writer.rect.collidepoint(self.coach.mouse_pos):
-					self.hovering = writer
+					hovering = writer
 
 		### counters
 		for counter in self.counters.values():
@@ -118,7 +118,7 @@ class Context:
 			### hover mechanics
 			### ### button
 			if button.active is not None and button.rect.collidepoint(self.coach.mouse_pos):
-				self.hovering = button
+				hovering = button
 			else:
 				button.paint()
 
@@ -126,18 +126,18 @@ class Context:
 			if button.dropdown and (button.dropdown.persist or button.dropdown.active):
 				for option in button.dropdown:
 					if option.active is not None and option.rect.collidepoint(self.coach.mouse_pos):
-						self.hovering = option
+						hovering = option
 					else:
 						option.paint()
 
 			### ### slider
-			try:
+			if hasattr(button,"slider"):
 				if button.active and button.slider.rect.collidepoint(self.coach.mouse_pos):
-					self.hovering = button.slider
-			except AttributeError:
-				pass
+					hovering = button.slider
 
 		self.coach.screen.blit(self.pane,(0,0))
+
+		return hovering
 
 
 	def handle_click(self , event):
@@ -169,7 +169,7 @@ class Context:
 
 		# Counters
 		for counter in self.counters.values():
-			if counter.bg.get_rect(topleft=(counter.x,counter.y)).collidepoint(event.pos):
+			if counter.base.get_rect(topleft=(counter.x,counter.y)).collidepoint(event.pos):
 				clicks.append(counter)
 
 		# if not clicks:
@@ -334,7 +334,7 @@ class Settings(Context):
 				self.pane,
 				*self.gridify("INTERFACE",2,2)
 			),
-			"COORDS"		: ButtonCoords(
+			"COORDS"		: ButtonShowCoordinates(
 				self.coach,
 				self.pane,
 				*self.gridify("INTERFACE",1,2)
@@ -408,55 +408,55 @@ class Analysis(Context):
 		# Counters
 		self.counters = {
 			### rule counts
-			"RULECOUNT_FIFTYMOVS"	: Counter(
+			"RULECOUNT_FIFTYMOVS" : Counter(
 				self,
 				self.banners["DRAW CRITERIA"].left,
 				self.banners["DRAW CRITERIA"].bottom + 1*C.GRID_GAP,
 				"Fifty Move Rule"
 			),
-			"RULECOUNT_THREEREPS"   : Counter(
+			"RULECOUNT_THREEREPS" : Counter(
 				self,
 				self.banners["DRAW CRITERIA"].left,
 				self.banners["DRAW CRITERIA"].bottom + 4*C.GRID_GAP,
 				"Threefold Repetition Rule"
 			),
 			### evaluators
-			"EVAL_HAL9"       : Counter(
+			"EVAL_H9" : Counter(
 				self,
 				self.banners["EVALUATION"].left,
 				self.banners["EVALUATION"].bottom + 1*C.GRID_GAP,
 				"HAL9",
-				polarise=True
+				polar=True
 			),
-			"EVAL_STOCKFISH"   : Counter(
+			"EVAL_SF" : Counter(
 				self,
 				self.banners["EVALUATION"].left,
 				self.banners["EVALUATION"].bottom + 4*C.GRID_GAP,
 				"Stockfish",
-				polarise=True
+				polar=True
 			),
 			### top lines
-			"TOPLINE1"  : Counter(
+			"TOPLINE1" : Counter(
 				self,
 				self.banners["TOP LINES"].left,
 				self.banners["TOP LINES"].bottom + 1*C.GRID_GAP,
 				"L1",
-				polarise=True
+				polar=True
 			),
-			"TOPLINE2"  : Counter(
+			"TOPLINE2" : Counter(
 				self,
 				self.banners["TOP LINES"].left,
 				self.banners["TOP LINES"].bottom + 4*C.GRID_GAP,
 				"L2",
-				polarise=True
+				polar=True
 			),
-			"TOPLINE3"  : Counter(
+			"TOPLINE3" : Counter(
 				self,
 				self.banners["TOP LINES"].left,
 				self.banners["TOP LINES"].bottom + 7*C.GRID_GAP,
 				"L3",
-				polarise=True
-			)
+				polar=True
+			),
 		}
 
 		# Buttons
@@ -464,10 +464,10 @@ class Analysis(Context):
 			f'TOPLINE{i+1}' : ButtonTopLine(
 				self.coach,
 				self.pane,
-				self.counters[f'TOPLINE{i+1}'].x,
+				self.counters[f'TOPLINE{i+1}'].x + self.counters[f'TOPLINE{i+1}'].size[0] + 13,
 				self.counters[f'TOPLINE{i+1}'].y,
 				(
-					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{i+1}'].size[0],
+					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{i+1}'].x - self.counters[f'TOPLINE{i+1}'].size[0],
 					C.TEXTBOX_HEIGHT + 1
 				),
 				i=i+1
@@ -488,9 +488,34 @@ class Analysis(Context):
 				player="BLACK"
 			),
 		}
+		self.buttons_engs = {
+			"H9" : ButtonGaugeEngine(
+				self.coach,
+				self.pane,
+				self.counters["EVAL_H9"].x + self.counters["EVAL_H9"].size[0] + 13,
+				self.counters["EVAL_H9"].y,
+				(
+					C.TEXTBOX_WIDTH - self.counters["EVAL_H9"].x - self.counters["EVAL_H9"].size[0],
+					C.TEXTBOX_HEIGHT + 1
+				),
+				code="H9"
+			),
+			"SF" : ButtonGaugeEngine(
+				self.coach,
+				self.pane,
+				self.counters["EVAL_SF"].x + self.counters["EVAL_SF"].size[0] + 13,
+				self.counters["EVAL_SF"].y,
+				(
+					C.TEXTBOX_WIDTH - self.counters["EVAL_SF"].x - self.counters["EVAL_SF"].size[0],
+					C.TEXTBOX_HEIGHT + 1
+				),
+				code="SF"
+			)
+		}
 		self.buttons.update(
 			**self.buttons_topls,
 			**self.buttons_bots,
+			**self.buttons_engs,
 		)
 
 
@@ -527,7 +552,7 @@ class Coaching(Context):
 			"DRILLS"    : ButtonDrills(
 				self.coach,
 				self.pane,
-				*self.gridify("BASIC TRAINING",1,1)
+				*self.gridify("BASIC TRAINING",2,1)
 			),
 		}
 		self.buttons.update(
