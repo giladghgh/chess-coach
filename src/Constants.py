@@ -179,6 +179,7 @@ class C:
 	DIR_SETS    = DIR_MEDIA + "sets" + SEP
 	DIR_SET     = DIR_SETS + PIECE_DESIGN + SEP
 	DIR_SOUNDS  = DIR_MEDIA + "sounds" + SEP
+	DIR_FONTS   = DIR_MEDIA + "fonts" + SEP
 
 
 	# MISC

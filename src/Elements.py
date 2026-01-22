@@ -2471,8 +2471,9 @@ class Timer:
 		self.text_colour = C.TIMER_IDLE
 		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
 
-		self.font = pygame.font.SysFont("Consolas",28)
 		self.text = self.trigger.clock.read(self.time)
+		self.font = pygame.font.SysFont("Consolas",28)
+		# self.font = pygame.font.Font(C.DIR_FONTS + "seven_segment.ttf",40)
 
 		self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
 		self.case  = pygame.Rect(0,0,*self.size)
