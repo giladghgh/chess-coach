@@ -38,8 +38,6 @@ class Coach:
 			self.coaching,
 		)
 
-		# self.engine.load_stockfish()
-
 		# Interfaces
 		self.current_w = pygame.display.Info().current_w
 
@@ -289,7 +287,7 @@ class Coach:
 				### ### dropdown
 				if button.dropdown and (button.dropdown.persist or button.active):
 					for option in button.dropdown:
-						if option.rect.collidepoint(self.mouse_pos):
+						if option.active is not None and option.rect.collidepoint(self.mouse_pos):
 							hovering = option
 						else:
 							option.paint()
@@ -404,7 +402,7 @@ class Coach:
 
 						elif button.dropdown and (button.dropdown.persist or button.active):
 							for option in button.dropdown:
-								if option.rect.collidepoint(event.pos):
+								if option.active is not None and option.rect.collidepoint(event.pos):
 									clicks.append(option)
 
 			### only click topmost button:
@@ -475,7 +473,7 @@ class Coach:
 	#  -    END OF GAME
 	#  -    ROYAL BURIALS
 	def is_game_over(self):
-		# Optional auto-draw?
+		# Auto-draw?
 		if C.AUTO_DRAW:
 			if self.board.rulecount_threereps >= 3:
 				self.board.outcome = (
@@ -497,10 +495,6 @@ class Coach:
 		# Checkmate?
 		if (len(whites) > 2 or len(blacks) > 2) and (lm := self.board.last_move):
 			if lm.in_checkmate:
-				self.board.outcome = (
-					"win for " + ("Black","White")[lm.colour == "b"],
-					"Checkmate"
-				)
 				return True
 
 		# Draw?
@@ -521,6 +515,17 @@ class Coach:
 				"Insufficient material"
 			)
 			return True
+
+
+	def wrap(self):
+		# match self.board.outcome[0]:
+		# 	case "Checkmate":
+		# 	case "Resignation":
+		# 	case "Timeout":
+		# 	case "Draw":
+		print("###- GAME OVER -###")
+		print(self.board.outcome[0] + " by " + self.board.outcome[1].lower() + "!")
+		print("####-####-####-####")
 
 
 	def export_FEN(self):

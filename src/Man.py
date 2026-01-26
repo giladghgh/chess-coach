@@ -126,9 +126,9 @@ class Man:
 				for pawn in self.board.all_men(creed=""):
 					pawn.just_moved_double = pawn is self
 
-			### more info
-			move.in_checkmate = self.board.is_in_checkmate("w" if move.colour == "b" else "b")
-			move.in_check 	  = self.board.is_in_check("w" if move.colour == "b" else "b")
+			### board state
+			move.in_check 	  = self.board.is_in_check(("b","w")[move.colour == "b"])
+			move.in_checkmate = self.board.is_in_checkmate(("b","w")[move.colour == "b"])
 			move.notate()
 
 			### make yaself heard
@@ -136,6 +136,7 @@ class Man:
 				move.sonate()
 
 			return True
+
 		else:
 			return False
 

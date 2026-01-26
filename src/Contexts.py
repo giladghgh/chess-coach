@@ -150,7 +150,7 @@ class Context:
 
 			elif button.dropdown and (button.dropdown.persist or button.dropdown.active):
 				for option in button.dropdown:
-					if option.rect.collidepoint(event.pos):
+					if option.active is not None and option.rect.collidepoint(event.pos):
 						clicks.append(option)
 						break
 				else:
