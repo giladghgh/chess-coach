@@ -66,15 +66,14 @@ if __name__ == "__main__":
 
 		if not done:
 			if coach.is_game_over():
-				done = True
+				coach.wrap()
 
-				print("###- GAME OVER -###")
-				print(board.outcome[0] + " by " + board.outcome[1].lower() + "!")
-				print("####-####-####-####")
+				running = False
+				done    = True
 
 		coach.screen.fill(C.BACKGR_PANE)
 		coach.render()
 		pygame.display.update()
 
-		if running and done:
-			print("running and done")
+		# if running and done:
+		# 	print("running and done")

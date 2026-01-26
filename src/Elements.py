@@ -885,9 +885,16 @@ class ButtonBot(Button):
 		self.player  = player
 		self.persist = True         ### all ButtonBots are persistent
 
-		self.engine = self.coach.engine
-		self.scheme = self.engine.schema[self.player == "BLACK"]
+		# Imports
+		from src.bots.Stockfish import BotStockfish
+		from src.bots.Random import BotRandom
+		from src.bots.HAL9 import BotHAL9
 
+		# Mechanics
+		self.engine = self.coach.engine
+		self.bot    = self.engine.schema[self.player == "BLACK"]
+
+		# Interface
 		self.slider = Slider(
 			self.display,
 			x=self.x,
@@ -914,7 +921,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 3*C.BUTTON_WIDTH
 					),
 					self.y,
-					philosophy="Stockfish",
+					doctrine=BotStockfish(self.engine),
 					trigger=self
 				),
 				ButtonBotOption(
@@ -926,7 +933,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 2*C.BUTTON_WIDTH
 					),
 					self.y,
-					philosophy="HAL9",
+					doctrine=BotHAL9(self.engine),
 					trigger=self
 				),
 				ButtonBotOption(
@@ -938,7 +945,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 1*C.BUTTON_WIDTH
 					),
 					self.y,
-					philosophy="Random",
+					doctrine=BotRandom(self.engine),
 					trigger=self
 				),
 			],
@@ -946,14 +953,14 @@ class ButtonBot(Button):
 			persist=True
 		)
 		### initial conditions
-		self.active = (None,True)[bool(self.scheme)]
+		self.active = (None,True)[bool(self.bot)]
 		for option in self.dropdown:
-			option.active = self.scheme == option.philosophy.upper()
+			option.active = self.bot is option.doctrine
 
 		self.tooltip = self.player.title() + " bot"
 		self.image   = pygame.transform.scale(
 			pygame.image.load(
-				C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + (self.scheme or "") + ".png"
+				C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + (self.bot or "None") + ".png"
 			),
 			self.size
 		)
@@ -975,34 +982,28 @@ class ButtonBot(Button):
 
 
 class ButtonBotOption(Button):
-	def __init__(self , *args , philosophy , trigger):
+	def __init__(self , *args , doctrine , trigger):
 		super().__init__(*args)
-		self.philosophy = philosophy
-		self.trigger 	= trigger
-		self.player     = trigger.player
+		self.doctrine = doctrine
+		self.trigger  = trigger
+		self.player   = trigger.player
 
 		self.engine = self.trigger.engine
 
-		self.tooltip = self.philosophy
+		self.tooltip = str(self.doctrine)
 
-		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + self.philosophy.lower() + ".png") , self.size)
+		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + str(self.doctrine).lower() + ".png") , self.size)
 
 
 	def click(self):
 		# Function
 		incumbent = self.engine.schema[self.player.upper() == "BLACK"]
-		candidate = self.philosophy.upper()
+		candidate = self.doctrine
 
-		appointed = None if candidate == incumbent else candidate
+		appointed = None if candidate is incumbent else candidate
 
 		### apply
 		self.engine.schema[self.player.upper() == "BLACK"] = appointed
-
-		### import foreigns
-		match appointed:
-			case "STOCKFISH":
-				if not self.engine.stockfish:
-					self.engine.load_stockfish()
 
 		# Mechanics
 		for trigger in [
@@ -1011,14 +1012,14 @@ class ButtonBotOption(Button):
 		]:
 			trigger.active = (None,True)[bool(appointed)]
 			for option in trigger.dropdown:
-				option.active = (False,not option.active)[self.philosophy == option.philosophy]
+				option.active = (False,not option.active)[self.doctrine == option.doctrine]
 
 			trigger.paint()
 
 			trigger.image  = pygame.transform.scale(
 				pygame.image.load(
 					C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + (
-						appointed or ""
+						str(appointed) or ""
 					) + ".png"
 				),
 				self.trigger.size
@@ -2471,9 +2472,9 @@ class Timer:
 		self.text_colour = C.TIMER_IDLE
 		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
 
+		# self.font = pygame.font.Font(C.DIR_FONTS + "seven_segment.ttf",40)
 		self.text = self.trigger.clock.read(self.time)
 		self.font = pygame.font.SysFont("Consolas",28)
-		# self.font = pygame.font.Font(C.DIR_FONTS + "seven_segment.ttf",40)
 
 		self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
 		self.case  = pygame.Rect(0,0,*self.size)
@@ -2564,11 +2565,13 @@ class Timer:
 		self.body_colour = C.TIMER_LIVE
 		self.case_colour = C.TIMER_CASE_LIVE
 
+
 	def wait(self):
 		pygame.time.set_timer(self.TICK,0)
 		self.text_colour = (255,255,255)
 		self.body_colour = C.TIMER_IDLE
 		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
+
 
 	def stop(self):
 		pygame.time.set_timer(self.TICK,0)
@@ -2711,15 +2714,15 @@ class Gauge:
 
 		# Mechanics
 		self.emax = 15
-		self.eval = 0
 
+		self.eval  = 0
 		self.evals = {
-			None : 0,
-			"H9" : None,
-			"SF" : None,
+			None : None,
+			"H9" : float(),
+			"SF" : float(),
 		}
 
-		self.active = bool(E.GAUGE_ENGINE)
+		self.active = bool(E.BOT_GAUGE)
 
 		# Interface
 		self.font  = pygame.font.SysFont("Consolas",15)
@@ -2750,7 +2753,7 @@ class Gauge:
 			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
 			self.coach.mouse_pos[1]
 		):
-			if self.active or E.GAUGE_ENGINE:
+			if self.active or E.BOT_GAUGE:
 				label_size = self.font.size(self.label)
 				self.coach.tray.blit(
 					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
@@ -2774,38 +2777,42 @@ class Gauge:
 
 
 	def update(self):
-		# Evaluate
-		### HAL9
-		self.coach.engine.model.set_fen(self.coach.board.this_move.fen)
-		self.evals["H9"] = min( max( self.coach.engine.evaluate() , 0 ) , self.emax )
+		for bot in self.coach.engine.schema:
+			if bot is None or bot.code in ("RM",):
+				continue
 
-		### Stockfish
-		if self.coach.engine.stockfish:
-			self.coach.engine.stockfish.set_fen_position(self.coach.board.this_move.fen)
-			match (score := self.coach.engine.stockfish.get_evaluation())["type"]:
-				case "cp":
-					self.evals["SF"] = score["value"]/100
-				case "mate":
-					self.evals["SF"] = self.emax if score["value"]>0 else -self.emax
+			bot.update()
 
-		# Update counters
-		### HAL9
-		self.coach.analysis.counters["EVAL_H9"].value = self.evals["H9"]
+			self.evals[bot.code] = bot.eval
 
-		### Stockfish
-		if self.coach.engine.stockfish:
-			self.coach.analysis.counters["EVAL_SF"].value = self.evals["SF"]
-		else:
-			self.coach.analysis.counters["EVAL_SF"].value = None
-
-		# print(self.coach.engine.stockfish.get_best_move())
+			self.coach.analysis.counters["EVAL_" + bot.code].value = bot.eval
 
 		# Update gauge meter
-		self.eval = self.evals[E.GAUGE_ENGINE]
-
 		### mechanics
-		self.w_rect.h = (1 + self.eval/self.emax)*C.WINDOW_HEIGHT/2
-		self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
+		if E.BOT_GAUGE is None:
+			self.eval = None
+
+			self.w_rect.h = C.WINDOW_HEIGHT/2
+			self.b_rect.h = C.WINDOW_HEIGHT/2
+
+			### label
+			self.label = "-"
+
+		else:
+			self.eval = self.evals[E.BOT_GAUGE]
+
+			self.w_rect.h = (1 + self.eval/self.emax)*C.WINDOW_HEIGHT/2
+			self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
+
+			### label
+			if self.eval > 0:
+				self.label = "+"
+			elif self.eval < 0:
+				self.label = "-"
+			else:
+				self.label = "±"
+			self.label += f'{abs(self.eval):.2f}'
+
 
 		if C.BOARD_FLIPPED:
 			self.w_rect.y = 0
@@ -2820,15 +2827,6 @@ class Gauge:
 		self.w_bar.fill((255,255,255))
 		self.b_bar.fill((  0,  0,  0))
 
-		### label
-		if self.eval > 0:
-			self.label = "+"
-		elif self.eval < 0:
-			self.label = "-"
-		else:
-			self.label = "±"
-		self.label += f'{abs(self.eval):.2f}'
-
 
 
 class ButtonGaugeEngine(Button):
@@ -2836,7 +2834,7 @@ class ButtonGaugeEngine(Button):
 		super().__init__(*args)
 		self.code  = code
 
-		self.active = E.GAUGE_ENGINE == self.code
+		self.active = E.BOT_GAUGE == self.code
 
 		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
 		self.base.fill(C.COUNTER_BUTTON_LIVE if self.active else C.COUNTER_BUTTON_DEAD)
@@ -2844,7 +2842,7 @@ class ButtonGaugeEngine(Button):
 
 	def click(self):
 		# Function
-		incumbent = E.GAUGE_ENGINE
+		incumbent = E.BOT_GAUGE
 		candidate = self.code
 
 		appointed = None if candidate == incumbent else candidate
@@ -2854,16 +2852,14 @@ class ButtonGaugeEngine(Button):
 			case "SF":
 				if not self.coach.engine.stockfish:
 					self.coach.engine.load_stockfish()
-			case None:
-				self.coach.gauge.active = False
 
 		### apply
-		E.GAUGE_ENGINE = appointed
+		E.BOT_GAUGE = appointed
 		self.coach.gauge.update()
 
 		# Mechanics
 		for eng in self.coach.analysis.buttons_engs.values():
-			eng.active = not eng.active if eng.code == E.GAUGE_ENGINE else False
+			eng.active = not eng.active if eng.code == E.BOT_GAUGE else False
 			eng.base.fill(C.COUNTER_BUTTON_LIVE if eng.active else C.COUNTER_BUTTON_DEAD)
 
 

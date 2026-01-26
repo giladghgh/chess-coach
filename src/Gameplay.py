@@ -19,7 +19,7 @@ class Board:
 	def __init__(self , coach):
 		self.coach = coach
 
-		self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
+		# self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
 
 		# Sounds
 		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "board_clean.wav")
@@ -287,7 +287,7 @@ class Board:
 					target_man           = tile.occupant
 					target_tile.occupant = origin_man
 
-		for man in self.all_men(colour=("w" if colour == "b" else "b")):
+		for man in self.all_men(colour=("b","w")[colour == "b"]):
 			for tile in man.pseudolegal_moves():
 				if tile.occupant and (
 						tile.occupant.creed == "K"
@@ -307,22 +307,16 @@ class Board:
 	def is_in_checkmate(self , ply=None):
 		colour = ply or self.ply
 
-		# Can any of your men make a move that averts or relieves a check?
+		# Can any of your men make a move?
 		for man in self.all_men(colour=colour):
 			if man.legal_moves():
 				return False
 
 		# If not, the game is over, one way or another.
 		if self.is_in_check(colour):
-			self.outcome = (
-				"win for " + ("Black","White")[colour == "b"],
-				"Checkmate"
-			)
+			self.outcome = ( "Checkmate" , ("Black","White")[colour == "b"] )
 		else:
-			self.outcome = (
-				"Draw",
-				"Stalemate"
-			)
+			self.outcome = ( "Draw" , "Stalemate" )
 
 		return True
 
@@ -397,7 +391,7 @@ class Move:
 
 
 	def __repr__(self):
-		return "M:" + (self.origin.pgn if self.origin else "") + "->" + (self.target.pgn if self.target else "")
+		return self.agent.creed + (self.origin.pgn if self.origin else "") + (self.target.pgn if self.target else "")
 
 
 	def rewind(self):
@@ -723,8 +717,9 @@ class Line(list):
 	def __init__(self , *args):
 		super().__init__()
 
-		self.eval = -float("inf")
 		self.main = []
+
+		self.score = -float("inf")
 
 		for arg in args:
 			try:
@@ -735,7 +730,7 @@ class Line(list):
 
 
 	def __repr__(self):
-		return str(self.eval) + "L" + str(len(self)) + super().__repr__()
+		return str(self.score) + "L" + str(len(self)) + super().__repr__()
 
 
 	def __add__(self , other):
@@ -745,8 +740,8 @@ class Line(list):
 	def append(self , this):
 		super().append(this)
 
-		if this.eval > self.eval:
-			self.eval = this.eval
+		if this.score > self.score:
+			self.score = this.score
 			self.main.append(this)
 
 
@@ -910,7 +905,7 @@ class Clock:
 				btimer.play()
 				self.sound_clock_tack.play()
 
-		board.last_move.duration = board.last_move.conclude - board.last_move.commence
+		board.last_move.duration = board.last_move.commence - board.last_move.conclude      ### backwards because TICKS count down
 
 
 	def jibe(self , resume=False):

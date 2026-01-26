@@ -7,6 +7,7 @@ import sys,os
 class C:
 	# INITIAL CONDITIONS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	# INIT_FEN = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"
 
 	PIECE_DESIGN = (
 		"CLASSIC",
@@ -198,14 +199,11 @@ class C:
 class E:
 	# INITIAL CONDITIONS
 	INIT_SCHEMA = [None,None]
-	# INIT_SCHEMA = [None,"STOCKFISH"]
-	# INIT_SCHEMA = [None,"HAL9"]
-	# INIT_SCHEMA = [None,"RANDOM"]
 
 	BOT_DEPTH_BLACK = 2		### out of 4
 	BOT_DEPTH_WHITE = 1		### out of 4
 
-	GAUGE_ENGINE = "H9"
+	BOT_GAUGE = "SF"
 
 
 	# SCOREBOARDS
