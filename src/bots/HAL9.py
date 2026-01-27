@@ -29,13 +29,16 @@ class BotHAL9(NativeBot):
 
 
 	def play(self):
-		movescores = {}
+		movetree = {}
 		for move in self.model.legal_moves:
 			self.model.push(move)
 
 			move.score = self.score()
-			branch = self.search(self.depth-1,Line(move))
-			movescores[move] = branch
+			branch = self.search(self.depth-1 , Line(move))
+			movetree[move] = branch
+
+			# print("\nmove:",move)
+			# print(branch)
 
 			self.model.pop()
 			# break
@@ -47,12 +50,13 @@ class BotHAL9(NativeBot):
 		# 		print("\t\t",branch)
 		###########################################
 
-		best , main = max( movescores.items() , key=lambda m:m[1].score )
+		best , main = max( movetree.items() , key=lambda m:m[1].score )
 
 		# print()
 		# print("best:",type(best),best)
 		# print("main:",type(main),main)
 
+		# print("\nbest:",best,main)
 		return self.engine.uci_to_move( best )
 
 
@@ -78,7 +82,7 @@ class BotHAL9(NativeBot):
 					score += mat + pos
 
 			if self.model.is_check() and self.model.turn == colour:
-				score += 5
+				score += 15
 
 			### gain perspective
 			value += score * (1,-1)[colour == self.model.turn]

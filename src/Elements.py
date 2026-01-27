@@ -840,7 +840,7 @@ class Button:
 
 
 	def render_tooltip(self , shift=(0,0)):
-		if self.rect.collidepoint(local_pos := (
+		if self.tooltip and self.rect.collidepoint(local_pos := (
 			self.coach.mouse_pos[0] + shift[0],
 			self.coach.mouse_pos[1] + shift[1],
 		)):
@@ -954,8 +954,6 @@ class ButtonBot(Button):
 		)
 		### initial conditions
 		self.active = (None,True)[bool(self.bot)]
-		# for option in self.dropdown:
-		# 	option.active = False#self.bot is option.doctrine
 
 		self.tooltip = self.player.title() + " bot"
 		self.image   = pygame.transform.scale(
@@ -994,7 +992,7 @@ class ButtonBotOption(Button):
 
 		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + str(self.doctrine).lower() + ".png") , self.size)
 
-		if self.doctrine.code in E.EXCLUDE:
+		if self.doctrine.code in E.BOT_EXCLUDE:
 			self.active = None
 
 
@@ -1003,7 +1001,7 @@ class ButtonBotOption(Button):
 		incumbent = self.engine.schema[self.player.upper() == "BLACK"]
 		candidate = self.doctrine
 
-		appointed = None if candidate is incumbent else candidate
+		appointed = None if candidate == incumbent else candidate
 
 		### apply
 		self.engine.schema[self.player.upper() == "BLACK"] = appointed
@@ -1016,7 +1014,7 @@ class ButtonBotOption(Button):
 			trigger.active = (None,True)[bool(appointed)]
 			for option in trigger.dropdown:
 				if option.active is not None:
-					option.active = (False,not option.active)[self.doctrine is option.doctrine]
+					option.active = (False,not option.active)[self.doctrine == option.doctrine]
 
 			trigger.paint()
 

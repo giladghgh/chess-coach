@@ -18,7 +18,7 @@ pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
-    Tree('data', prefix='data'),
+    Tree('data', prefix='data', excludes=['..data\\stockfish',]),
     Tree('media', prefix='media'),
     a.scripts,
     a.binaries,

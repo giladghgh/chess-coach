@@ -46,7 +46,7 @@ class C:
 	X_MARGIN = 15
 	Y_MARGIN = 20
 
-	BOARD_WIDTH = BOARD_HEIGHT = 800                ### NO LOWER THAN 600 (I think)
+	BOARD_WIDTH = BOARD_HEIGHT = 800
 	BOARD_SIZE  = (BOARD_WIDTH , BOARD_HEIGHT)
 
 	SIDEBAR_WIDTH = 275
@@ -196,13 +196,13 @@ class C:
 
 
 class E:
-	EXCLUDE = ("SF",)
+	BOT_EXCLUDE = ("SF",)
 
 	# INITIAL CONDITIONS
 	INIT_SCHEMA = [None,None]
 
-	BOT_DEPTH_BLACK = 2		### out of 4
-	BOT_DEPTH_WHITE = 1		### out of 4
+	BOT_DEPTH_BLACK = 3		### out of 4
+	BOT_DEPTH_WHITE = 3		### out of 4
 
 	BOT_GAUGE = "H9"
 

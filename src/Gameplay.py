@@ -736,6 +736,9 @@ class Line(list):
 	def __add__(self , other):
 		return Line(self,other)
 
+	# def __len__(self):
+	# 	super().__len__()
+
 
 	def append(self , this):
 		super().append(this)

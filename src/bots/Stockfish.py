@@ -20,7 +20,7 @@ class BotStockfish(ExoticBot):
 			"Min Split Depth"       : 10,
 		}
 
-		if self.code not in E.EXCLUDE:
+		if self.code not in E.BOT_EXCLUDE:
 			self.model = Stockfish(
 				path=self.config["PATH"],
 				depth=15,

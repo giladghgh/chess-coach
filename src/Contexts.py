@@ -380,6 +380,7 @@ class Settings(Context):
 
 
 
+# TODO:     E.BOT_EXCLUDE counters
 class Analysis(Context):
 	def __init__(self , *args):
 		super().__init__(*args)

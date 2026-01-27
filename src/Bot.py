@@ -16,6 +16,9 @@ class Bot:
 	def __repr__(self):
 		return type(self).__name__[3:]
 
+	def __eq__(self , this):
+		return False if this is None else self.code == this.code
+
 	def load(self):
 		self.users += 1
 

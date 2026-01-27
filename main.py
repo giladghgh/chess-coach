@@ -39,7 +39,6 @@ if __name__ == "__main__":
 				event.key == pygame.K_LEFT,
 				event.key == pygame.K_RIGHT,
 			]):
-				print(clock.times_elapsed)
 				match event.key:
 					case pygame.K_LEFT:
 						coach.buttons_turns["PREV"].click()
