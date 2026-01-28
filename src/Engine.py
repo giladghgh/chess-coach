@@ -30,6 +30,12 @@ class Engine:
 
 		self.model = chess.Board(fen=C.INIT_FEN)
 
+		self.bots = {
+			"SF" : BotStockfish(self),
+			"RM" : BotRandom(self),
+			"H9" : BotHAL9(self),
+		}
+
 
 	def play(self):
 		bot = self.schema[self.coach.board.ply == "b"]

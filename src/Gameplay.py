@@ -259,7 +259,7 @@ class Board:
 		# Graveyard
 		self.coach.graveyard.update()
 
-		# Evaluation
+		# Gauge
 		self.coach.gauge.update()
 
 		# Cursors

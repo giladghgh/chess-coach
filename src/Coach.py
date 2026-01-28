@@ -1,6 +1,6 @@
 import pygame,time
 
-from src.Constants import C
+from src.Constants import C,E
 from src.Gameplay import Board,Move,Clock
 from src.Tile import Tile
 from src.Engine import Engine
@@ -22,7 +22,6 @@ class Coach:
 			self.icon.get_rect(center=[L/2 for L in C.WINDOW_SIZE])
 		)
 		pygame.display.update()
-		# time.sleep(0.5)			### pause for dramatic effect
 
 		# Faculties
 		self.board  = Board(self)
@@ -175,6 +174,7 @@ class Coach:
 		)}
 
 		# Commence
+		self.exclude()
 		self.reset()
 		for context in reversed(self.contexts):     ### plug in AFTER declaring contexts. Reversed for tooltip exposure.
 			context.plug_in()
@@ -305,7 +305,6 @@ class Coach:
 		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,C.GRAVE_HEIGHT))
 		self.tray.fill(C.BACKGR_GAUGE , (C.TRAY_GAP,0,C.GAUGE_WIDTH/2,C.GAUGE_HEIGHT))					### fill half width for gauge resizing
 
-		### elements
 		for element in [
 			self.clock,
 			self.graveyard,
@@ -376,10 +375,6 @@ class Coach:
 				for button in self.clock.buttons.values():
 					if button.rect.collidepoint(local_pos) and button.active is not None:   ### /None/ disables button
 						clicks.append(button)
-
-				### gauge
-				if self.gauge.bg_rect.collidepoint(local_pos):
-					clicks.append(self.gauge)
 
 			# Board
 			elif event.pos[0] > C.PANE_WIDTH:
@@ -515,17 +510,6 @@ class Coach:
 				"Insufficient material"
 			)
 			return True
-
-
-	def wrap(self):
-		# match self.board.outcome[0]:
-		# 	case "Checkmate":
-		# 	case "Resignation":
-		# 	case "Timeout":
-		# 	case "Draw":
-		print("###- GAME OVER -###")
-		print(self.board.outcome[0] + " by " + self.board.outcome[1].lower() + "!")
-		print("####-####-####-####")
 
 
 	def export_FEN(self):
@@ -711,6 +695,37 @@ class Coach:
 
 		if show:
 			time.sleep(0.1)
+
+
+	def exclude(self):
+		for code in E.BOT_EXCLUDE:
+			### engine
+			del self.engine.bots[code]
+
+			### bot option
+			for option in (
+				*self.buttons["BOT_WHITE"].dropdown,
+				*self.buttons["BOT_BLACK"].dropdown,
+				*self.analysis.buttons["BOT_WHITE"].dropdown,
+				*self.analysis.buttons["BOT_BLACK"].dropdown,
+			):
+				if code == option.doctrine.code:
+					option.active = None
+
+			### gauge
+			del self.analysis.counters["EVAL_"+code]
+			del self.analysis.buttons["GAUGE_"+code]
+
+
+	def wrap(self):
+		# match self.board.outcome[0]:
+		# 	case "Checkmate":
+		# 	case "Resignation":
+		# 	case "Timeout":
+		# 	case "Draw":
+		print("###- GAME OVER -###")
+		print(self.board.outcome[0] + " by " + self.board.outcome[1].lower() + "!")
+		print("####-####-####-####")
 
 
 	@staticmethod

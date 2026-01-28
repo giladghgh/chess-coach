@@ -339,7 +339,7 @@ class Settings(Context):
 				self.pane,
 				*self.gridify("INTERFACE",1,2)
 			),
-			"SPEDOMETER"	: ButtonSpedometer(
+			"SPEDOMETER"	: ButtonBoardSpedometer(
 				self.coach,
 				self.pane,
 				*self.gridify("INTERFACE",2,3)
@@ -354,7 +354,7 @@ class Settings(Context):
 				self.pane,
 				*self.gridify("INTERFACE",2,4)
 			),
-			"FLIP"		    : ButtonFlip(
+			"FLIP"		    : ButtonBoardFlip(
 				self.coach,
 				self.pane,
 				*self.gridify("INTERFACE",1,4)
@@ -380,7 +380,6 @@ class Settings(Context):
 
 
 
-# TODO:     E.BOT_EXCLUDE counters
 class Analysis(Context):
 	def __init__(self , *args):
 		super().__init__(*args)
@@ -461,7 +460,7 @@ class Analysis(Context):
 		}
 
 		# Buttons
-		self.buttons_topls = {
+		self.buttons_topls  = {
 			f'TOPLINE{i+1}' : ButtonTopLine(
 				self.coach,
 				self.pane,
@@ -475,7 +474,31 @@ class Analysis(Context):
 			)
 			for i in range(3)
 		}
-		self.buttons_bots = {
+		self.buttons_gauges = {
+			"GAUGE_H9" : ButtonGaugeEngine(
+				self.coach,
+				self.pane,
+				self.counters["EVAL_H9"].x + self.counters["EVAL_H9"].size[0] + 13,
+				self.counters["EVAL_H9"].y,
+				(
+					C.TEXTBOX_WIDTH - self.counters["EVAL_H9"].x - self.counters["EVAL_H9"].size[0],
+					C.TEXTBOX_HEIGHT + 1
+				),
+				doctrine=self.coach.engine.bots["H9"]
+			),
+			"GAUGE_SF" : ButtonGaugeEngine(
+				self.coach,
+				self.pane,
+				self.counters["EVAL_SF"].x + self.counters["EVAL_SF"].size[0] + 13,
+				self.counters["EVAL_SF"].y,
+				(
+					C.TEXTBOX_WIDTH - self.counters["EVAL_SF"].x - self.counters["EVAL_SF"].size[0],
+					C.TEXTBOX_HEIGHT + 1
+				),
+				doctrine=self.coach.engine.bots["SF"]
+			)
+		}
+		self.buttons_bots   = {
 			"BOT_WHITE"	: ButtonBot(
 				self.coach,
 				self.pane,
@@ -489,34 +512,10 @@ class Analysis(Context):
 				player="BLACK"
 			),
 		}
-		self.buttons_engs = {
-			"H9" : ButtonGaugeEngine(
-				self.coach,
-				self.pane,
-				self.counters["EVAL_H9"].x + self.counters["EVAL_H9"].size[0] + 13,
-				self.counters["EVAL_H9"].y,
-				(
-					C.TEXTBOX_WIDTH - self.counters["EVAL_H9"].x - self.counters["EVAL_H9"].size[0],
-					C.TEXTBOX_HEIGHT + 1
-				),
-				code="H9"
-			),
-			"SF" : ButtonGaugeEngine(
-				self.coach,
-				self.pane,
-				self.counters["EVAL_SF"].x + self.counters["EVAL_SF"].size[0] + 13,
-				self.counters["EVAL_SF"].y,
-				(
-					C.TEXTBOX_WIDTH - self.counters["EVAL_SF"].x - self.counters["EVAL_SF"].size[0],
-					C.TEXTBOX_HEIGHT + 1
-				),
-				code="SF"
-			)
-		}
 		self.buttons.update(
 			**self.buttons_topls,
+			**self.buttons_gauges,
 			**self.buttons_bots,
-			**self.buttons_engs,
 		)
 
 

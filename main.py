@@ -60,9 +60,6 @@ if __name__ == "__main__":
 			):
 				coach.handle_click(event)
 
-		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:
-			engine.play()
-
 		if not done:
 			if coach.is_game_over():
 				coach.wrap()
@@ -76,3 +73,6 @@ if __name__ == "__main__":
 
 		# if running and done:
 		# 	print("running and done")
+
+		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:     ### after wrap so engine doesn't try play after game over
+			engine.play()

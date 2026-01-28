@@ -114,6 +114,6 @@ class BotHAL9(NativeBot):
 	@property
 	def depth(self):
 		return int((
-			E.BOT_DEPTH_WHITE,
-			E.BOT_DEPTH_BLACK
+			E.BOT_WHITE_DEPTH,
+			E.BOT_BLACK_DEPTH,
 		)[self.engine.coach.board.ply == "b"])

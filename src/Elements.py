@@ -635,7 +635,7 @@ class Arrow:
 			### shafts
 			pygame.draw.lines(
 				upright,
-				C.ARROW_COLOUR,
+				C.ARROW_COACH_COLOUR,
 				closed=False,
 				points=[
 					(
@@ -656,7 +656,7 @@ class Arrow:
 			### rounded corner
 			pygame.draw.circle(
 				upright,
-				C.ARROW_COLOUR,
+				C.ARROW_COACH_COLOUR,
 				(
 					width - C.TILE_WIDTH/2,
 					C.TILE_HEIGHT/2
@@ -668,7 +668,7 @@ class Arrow:
 			if abs(self.midline.x) > abs(self.midline.y):
 				pygame.draw.polygon(
 					upright,
-					C.ARROW_COLOUR,
+					C.ARROW_COACH_COLOUR,
 					points=[
 						(
 							width - (3/4)*C.TILE_WIDTH,
@@ -694,7 +694,7 @@ class Arrow:
 			else:
 				pygame.draw.polygon(
 					upright,
-					C.ARROW_COLOUR,
+					C.ARROW_COACH_COLOUR,
 					points=[
 						(
 							(5/6)*C.TILE_WIDTH,
@@ -731,7 +731,7 @@ class Arrow:
 			### shaft
 			pygame.draw.line(
 				upright,
-				C.ARROW_COLOUR,
+				C.ARROW_COACH_COLOUR,
 				(
 					C.TILE_WIDTH/2,
 					C.TILE_HEIGHT/3
@@ -745,7 +745,7 @@ class Arrow:
 			### arrowhead
 			pygame.draw.polygon(
 				upright,
-				C.ARROW_COLOUR,
+				C.ARROW_COACH_COLOUR,
 				points=[
 					(
 						(1/2)*C.TILE_WIDTH,
@@ -883,12 +883,8 @@ class ButtonBot(Button):
 	def __init__(self , *args , player):
 		super().__init__(*args)
 		self.player  = player
-		self.persist = True         ### all ButtonBots are persistent
 
-		# Imports
-		from src.bots.Random import BotRandom
-		from src.bots.HAL9 import BotHAL9
-		from src.bots.Stockfish import BotStockfish
+		self.persist = True
 
 		# Mechanics
 		self.engine = self.coach.engine
@@ -903,7 +899,7 @@ class ButtonBot(Button):
 				C.TEXTBOX_WIDTH,
 				0.85*C.BUTTON_HEIGHT
 			),
-			metric="E.BOT_DEPTH_"+self.player.upper(),
+			metric="E.BOT_" + self.player.upper() + "_DEPTH",
 			txform=" = ",
 			domain=(1,4),
 			nrungs=4,
@@ -921,7 +917,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 3*C.BUTTON_WIDTH
 					),
 					self.y,
-					doctrine=BotStockfish(self.engine),
+					doctrine=self.engine.bots["SF"],
 					trigger=self
 				),
 				ButtonBotOption(
@@ -933,7 +929,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 2*C.BUTTON_WIDTH
 					),
 					self.y,
-					doctrine=BotHAL9(self.engine),
+					doctrine=self.engine.bots["H9"],
 					trigger=self
 				),
 				ButtonBotOption(
@@ -945,7 +941,7 @@ class ButtonBot(Button):
 						self.x + C.GRID_GAP/2 + 1*C.BUTTON_WIDTH
 					),
 					self.y,
-					doctrine=BotRandom(self.engine),
+					doctrine=self.engine.bots["RM"],
 					trigger=self
 				),
 			],
@@ -963,8 +959,6 @@ class ButtonBot(Button):
 			self.size
 		)
 
-	def click(self):
-		pass
 
 	def render(self):
 		# Dropdown
@@ -991,9 +985,6 @@ class ButtonBotOption(Button):
 		self.tooltip = str(self.doctrine)
 
 		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "bots" + C.SEP + "bot_" + self.player.lower() + "_" + str(self.doctrine).lower() + ".png") , self.size)
-
-		if self.doctrine.code in E.BOT_EXCLUDE:
-			self.active = None
 
 
 	def click(self):
@@ -1612,7 +1603,7 @@ class ButtonExport(Button):
 
 
 
-class ButtonFlip(Button):
+class ButtonBoardFlip(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
@@ -1735,7 +1726,7 @@ class ButtonShowCoordinates(Button):
 
 
 
-class ButtonSpedometer(Button):
+class ButtonBoardSpedometer(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
@@ -2119,7 +2110,7 @@ class ButtonTopLine(Button):
 		self.i = i
 
 		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
-		self.base.fill(C.COUNTER_BUTTON_DEAD)
+		self.base.fill(C.BUTTON_COUNTER_DEAD)
 
 		self.label = f'Line {i}'
 
@@ -2717,15 +2708,6 @@ class Gauge:
 		# Mechanics
 		self.emax = 15
 
-		self.eval  = 0
-		self.evals = {
-			None : None,
-			"H9" : float(),
-			"SF" : float(),
-		}
-
-		self.active = bool(E.BOT_GAUGE)
-
 		# Interface
 		self.font  = pygame.font.SysFont("Consolas",15)
 		self.label = None
@@ -2741,7 +2723,7 @@ class Gauge:
 
 	def render(self):
 		# Bars
-		if self.active:
+		if bool(E.BOT_GAUGE):
 			self.coach.tray.blits([
 				(self.w_bar,self.w_rect),
 				(self.b_bar,self.b_rect),
@@ -2755,7 +2737,7 @@ class Gauge:
 			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
 			self.coach.mouse_pos[1]
 		):
-			if self.active or E.BOT_GAUGE:
+			if bool(E.BOT_GAUGE):
 				label_size = self.font.size(self.label)
 				self.coach.tray.blit(
 					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
@@ -2765,54 +2747,35 @@ class Gauge:
 					)
 				)
 
-			### cursor
-			return self
-
-
-	def click(self):
-		self.active = not self.active
-
-		if self.active:
-			self.bg_rect.w *= 2
-		else:
-			self.bg_rect.w /= 2
-
 
 	def update(self):
-		for bot in self.coach.engine.schema:
-			if bot is None or bot.code in ("RM",):
+		for bot in self.coach.engine.bots.values():
+			if bot.code in ("RM",):
 				continue
 
 			bot.update()
-
-			self.evals[bot.code] = bot.eval
-
 			self.coach.analysis.counters["EVAL_" + bot.code].value = bot.eval
 
 		# Mechanics
 		if E.BOT_GAUGE is None:
-			self.eval = None
-
 			self.w_rect.h = C.WINDOW_HEIGHT/2
 			self.b_rect.h = C.WINDOW_HEIGHT/2
 
 			### label
-			self.label = "-"
+			self.label = None
 
 		else:
-			self.eval = self.evals[E.BOT_GAUGE]
-
-			self.w_rect.h = (1 + self.eval/self.emax)*C.WINDOW_HEIGHT/2
+			self.w_rect.h = (1 + E.BOT_GAUGE.eval/self.emax)*C.WINDOW_HEIGHT/2
 			self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
 
 			### label
-			if self.eval > 0:
+			if E.BOT_GAUGE.eval > 0:
 				self.label = "+"
-			elif self.eval < 0:
+			elif E.BOT_GAUGE.eval < 0:
 				self.label = "-"
 			else:
 				self.label = "±"
-			self.label += f'{abs(self.eval):.2f}'
+			self.label += f'{abs(E.BOT_GAUGE.eval):.2f}'
 
 		if C.BOARD_FLIPPED:
 			self.w_rect.y = 0
@@ -2830,37 +2793,33 @@ class Gauge:
 
 
 class ButtonGaugeEngine(Button):
-	def __init__(self , *args , code):
+	def __init__(self , *args , doctrine):
 		super().__init__(*args)
-		self.code  = code
+		self.doctrine = doctrine
 
-		self.active = E.BOT_GAUGE == self.code
+		self.active = self.doctrine == E.BOT_GAUGE
 
 		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
-		self.base.fill(C.COUNTER_BUTTON_LIVE if self.active else C.COUNTER_BUTTON_DEAD)
+		self.base.fill(C.BUTTON_COUNTER_LIVE if self.active else C.BUTTON_COUNTER_DEAD)
 
 
 	def click(self):
 		# Function
 		incumbent = E.BOT_GAUGE
-		candidate = self.code
+		candidate = self.doctrine
 
 		appointed = None if candidate == incumbent else candidate
-
-		### import foreigns
-		match appointed:
-			case "SF":
-				if not self.coach.engine.stockfish:
-					self.coach.engine.load_stockfish()
 
 		### apply
 		E.BOT_GAUGE = appointed
 		self.coach.gauge.update()
 
 		# Mechanics
-		for eng in self.coach.analysis.buttons_engs.values():
-			eng.active = not eng.active if eng.code == E.BOT_GAUGE else False
-			eng.base.fill(C.COUNTER_BUTTON_LIVE if eng.active else C.COUNTER_BUTTON_DEAD)
+		### buttons
+		for button in self.coach.analysis.buttons_gauges.values():
+			button.active = not button.active if button.doctrine == E.BOT_GAUGE else False
+			button.base.fill(C.BUTTON_COUNTER_LIVE if button.active else C.BUTTON_COUNTER_DEAD)
+
 
 
 	def render(self):
