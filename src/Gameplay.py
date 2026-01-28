@@ -19,14 +19,12 @@ class Board:
 	def __init__(self , coach):
 		self.coach = coach
 
-		# self.w , self.h = C.BOARD_WIDTH , C.BOARD_HEIGHT
-
 		# Sounds
-		self.sound_clean = pygame.mixer.Sound(C.DIR_SOUNDS + "board_clean.wav")
-		self.sound_flipA = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipA.wav")
-		self.sound_flipB = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipB.wav")
-		self.sound_check = pygame.mixer.Sound(C.DIR_SOUNDS + "move_check.wav")
-		self.sound_void  = pygame.mixer.Sound(C.DIR_SOUNDS + "board_void.wav")
+		### mixer.Sound for simulataneous audio
+		self.sound_void    = pygame.mixer.Sound(C.DIR_SOUNDS + "board_void.wav")
+		self.sound_clean   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_clean.wav")
+		self.sound_flipA   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipA.wav")
+		self.sound_flipB   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipB.wav")
 
 		# Mechanics
 		self.ply   = "w"
@@ -272,8 +270,8 @@ class Board:
 		self.coach.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.ply + ".png"))
 
 
-	def is_in_check(self , colour , movement=None):
-		in_check = False
+	def has_check(self , colour , movement=None):
+		has_check = False
 
 		if movement:
 			for tile in self.all_tiles:
@@ -294,17 +292,17 @@ class Board:
 						and
 						tile.occupant.colour == colour
 				):
-					in_check = True
+					has_check = True
 					break
 
 		if movement:
 			origin_tile.occupant = origin_man
 			target_tile.occupant = target_man
 
-		return in_check
+		return has_check
 
 
-	def is_in_checkmate(self , ply=None):
+	def has_ended(self , ply=None):
 		colour = ply or self.ply
 
 		# Can any of your men make a move?
@@ -313,11 +311,10 @@ class Board:
 				return False
 
 		# If not, the game is over, one way or another.
-		if self.is_in_check(colour):
+		if self.has_check(colour):
 			self.outcome = ( "Checkmate" , ("Black","White")[colour == "b"] )
 		else:
 			self.outcome = ( "Draw" , "Stalemate" )
-
 		return True
 
 
@@ -362,9 +359,9 @@ class Move:
 		self.score = None               ### score of fen AFTER move, NOT before (unlike move.fen)
 		self.text  = None
 
-		self.capture 	  = None
-		self.in_check 	  = None
-		self.in_checkmate = None
+		self.capture   = None
+		self.has_check = None
+		self.has_ended = None
 
 		# Draw criteria
 		self.rulecount_fiftymovs = None
@@ -380,14 +377,17 @@ class Move:
 		self.quiver = []
 
 		# Sounds
-		### move sound system uses mixer.Music (not mixer.Sound) for simultaneous audio
-		self.sound_capture   = C.DIR_SOUNDS + "move_capture.wav"
-		self.sound_castle    = C.DIR_SOUNDS + "move_castle.wav"
-		self.sound_check     = C.DIR_SOUNDS + "move_check.wav"
-		self.sound_checkmate = C.DIR_SOUNDS + "move_checkmate.wav"
-		self.sound_promo     = C.DIR_SOUNDS + "move_promote.mp3"
-		self.sound_quiet     = C.DIR_SOUNDS + "move_quiet.wav"
-		self.sound_void      = C.DIR_SOUNDS + "move_void.wav"
+		### mixer.Music for mutually exclusive audio
+		self.sound_void    = C.DIR_SOUNDS + "move_void.wav"
+		self.sound_quiet   = C.DIR_SOUNDS + "move_quiet.wav"
+		self.sound_promo   = C.DIR_SOUNDS + "move_promote.mp3"
+		self.sound_castle  = C.DIR_SOUNDS + "move_castle.wav"
+		self.sound_silence = C.DIR_SOUNDS + "silence.wav"
+
+
+		### mixer.Sound for simultaneous audio
+		self.sound_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "move_capture.wav")
+		self.sound_check   = pygame.mixer.Sound(C.DIR_SOUNDS + "move_check.wav")
 
 
 	def __repr__(self):
@@ -407,22 +407,24 @@ class Move:
 
 
 	def sonate(self):
-		if self.in_checkmate:
-			self.board.coach.sound_game_end.play()
-			return
-
-		if self.promo:
-			pygame.mixer.music.load(self.sound_promo)
-		elif self.capture:
-			pygame.mixer.music.load(self.sound_capture)
+		if any([                                                ### so that moves with these features aren't sonated as quiet
+			self.promo,
+			self.capture,
+			self.has_check,
+		]):
+			if self.promo:
+				pygame.mixer.music.load(self.sound_promo)
+			else:
+				pygame.mixer.music.load(self.sound_silence)     ### music.play() throws error if no music loaded
+			if self.capture:
+				self.sound_capture.play()
+			if self.has_check:
+				self.sound_check.play()
 		elif self.castle:
 			pygame.mixer.music.load(self.sound_castle)
 		else:
 			pygame.mixer.music.load(self.sound_quiet)
 		pygame.mixer.music.play()
-
-		if self.in_check:           ### check are simultaneous to other sounds
-			self.board.sound_check.play()
 
 
 	def notate(self):
@@ -514,122 +516,91 @@ class Move:
 
 
 	def promote(self , force=None):
+		from src.men.Queen import Queen
+		from src.men.Rook import Rook
+		from src.men.Bishop import Bishop
+		from src.men.Knight import Knight
+
 		if force or C.AUTO_PROMO:
 			# Reading movetext
 			if "Q" in (force,C.AUTO_PROMO):
-				from src.men.Queen import Queen
-				self.promo = Queen(
-					self.board,
-					self.colour,
-					self.agent.position,
-				)
+				self.promo = Queen(self.board,self.colour,self.agent.position)
 			elif "R" in (force,C.AUTO_PROMO):
-				from src.men.Rook import Rook
-				self.promo = Rook(
-					self.board,
-					self.colour,
-					self.agent.position,
-				)
+				self.promo = Rook(self.board,self.colour,self.agent.position)
 			elif "B" in (force,C.AUTO_PROMO):
-				from src.men.Bishop import Bishop
-				self.promo = Bishop(
-					self.board,
-					self.colour,
-					self.agent.position,
-				)
+				self.promo = Bishop(self.board,self.colour,self.agent.position)
 			elif "N" in (force,C.AUTO_PROMO):
-				from src.men.Knight import Knight
-				self.promo = Knight(
-					self.board,
-					self.colour,
-					self.agent.position,
-				)
+				self.promo = Knight(self.board,self.colour,self.agent.position)
 			else:
-				raise Exception("Invalid (forced) promotion!")
+				raise Exception("Invalid forced promotion!")
 
 		# Selection UI
 		else:
 			veil = pygame.Surface(C.BOARD_SIZE,pygame.SRCALPHA)
-			veil.fill((125,125,125,5))
+			veil.fill((125,125,125,10))
 
 			promo_images = [
 				pygame.transform.scale(
-					pygame.image.load(C.DIR_SET + self.colour + "q.png"),
-					C.TILE_SIZE
-				),
-				pygame.transform.scale(
-					pygame.image.load(C.DIR_SET + self.colour + "r.png"),
-					C.TILE_SIZE
-				),
-				pygame.transform.scale(
-					pygame.image.load(C.DIR_SET + self.colour + "b.png"),
-					C.TILE_SIZE
-				),
-				pygame.transform.scale(
-					pygame.image.load(C.DIR_SET + self.colour + "n.png"),
-					C.TILE_SIZE
-				)
+					pygame.image.load(C.DIR_SET + self.colour + creed + ".png"),
+					[L-10 for L in C.TILE_SIZE]
+				) for creed in ("q","r","b","n")
 			]
 
 			screen_centre = [L/2 for L in C.BOARD_SIZE]
-			promo_rects = [
-				promo_images[0].get_rect(bottomright=screen_centre),
-				promo_images[1].get_rect(bottomleft=screen_centre),
-				promo_images[2].get_rect(topright=screen_centre),
-				promo_images[3].get_rect(topleft=screen_centre)
-			]
+			promo_options = {
+				"Q" : [ C.BUTTON_IDLE , promo_images[0].get_rect(bottomright=screen_centre).move(-5,-5) ],
+				"R" : [ C.BUTTON_IDLE , promo_images[1].get_rect(bottomleft=screen_centre).move(5,-5) ],
+				"B" : [ C.BUTTON_IDLE , promo_images[2].get_rect(topright=screen_centre).move(-5,5) ],
+				"N" : [ C.BUTTON_IDLE , promo_images[3].get_rect(topleft=screen_centre).move(5,5) ],
+			}
 
-			paused = True
-			while paused:
+			pending  = True
+			hovering = None
+			while pending:
 				for event in pygame.event.get():
-					if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+					if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:       ### secret no-promo hack
+						pending = False
+					elif event.type in (
+						pygame.MOUSEBUTTONDOWN,
+						pygame.MOUSEBUTTONUP,
+						pygame.MOUSEMOTION,
+					):
 						cursor = (event.pos[0] - C.PANE_WIDTH , event.pos[1])
-						if promo_rects[0].collidepoint(cursor):
-							from src.men.Queen import Queen
-							self.promo = Queen(
-								self.board,
-								self.colour,
-								self.agent.position,
-							)
-							paused = False
-						elif promo_rects[1].collidepoint(cursor):
-							from src.men.Rook import Rook
-							self.promo = Rook(
-								self.board,
-								self.colour,
-								self.agent.position,
-							)
-							paused = False
-						elif promo_rects[2].collidepoint(cursor):
-							from src.men.Bishop import Bishop
-							self.promo = Bishop(
-								self.board,
-								self.colour,
-								self.agent.position,
-							)
-							paused = False
-						elif promo_rects[3].collidepoint(cursor):
-							from src.men.Knight import Knight
-							self.promo = Knight(
-								self.board,
-								self.colour,
-								self.agent.position,
-							)
-							paused = False
+						for creed,(_,rect) in promo_options.items():
+							if rect.collidepoint(cursor):
+								### hover action
+								hovering = creed
 
+								if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+									pending = False
+									self.promo = {
+										"Q" : Queen(self.board,self.colour,self.agent.position),
+										"R" : Rook(self.board,self.colour,self.agent.position),
+										"B" : Bishop(self.board,self.colour,self.agent.position),
+										"N" : Knight(self.board,self.colour,self.agent.position),
+									}[creed]
+								break
+						else:
+							### hover action
+							hovering = None
+
+				# Hover action
+				if hovering:
+					pygame.mouse.set_cursor(self.board.coach.CURSOR_THIS)
+					promo_options[hovering][0] = C.BUTTON_LIVE
+				else:
+					pygame.mouse.set_cursor(self.board.coach.CURSOR_CALM)
+
+				# Blit
+				for (fill,rect),img in zip(promo_options.values(),promo_images):
+					pygame.draw.rect(veil,fill,rect)
+					veil.blit(img,rect.topleft)
 				self.board.coach.screen.blit(veil,(C.PANE_WIDTH,0))
-				for rect,img in zip(promo_rects,promo_images):
-					pygame.draw.rect(
-						veil,
-						(60,60,66),
-						rect
-					)
-					veil.blit(
-						img,
-						rect.topleft
-					)
-
 				pygame.display.update()
+
+				# Reset
+				if hovering:
+					promo_options[hovering][0] = C.BUTTON_IDLE
 
 
 	def enact(self , text , is_white):
@@ -644,10 +615,10 @@ class Move:
 
 		if text.count("#"):
 			san = san.replace("#","")
-			self.in_checkmate = True
+			self.has_ended = True
 		elif text.count("+"):
 			san = san.replace("+","")
-			self.in_check = True
+			self.has_check = True
 
 		if text.count("x"):
 			san = san.replace("x","")

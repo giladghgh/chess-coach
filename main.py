@@ -74,5 +74,5 @@ if __name__ == "__main__":
 		# if running and done:
 		# 	print("running and done")
 
-		if engine.schema[board.ply == "b"] and len(board.movelog) == board.halfmovenum:     ### after wrap so engine doesn't try play after game over
+		if engine.schema[board.ply == "b"] and not board.reminiscing:     ### after wrap so engine doesn't try play after game over
 			engine.play()

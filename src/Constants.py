@@ -8,6 +8,7 @@ class C:
 	# INITIAL CONDITIONS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	# INIT_FEN = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"
+	# INIT_FEN = "k6n/6P1/8/8/8/8/2Q5/K7 w - - 0 1"
 
 	PIECE_DESIGN = (
 		"CLASSIC",
@@ -27,14 +28,14 @@ class C:
 	FILES = (None,"a","b","c","d","e","f","g","h")
 
 	# GAMEPLAY
-	AUTO_PROMO = "Q"
+	AUTO_PROMO = None
 	AUTO_DRAW  = True
 
-	TIME_STARTER_WHITE = (0,10,0)
-	TIME_BONUS_WHITE   = 10
+	TIME_STARTER_WHITE = (0,0,10)
+	TIME_BONUS_WHITE   = 0
 
-	TIME_STARTER_BLACK = (0,10,0)
-	TIME_BONUS_BLACK   = 10
+	TIME_STARTER_BLACK = (0,0,10)
+	TIME_BONUS_BLACK   = 0
 
 	GAME_SPEED 	= 8     ### 1 - 10
 	GAME_VOLUME = 2     ### 0 -  3
@@ -208,7 +209,8 @@ class E:
 
 	BOT_GAUGE = None
 
-	BOT_EXCLUDE = ("SF",)
+	# BOT_EXCLUDE = ("SF",)
+	BOT_EXCLUDE = ()
 
 
 	# SCOREBOARDS

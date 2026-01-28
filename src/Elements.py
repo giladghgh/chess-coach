@@ -188,9 +188,9 @@ class Reader:
 			if move.colour == "w":
 				parts.append(str(move.number) + ".")
 
-			if move.in_checkmate and move.in_check:
+			if move.has_ended and move.has_check:
 				parts.append(move.text + "#")
-			elif move.in_check:
+			elif move.has_check:
 				parts.append(move.text + "+")
 			else:
 				parts.append(move.text)
@@ -1853,14 +1853,13 @@ class ButtonVolume(Button):
 		for sound in (
 				### ### Coach
 				self.coach.sound_game_start,
-				self.coach.sound_game_end,
-				self.coach.sound_whistle_start,
-				self.coach.sound_whistle_stop,
+				self.coach.sound_game_stop,
+				self.coach.sound_drill_start,
+				self.coach.sound_drill_stop,
 				### ### Board
 				self.coach.board.sound_clean,
 				self.coach.board.sound_flipA,
 				self.coach.board.sound_flipB,
-				self.coach.board.sound_check,
 				self.coach.board.sound_void,
 		):
 			sound.set_volume(C.GAME_VOLUME / self.vol_max)
@@ -2088,10 +2087,10 @@ class ButtonDrillOption(Button):
 		# Function
 		if self.course.upper() == self.coach.coaching.drilling:
 			self.coach.coaching.drilling = None
-			self.coach.sound_whistle_stop.play()
+			self.coach.sound_drill_stop.play()
 		else:
 			self.coach.coaching.drilling = self.course.upper()
-			self.coach.sound_whistle_start.play()
+			self.coach.sound_drill_start.play()
 
 		# Trigger mechanics
 		self.trigger.active = bool(self.coach.coaching.drilling)

@@ -144,11 +144,11 @@ class Coach:
 
 		### sounds
 		self.sound_game_start    = pygame.mixer.Sound(C.DIR_SOUNDS + "game_start.wav")
-		self.sound_game_end      = pygame.mixer.Sound(C.DIR_SOUNDS + "game_end.wav")
-		self.sound_whistle_start = pygame.mixer.Sound(C.DIR_SOUNDS + "whistle_start.wav")
-		self.sound_whistle_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "whistle_stop.wav")
+		self.sound_game_stop     = pygame.mixer.Sound(C.DIR_SOUNDS + "game_stop.wav")
+		self.sound_drill_start = pygame.mixer.Sound(C.DIR_SOUNDS + "drill_start.wav")
+		self.sound_drill_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "drill_stop.wav")
 		self.settings.buttons_ui["VOLUME"].apply()
-		self.sound_game_start.play()
+		# self.sound_game_start.play()
 
 		### cursors
 		self.mouse_pos = None
@@ -472,47 +472,47 @@ class Coach:
 	#  -    END OF GAME
 	#  -    ROYAL BURIALS
 	def is_game_over(self):
-		# Auto-draw?
+		# Criteria Draw?
 		if C.AUTO_DRAW:
 			if self.board.rulecount_threereps >= 3:
-				self.board.outcome = (
-					"Draw",
-					"Repetition"
-				)
+				self.board.outcome = ( "Draw" , "Repetition" )
 				return True
 
 			if self.board.rulecount_fiftymovs > 99:
-				self.board.outcome = (
-					"Draw",
-					"Stagnation"
-				)
+				self.board.outcome = ( "Draw" , "Stagnation" )
 				return True
 
 		whites = [man.creed for man in self.board.all_men("w")]
 		blacks = [man.creed for man in self.board.all_men("b")]
+		white_set = set(whites)
+		black_set = set(blacks)
 
-		# Checkmate?
-		if (len(whites) > 2 or len(blacks) > 2) and (lm := self.board.last_move):
-			if lm.in_checkmate:
-				return True
+		# Checkmate / Stalemate?
+		if lm := self.board.last_move:
+			if lm.has_ended:
+				return True             ### board.has_ended takes care of stalemates
 
-		# Draw?
+		# Insufficient Material?
 		if any([
-			set(whites) == {"K"} and not all([
-				set(blacks) - {"K"},
-				set(blacks) - {"K","B"},
-				set(blacks) - {"K","N"}
+			white_set == {"K"} and not all([
+				black_set - {"K"},
+				black_set - {"K","B"},
+				black_set - {"K","N"}
 			]),
-			set(blacks) == {"K"} and not all([
-				set(whites) - {"K"},
-				set(whites) - {"K","B"},
-				set(whites) - {"K","N"}
+			black_set == {"K"} and not all([
+				white_set - {"K"},
+				white_set - {"K","B"},
+				white_set - {"K","N"}
 			]),
 		]):
-			self.board.outcome = (
-				"Draw",
-				"Insufficient material"
-			)
+			self.board.outcome = ( "Draw" , "Insufficient material" )
+			return True
+
+		if not self.clock.whiteface.timer.time:
+			self.board.outcome = ( "Timeout" , "White" )
+			return True
+		if not self.clock.blackface.timer.time:
+			self.board.outcome = ( "Timeout" , "Black" )
 			return True
 
 
@@ -595,7 +595,9 @@ class Coach:
 		pgn = []
 		### multiline movetext (up to 999 turns):
 		for t,turn in enumerate(re.split(r"\d{1,3}\." , self.reader.movetext)):
-			if not t: continue
+			if not t:
+				continue
+
 			pgn.append("\n" + str(t) + ". " + turn.strip())
 
 		return pgn
@@ -722,14 +724,21 @@ class Coach:
 
 
 	def wrap(self):
-		# match self.board.outcome[0]:
-		# 	case "Checkmate":
-		# 	case "Resignation":
-		# 	case "Timeout":
-		# 	case "Draw":
 		print("###- GAME OVER -###")
 		print(self.board.outcome[0] + " by " + self.board.outcome[1].lower() + "!")
 		print("####-####-####-####")
+
+		# Sound
+		match self.board.outcome[0]:
+			case "Checkmate":
+				self.sound_game_stop.play()
+			case "Resignation":
+				self.sound_game_stop.play()
+			case "Timeout":
+				self.sound_game_stop.play()
+			case "Draw":
+				self.sound_game_stop.play()
+
 
 
 	@staticmethod

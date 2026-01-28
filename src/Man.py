@@ -127,16 +127,15 @@ class Man:
 					pawn.just_moved_double = pawn is self
 
 			### board state
-			move.in_check 	  = self.board.is_in_check(("b","w")[move.colour == "b"])
-			move.in_checkmate = self.board.is_in_checkmate(("b","w")[move.colour == "b"])
+			move.has_check = self.board.has_check(("b","w")[move.colour == "b"])
+			move.has_ended = self.board.has_ended(("b","w")[move.colour == "b"])
 			move.notate()
 
-			### make yaself heard
+			### tell everybody
 			if tell:
 				move.sonate()
 
 			return True
-
 		else:
 			return False
 
@@ -159,7 +158,7 @@ class Man:
 	def legal_moves(self):
 		moves = []
 		for tile in self.pseudolegal_moves():
-			if not self.board.is_in_check(self.colour , movement=[self.position,tile.position]):
+			if not self.board.has_check(self.colour , movement=[self.position,tile.position]):
 				moves.append(tile)
 
 		return moves

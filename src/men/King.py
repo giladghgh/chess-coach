@@ -36,7 +36,7 @@ class King(Man):
 
 	def can_castle(self , board):
 		castles = ''
-		if not self.has_moved and not self.board.is_in_check(self.colour):
+		if not self.has_moved and not self.board.has_check(self.colour):
 			backrank = 1 if self.colour == "w" else 8
 
 			# Kingside
@@ -49,7 +49,7 @@ class King(Man):
 						not any([t.occupant for t in kside_path])
 					) and (
 						# SAFE
-						not any([board.is_in_check(self.colour , movement=[self.position,t.position]) for t in kside_path])
+						not any([board.has_check(self.colour , movement=[self.position,t.position]) for t in kside_path])
 					):
 						castles += "k"
 
@@ -63,7 +63,7 @@ class King(Man):
 						not any([t.occupant for t in qside_path])
 					) and (
 						# SAFE
-						not any([board.is_in_check(self.colour , movement=[self.position,t.position]) for t in qside_path])
+						not any([board.has_check(self.colour , movement=[self.position,t.position]) for t in qside_path])
 					):
 						castles += "q"
 
@@ -73,7 +73,7 @@ class King(Man):
 	def legal_moves(self):
 		out = []
 		for tile in self.pseudolegal_moves():
-			if not self.board.is_in_check(self.colour , movement=[self.position,tile.position]):
+			if not self.board.has_check(self.colour , movement=[self.position,tile.position]):
 				out.append(tile)
 
 		# Castling
