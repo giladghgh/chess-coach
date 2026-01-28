@@ -324,7 +324,10 @@ class Coach:
 				issubclass(hover_type,Button) and hover_type is not ButtonBot,
 				hover_type is Gauge,
 			]):
-				pygame.mouse.set_cursor(self.CURSOR_THIS)
+				try:
+					pygame.mouse.set_cursor(self.CURSOR_THIS)
+				except pygame.error as e:
+					print("ERROR:\t",e)
 			elif hover_type is Writer:
 				pygame.mouse.set_cursor(self.CURSOR_TYPE)
 			elif hover_type is Slider:
@@ -436,7 +439,8 @@ class Coach:
 							Arrow(
 								self,
 								self.anchor,
-								header
+								header,
+								C.ARROW_COACH_COLOUR
 							)
 						)
 

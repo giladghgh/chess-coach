@@ -432,7 +432,9 @@ class Slider:
 				(self.rect.top - self.rect.bottom)
 			) / (self.nrungs-1)
 
-			self.knob.centery = self.max_pos - self.ratio*(self.max_pos - self.min_pos)
+			for slider in Slider.all:
+				if slider.metric == self.metric:
+					slider.knob.centery = self.max_pos - self.ratio*(self.max_pos - self.min_pos)
 
 		else:
 			self.ratio = round(
@@ -441,9 +443,13 @@ class Slider:
 				(self.rect.right - self.rect.left)
 			) / (self.nrungs-1)
 
-			self.knob.centerx = self.min_pos + self.ratio*(self.max_pos - self.min_pos)
+			for slider in Slider.all:
+				if slider.metric == self.metric:
+					slider.knob.centerx = self.min_pos + self.ratio*(self.max_pos - self.min_pos)
 
-		self.value = self.min_val + self.ratio*(self.max_val - self.min_val)
+		for slider in Slider.all:
+			if slider.metric == self.metric:
+				slider.value = self.min_val + self.ratio*(self.max_val - self.min_val)
 
 		# Function
 		exec(
@@ -592,10 +598,11 @@ class Dilemma(tk.Toplevel):
 
 
 class Arrow:
-	def __init__(self , coach , base , roof):
-		self.coach = coach
-		self.base  = base
-		self.roof  = roof
+	def __init__(self , coach , base , roof , colour):
+		self.coach  = coach
+		self.base   = base
+		self.roof   = roof
+		self.colour = colour
 
 		# Archery basics (recalculated every .shoot() so board can be flipped)
 		self.nock = None
@@ -635,13 +642,13 @@ class Arrow:
 			### shafts
 			pygame.draw.lines(
 				upright,
-				C.ARROW_COACH_COLOUR,
+				self.colour,
 				closed=False,
 				points=[
 					(
 						(5/6)*C.TILE_WIDTH,
 						C.TILE_HEIGHT/2
-					 ),
+					),
 					(
 						width - C.TILE_WIDTH/2,
 						C.TILE_HEIGHT/2
@@ -656,7 +663,7 @@ class Arrow:
 			### rounded corner
 			pygame.draw.circle(
 				upright,
-				C.ARROW_COACH_COLOUR,
+				self.colour,
 				(
 					width - C.TILE_WIDTH/2,
 					C.TILE_HEIGHT/2
@@ -668,7 +675,7 @@ class Arrow:
 			if abs(self.midline.x) > abs(self.midline.y):
 				pygame.draw.polygon(
 					upright,
-					C.ARROW_COACH_COLOUR,
+					self.colour,
 					points=[
 						(
 							width - (3/4)*C.TILE_WIDTH,
@@ -694,7 +701,7 @@ class Arrow:
 			else:
 				pygame.draw.polygon(
 					upright,
-					C.ARROW_COACH_COLOUR,
+					self.colour,
 					points=[
 						(
 							(5/6)*C.TILE_WIDTH,
@@ -731,7 +738,7 @@ class Arrow:
 			### shaft
 			pygame.draw.line(
 				upright,
-				C.ARROW_COACH_COLOUR,
+				self.colour,
 				(
 					C.TILE_WIDTH/2,
 					C.TILE_HEIGHT/3
@@ -745,7 +752,7 @@ class Arrow:
 			### arrowhead
 			pygame.draw.polygon(
 				upright,
-				C.ARROW_COACH_COLOUR,
+				self.colour,
 				points=[
 					(
 						(1/2)*C.TILE_WIDTH,
