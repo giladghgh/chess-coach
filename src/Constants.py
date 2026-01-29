@@ -7,8 +7,8 @@ import sys,os
 class C:
 	# INITIAL CONDITIONS
 	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	# INIT_FEN = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"
 	# INIT_FEN = "k6n/6P1/8/8/8/8/2Q5/K7 w - - 0 1"
+	# INIT_FEN = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"
 
 	PIECE_DESIGN = (
 		"CLASSIC",
@@ -31,14 +31,14 @@ class C:
 	AUTO_PROMO = None
 	AUTO_DRAW  = True
 
-	TIME_STARTER_WHITE = (0,0,10)
-	TIME_BONUS_WHITE   = 0
+	TIME_STARTER_WHITE = (0,10,0)
+	TIME_BONUS_WHITE   = 5
 
-	TIME_STARTER_BLACK = (0,0,10)
-	TIME_BONUS_BLACK   = 0
+	TIME_STARTER_BLACK = (0,10,0)
+	TIME_BONUS_BLACK   = 5
 
 	GAME_SPEED 	= 8     ### 1 - 10
-	GAME_VOLUME = 2     ### 0 -  3
+	GAME_VOLUME = 1     ### 0 -  3
 
 
 	# INTERFACE
@@ -184,7 +184,7 @@ class C:
 	DIR_ICONS   = DIR_MEDIA + "icons" + SEP
 	DIR_SETS    = DIR_MEDIA + "sets" + SEP
 	DIR_SET     = DIR_SETS + PIECE_DESIGN + SEP
-	DIR_SOUNDS  = DIR_MEDIA + "sounds" + SEP
+	DIR_AUDIO   = DIR_MEDIA + "audio" + SEP
 	DIR_FONTS   = DIR_MEDIA + "fonts" + SEP
 
 

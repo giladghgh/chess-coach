@@ -1450,7 +1450,7 @@ class ButtonBoardReset(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
 
-		self.sound_game_reset = pygame.mixer.Sound(C.DIR_SOUNDS + "game_reset.wav")
+		self.audio_game_reset = pygame.mixer.Sound(C.DIR_AUDIO + "game_reset.wav")
 
 		self.tooltip = "Reset"
 
@@ -1460,7 +1460,7 @@ class ButtonBoardReset(Button):
 	def click(self):
 		self.coach.reset()
 
-		self.sound_game_reset.play()
+		self.audio_game_reset.play()
 
 
 
@@ -1622,10 +1622,10 @@ class ButtonBoardFlip(Button):
 	def click(self):
 		if C.BOARD_FLIPPED:
 			C.BOARD_FLIPPED = False
-			self.coach.board.sound_flipA.play()
+			self.coach.board.audio_flipA.play()
 		else:
 			C.BOARD_FLIPPED = True
-			self.coach.board.sound_flipB.play()
+			self.coach.board.audio_flipB.play()
 
 		# Definitions
 		### bots
@@ -1845,24 +1845,30 @@ class ButtonVolume(Button):
 		# Function
 		self.apply()
 
+
 	def apply(self):
 		### music
 		pygame.mixer.music.set_volume(C.GAME_VOLUME / self.vol_max)
 
-		### sounds
-		for sound in (
+		### audios
+		for audio in (
 				### ### Coach
-				self.coach.sound_game_start,
-				self.coach.sound_game_stop,
-				self.coach.sound_drill_start,
-				self.coach.sound_drill_stop,
+				self.coach.audio_game_start,
+				self.coach.audio_game_stop,
+				self.coach.audio_drill_start,
+				self.coach.audio_drill_stop,
 				### ### Board
-				self.coach.board.sound_clean,
-				self.coach.board.sound_flipA,
-				self.coach.board.sound_flipB,
-				self.coach.board.sound_void,
+				self.coach.board.audio_clean,
+				self.coach.board.audio_flipA,
+				self.coach.board.audio_flipB,
+				self.coach.board.audio_void,
+				### ### Clock
+				self.coach.clock.audio_clock_tick,
+				self.coach.clock.audio_clock_tack,
+				self.coach.clock.audio_clock_click,
+				self.coach.clock.audio_clock_scramble,
 		):
-			sound.set_volume(C.GAME_VOLUME / self.vol_max)
+			audio.set_volume(C.GAME_VOLUME / self.vol_max)
 
 	def render(self):
 		# Slider
@@ -2087,10 +2093,10 @@ class ButtonDrillOption(Button):
 		# Function
 		if self.course.upper() == self.coach.coaching.drilling:
 			self.coach.coaching.drilling = None
-			self.coach.sound_drill_stop.play()
+			self.coach.audio_drill_stop.play()
 		else:
 			self.coach.coaching.drilling = self.course.upper()
-			self.coach.sound_drill_start.play()
+			self.coach.audio_drill_start.play()
 
 		# Trigger mechanics
 		self.trigger.active = bool(self.coach.coaching.drilling)
@@ -2305,8 +2311,8 @@ class ButtonClock(Button):
 			else:
 				self.timer.stop()
 
-		### sound
-		self.clock.sound_clock_click.play()
+		### audio
+		self.clock.audio_clock_click.play()
 
 
 
@@ -2347,6 +2353,7 @@ class ButtonClockLinkLock(Button):
 		self.display.blit(self.image,self.rect)
 
 		return self.render_tooltip(shift=(-C.TRAY_OFFSET,0))        ### returns directly from .render_tooltip() for efficiency
+
 
 	def click(self):
 		self.state = next(self.states)
@@ -2460,11 +2467,6 @@ class Timer:
 
 		self.scramble        = None
 		self.scramble_toggle = None
-
-		### alerts
-		# self.beep()
-		# self.buzz()
-		# self.bang()
 
 		# Interface
 		self.body_colour = C.TIMER_DEAD
@@ -2613,13 +2615,13 @@ class Graveyard:
 		# Rendering
 		self.h = 2*C.TILE_HEIGHT
 
-		self.w_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH, self.h),pygame.SRCALPHA)
-		self.b_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH, self.h),pygame.SRCALPHA)
+		self.w_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
+		self.b_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
 
 		self.w_rect = pygame.Rect(
 			C.TRAY_GAP,
 			0,
-			C.GRAVE_WIDTH,
+			C.GRAVE_WIDTH + C.GAUGE_WIDTH,
 			self.h
 		)
 		self.b_rect = pygame.Rect(
@@ -2649,14 +2651,14 @@ class Graveyard:
 			(False , self.blacks , self.b_afterlife),
 		]:
 			r = 0
-			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (C.GAUGE_WIDTH/2,0,C.GAUGE_WIDTH/2 + C.GRAVE_WIDTH,self.h) )
+			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (0,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,self.h) )
 			for graves in graveyard.values():
 				for c,fallen in enumerate(graves):
 					if c < 4:
 						afterlife.blit(
 							pygame.transform.scale(fallen.image , [L/4 for L in C.TILE_SIZE]),
 							(
-								(20 +  8*c),
+								(23 +  8*c),
 								( 8 + 35*r) if is_white else (self.h - 35*(r+1)),
 							)
 						)
@@ -2667,7 +2669,7 @@ class Graveyard:
 						afterlife.blit(
 							pygame.transform.scale(fallen.image , (25,25)),
 							(
-								(25 +  8*(c-4)),
+								(28 +  8*(c-4)),
 								(10 + 35*r) if is_white else (self.h - 35*(r+1)),
 							)
 						)
@@ -2735,8 +2737,9 @@ class Gauge:
 				(self.b_bar,self.b_rect),
 			])
 		else:
-			self.bg_bar.fill((*C.BACKGR_GRAVE,135))
-			self.coach.tray.blit(self.bg_bar,self.bg_rect)
+			pass
+			# self.bg_bar.fill((*C.BACKGR_GRAVE,135))
+			# self.coach.tray.blit(self.bg_bar,self.bg_rect)
 
 		# Label
 		if self.bg_rect.collidepoint(

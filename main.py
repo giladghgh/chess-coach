@@ -23,7 +23,7 @@ if __name__ == "__main__":
 	clock  = coach.clock
 
 	running = True
-	done    = False
+	playing = True
 	while running:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_DELETE):
@@ -60,12 +60,10 @@ if __name__ == "__main__":
 			):
 				coach.handle_click(event)
 
-		if not done:
-			if coach.is_game_over():
+		if playing:
+			if board.is_game_over():
 				coach.wrap()
-
-				running = False
-				done    = True
+				playing = False
 
 		coach.screen.fill(C.BACKGR_PANE)
 		coach.render()
@@ -74,5 +72,5 @@ if __name__ == "__main__":
 		# if running and done:
 		# 	print("running and done")
 
-		if engine.schema[board.ply == "b"] and not board.reminiscing:     ### after wrap so engine doesn't try play after game over
+		if playing and not board.reminiscing and engine.schema[board.ply == "b"]:     ### after wrap so engine doesn't try play after game over
 			engine.play()

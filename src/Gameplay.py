@@ -19,12 +19,12 @@ class Board:
 	def __init__(self , coach):
 		self.coach = coach
 
-		# Sounds
+		# Audio
 		### mixer.Sound for simulataneous audio
-		self.sound_void    = pygame.mixer.Sound(C.DIR_SOUNDS + "board_void.wav")
-		self.sound_clean   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_clean.wav")
-		self.sound_flipA   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipA.wav")
-		self.sound_flipB   = pygame.mixer.Sound(C.DIR_SOUNDS + "board_flipB.wav")
+		self.audio_void    = pygame.mixer.Sound(C.DIR_AUDIO + "board_void.wav")
+		self.audio_clean   = pygame.mixer.Sound(C.DIR_AUDIO + "board_clean.wav")
+		self.audio_flipA   = pygame.mixer.Sound(C.DIR_AUDIO + "board_flipA.wav")
+		self.audio_flipB   = pygame.mixer.Sound(C.DIR_AUDIO + "board_flipB.wav")
 
 		# Mechanics
 		self.ply   = "w"
@@ -176,7 +176,7 @@ class Board:
 
 			# Void click:
 			else:
-				self.sound_void.play()
+				self.audio_void.play()
 
 		# Continue move:
 		else:
@@ -221,7 +221,7 @@ class Board:
 				else:
 					self.agent = None
 					self.this_move.clean()
-					self.sound_void.play()
+					self.audio_void.play()
 
 			# Void move:
 			else:
@@ -312,10 +312,55 @@ class Board:
 
 		# If not, the game is over, one way or another.
 		if self.has_check(colour):
-			self.outcome = ( "Checkmate" , ("Black","White")[colour == "b"] )
+			self.outcome = ( ("Black","White")[colour == "b"] , "Checkmate" )
 		else:
 			self.outcome = ( "Draw" , "Stalemate" )
 		return True
+
+
+	def is_game_over(self):
+		# Checkmate / Stalemate?
+		if lm := self.last_move:
+			if lm.has_ended:
+				return True
+
+		# Criteria Draw?
+		if C.AUTO_DRAW:
+			if self.rulecount_threereps >= 3:
+				self.outcome = ( "Draw" , "Repetition" )
+				return True
+
+			if self.rulecount_fiftymovs > 99:
+				self.outcome = ( "Draw" , "Stagnation" )
+				return True
+
+		whites = [man.creed for man in self.all_men("w")]
+		blacks = [man.creed for man in self.all_men("b")]
+		white_set = set(whites)
+		black_set = set(blacks)
+
+		# Insufficient Material?
+		if any([
+			white_set == {"K"} and not all([
+				black_set - {"K"},
+				black_set - {"K","B"},
+				black_set - {"K","N"}
+			]),
+			black_set == {"K"} and not all([
+				white_set - {"K"},
+				white_set - {"K","B"},
+				white_set - {"K","N"}
+			]),
+		]):
+			self.outcome = ( "Draw" , "Insufficient material" )
+			return True
+
+		# Timeout?
+		for face in (self.coach.clock.whiteface,self.coach.clock.blackface):
+			if not face.timer.time:
+				self.outcome = ( ("White","Black")[face.p == "w"] , "Timeout" )
+				face.timer.stop()
+				return True
 
 
 	@staticmethod
@@ -376,18 +421,18 @@ class Move:
 		self.lights = []
 		self.quiver = []
 
-		# Sounds
+		# Audio
 		### mixer.Music for mutually exclusive audio
-		self.sound_void    = C.DIR_SOUNDS + "move_void.wav"
-		self.sound_quiet   = C.DIR_SOUNDS + "move_quiet.wav"
-		self.sound_promo   = C.DIR_SOUNDS + "move_promote.mp3"
-		self.sound_castle  = C.DIR_SOUNDS + "move_castle.wav"
-		self.sound_silence = C.DIR_SOUNDS + "silence.wav"
+		self.audio_void    = C.DIR_AUDIO + "move_void.wav"
+		self.audio_quiet   = C.DIR_AUDIO + "move_quiet.wav"
+		self.audio_promo   = C.DIR_AUDIO + "move_promote.mp3"
+		self.audio_castle  = C.DIR_AUDIO + "move_castle.wav"
+		self.audio_silence = C.DIR_AUDIO + "silence.wav"
 
 
 		### mixer.Sound for simultaneous audio
-		self.sound_capture = pygame.mixer.Sound(C.DIR_SOUNDS + "move_capture.wav")
-		self.sound_check   = pygame.mixer.Sound(C.DIR_SOUNDS + "move_check.wav")
+		self.audio_capture = pygame.mixer.Sound(C.DIR_AUDIO + "move_capture.wav")
+		self.audio_check   = pygame.mixer.Sound(C.DIR_AUDIO + "move_check.wav")
 
 
 	def __repr__(self):
@@ -413,17 +458,17 @@ class Move:
 			self.has_check,
 		]):
 			if self.promo:
-				pygame.mixer.music.load(self.sound_promo)
+				pygame.mixer.music.load(self.audio_promo)
 			else:
-				pygame.mixer.music.load(self.sound_silence)     ### music.play() throws error if no music loaded
+				pygame.mixer.music.load(self.audio_silence)     ### music.play() throws error if no music loaded
 			if self.capture:
-				self.sound_capture.play()
+				self.audio_capture.play()
 			if self.has_check:
-				self.sound_check.play()
+				self.audio_check.play()
 		elif self.castle:
-			pygame.mixer.music.load(self.sound_castle)
+			pygame.mixer.music.load(self.audio_castle)
 		else:
-			pygame.mixer.music.load(self.sound_quiet)
+			pygame.mixer.music.load(self.audio_quiet)
 		pygame.mixer.music.play()
 
 
@@ -773,16 +818,16 @@ class Clock:
 			self.blackface.timer.TICK,
 		)
 
-		# Sounds
-		self.sound_clock_tick     = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_tick.wav")
-		self.sound_clock_tack     = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_tack.wav")
-		self.sound_clock_click    = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_click.wav")
-		self.sound_clock_scramble = pygame.mixer.Sound(C.DIR_SOUNDS + "clock_scramble.wav")
+		# Audio
+		self.audio_clock_tick     = pygame.mixer.Sound(C.DIR_AUDIO + "clock_tick.wav")
+		self.audio_clock_tack     = pygame.mixer.Sound(C.DIR_AUDIO + "clock_tack.wav")
+		self.audio_clock_click    = pygame.mixer.Sound(C.DIR_AUDIO + "clock_click.wav")
+		self.audio_clock_scramble = pygame.mixer.Sound(C.DIR_AUDIO + "clock_scramble.wav")
 
 		### minor corrections
-		self.sound_clock_tick.set_volume(0.75)
-		self.sound_clock_tack.set_volume(0.5)
-		self.sound_clock_click.set_volume(0.25)
+		# self.audio_clock_tick.set_volume(0.75)
+		# self.audio_clock_tack.set_volume(0.5)
+		# self.audio_clock_click.set_volume(0.25)
 
 
 	def reset(self):
@@ -833,17 +878,17 @@ class Clock:
 							face.timer.scramble = False
 					elif face.timer.time <= 1000:
 						face.timer.scramble = True
-						self.sound_clock_scramble.play()
+						self.audio_clock_scramble.play()
 
-					### tick sound
+					### tick audio
 					if face.timer.scramble:
 						### in a scramble, tick on the second
 						if not face.timer.time % 100:               ### no correction needed ...
-							self.sound_clock_tick.play(loops=1)
+							self.audio_clock_tick.play(loops=1)
 					else:
-						### otherwise, tick on the minute
-						if not (face.timer.time-50) % 6000:         ### ... but it is needed here??
-							self.sound_clock_tick.play()
+						### otherwise, tick on the second
+						if not (face.timer.time-50) % 100:         ### ... but it is needed here? why??
+							self.audio_clock_tick.play()
 
 
 	def tack(self):
@@ -861,7 +906,7 @@ class Clock:
 			btimer.case_colour = C.TIMER_CASE_IDLE
 			if wface.active:               ### is None when locked
 				wtimer.play()
-				self.sound_clock_tack.play()
+				self.audio_clock_tack.play()
 			if bface.active:
 				btimer.time += btimer.bonus
 				btimer.wait()
@@ -877,7 +922,7 @@ class Clock:
 				wtimer.wait()
 			if bface.active:
 				btimer.play()
-				self.sound_clock_tack.play()
+				self.audio_clock_tack.play()
 
 		board.last_move.duration = board.last_move.commence - board.last_move.conclude      ### backwards because TICKS count down
 

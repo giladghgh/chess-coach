@@ -142,13 +142,13 @@ class Coach:
 			**self.buttons_bots,
 		}
 
-		### sounds
-		self.sound_game_start    = pygame.mixer.Sound(C.DIR_SOUNDS + "game_start.wav")
-		self.sound_game_stop     = pygame.mixer.Sound(C.DIR_SOUNDS + "game_stop.wav")
-		self.sound_drill_start = pygame.mixer.Sound(C.DIR_SOUNDS + "drill_start.wav")
-		self.sound_drill_stop  = pygame.mixer.Sound(C.DIR_SOUNDS + "drill_stop.wav")
+		### audio
+		self.audio_game_start  = pygame.mixer.Sound(C.DIR_AUDIO + "game_start.wav")
+		self.audio_game_stop   = pygame.mixer.Sound(C.DIR_AUDIO + "game_stop.wav")
+		self.audio_drill_start = pygame.mixer.Sound(C.DIR_AUDIO + "drill_start.wav")
+		self.audio_drill_stop  = pygame.mixer.Sound(C.DIR_AUDIO + "drill_stop.wav")
 		self.settings.buttons_ui["VOLUME"].apply()
-		# self.sound_game_start.play()
+		self.audio_game_start.play()
 
 		### cursors
 		self.mouse_pos = None
@@ -303,7 +303,6 @@ class Coach:
 		self.tray.fill((0,0,0,0))
 		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.GAUGE_WIDTH + C.GRAVE_WIDTH,0,C.SHELF_WIDTH,C.SHELF_HEIGHT))
 		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,C.GRAVE_HEIGHT))
-		self.tray.fill(C.BACKGR_GAUGE , (C.TRAY_GAP,0,C.GAUGE_WIDTH/2,C.GAUGE_HEIGHT))					### fill half width for gauge resizing
 
 		for element in [
 			self.clock,
@@ -320,14 +319,11 @@ class Coach:
 		if hovering:
 			hover_type = type(hovering)
 
-			if any([
-				issubclass(hover_type,Button) and hover_type is not ButtonBot,
-				hover_type is Gauge,
-			]):
+			if issubclass(hover_type,Button) and hover_type is not ButtonBot:
 				try:
 					pygame.mouse.set_cursor(self.CURSOR_THIS)
 				except pygame.error as e:
-					print("ERROR:\t",e)
+					print("ERROR:\t",e)                         ### WHY DOES THIS HAPPEN
 			elif hover_type is Writer:
 				pygame.mouse.set_cursor(self.CURSOR_TYPE)
 			elif hover_type is Slider:
@@ -336,7 +332,10 @@ class Coach:
 				if hovering.occupant and (hovering.occupant.colour == self.board.ply):
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
-					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_DENY)
+					try:
+						pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_DENY)
+					except pygame.error as e:
+						print("ERROR:\t",e)                     ### WHY DOES THIS HAPPEN
 
 			if hasattr(hovering,"active"):
 				if hovering.active is False:
@@ -466,54 +465,6 @@ class Coach:
 			for slider in Slider.all:
 				if slider.trigger.active and slider.rect.collidepoint(event.pos):
 					slider.hold(event.pos)
-
-
-	# TODO:
-	#  -    END OF GAME
-	#  -    ROYAL BURIALS
-	def is_game_over(self):
-		# Criteria Draw?
-		if C.AUTO_DRAW:
-			if self.board.rulecount_threereps >= 3:
-				self.board.outcome = ( "Draw" , "Repetition" )
-				return True
-
-			if self.board.rulecount_fiftymovs > 99:
-				self.board.outcome = ( "Draw" , "Stagnation" )
-				return True
-
-		whites = [man.creed for man in self.board.all_men("w")]
-		blacks = [man.creed for man in self.board.all_men("b")]
-		white_set = set(whites)
-		black_set = set(blacks)
-
-		# Checkmate / Stalemate?
-		if lm := self.board.last_move:
-			if lm.has_ended:
-				return True             ### board.has_ended takes care of stalemates
-
-		# Insufficient Material?
-		if any([
-			white_set == {"K"} and not all([
-				black_set - {"K"},
-				black_set - {"K","B"},
-				black_set - {"K","N"}
-			]),
-			black_set == {"K"} and not all([
-				white_set - {"K"},
-				white_set - {"K","B"},
-				white_set - {"K","N"}
-			]),
-		]):
-			self.board.outcome = ( "Draw" , "Insufficient material" )
-			return True
-
-		if not self.clock.whiteface.timer.time:
-			self.board.outcome = ( "Timeout" , "White" )
-			return True
-		if not self.clock.blackface.timer.time:
-			self.board.outcome = ( "Timeout" , "Black" )
-			return True
 
 
 	def export_FEN(self):
@@ -724,21 +675,38 @@ class Coach:
 
 
 	def wrap(self):
+		# Banner
+		who = self.board.outcome[0]
+		how = self.board.outcome[1]
 		print("###- GAME OVER -###")
-		print(self.board.outcome[0] + " by " + self.board.outcome[1].lower() + "!")
+		if who == "Draw":
+			print(who + " by " + how.lower() + "!")
+		else:
+			print(who + " wins by " + how.lower() + "!")
 		print("####-####-####-####")
 
-		# Sound
-		match self.board.outcome[0]:
-			case "Checkmate":
-				self.sound_game_stop.play()
-			case "Resignation":
-				self.sound_game_stop.play()
-			case "Timeout":
-				self.sound_game_stop.play()
+		# Audio
+		match who:
 			case "Draw":
-				self.sound_game_stop.play()
+				self.audio_game_stop.play()
+			case _:
+				match how:
+					case "Checkmate":
+						self.audio_game_stop.play()
+					case "Resignation":
+						self.audio_game_stop.play()
+					case "Timeout":
+						self.audio_game_stop.play()
 
+		# Freeze
+		self.board.ply = None
+
+		# Topple the king
+		corpse = self.board.all_men(
+			colour=("w","b")[who == "White"],
+			creed="K"
+		)[0]
+		corpse.image = pygame.transform.rotate(corpse.image,90)
 
 
 	@staticmethod
