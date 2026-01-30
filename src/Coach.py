@@ -209,11 +209,11 @@ class Coach:
 	def render(self):
 		self.mouse_pos = pygame.mouse.get_pos()
 
-		hovering = None
+		hover = None
 
 		# Board
 		if h := self.board.render():
-			hovering = h
+			hover = h
 
 		# Pane
 		### CONTEXT
@@ -229,7 +229,7 @@ class Coach:
 			for c,context in sorted( enumerate(self.contexts) , key=lambda cc:cc[1].show ):
 				if context.show:
 					if h := context.render():
-						hovering = h
+						hover = h
 
 					### manila folder tabs
 					shift = [
@@ -280,7 +280,7 @@ class Coach:
 				### hover mechanics
 				### ### button
 				if button.active is not None and button.rect.collidepoint(self.mouse_pos):
-					hovering = button
+					hover = button
 				else:
 					button.paint()
 
@@ -288,14 +288,14 @@ class Coach:
 				if button.dropdown and (button.dropdown.persist or button.active):
 					for option in button.dropdown:
 						if option.active is not None and option.rect.collidepoint(self.mouse_pos):
-							hovering = option
+							hover = option
 						else:
 							option.paint()
 
 				### ### slider
 				if hasattr(button,"slider"):
 					if button.active and button.slider.rect.collidepoint(self.mouse_pos):
-						hovering = button.slider
+						hover = button.slider
 
 			self.screen.blit(self.pane,(0,0))
 
@@ -311,13 +311,13 @@ class Coach:
 			self.btn_toggle_tray,
 		]:
 			if h := element.render():
-				hovering = h
+				hover = h
 
 		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
 		# Hover action
-		if hovering:
-			hover_type = type(hovering)
+		if hover:
+			hover_type = type(hover)
 
 			if issubclass(hover_type,Button) and hover_type is not ButtonBot:
 				try:
@@ -326,10 +326,10 @@ class Coach:
 					print("ERROR:\t",e)                         ### WHY DOES THIS HAPPEN
 			elif hover_type is Writer:
 				pygame.mouse.set_cursor(self.CURSOR_TYPE)
-			elif hover_type is Slider:
+			elif hover_type is Slider and hover.active:
 				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
 			elif hover_type is Tile:
-				if hovering.occupant and (hovering.occupant.colour == self.board.ply):
+				if hover.occupant and (hover.occupant.colour == self.board.ply):
 					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
 				else:
 					try:
@@ -337,19 +337,21 @@ class Coach:
 					except pygame.error as e:
 						print("ERROR:\t",e)                     ### WHY DOES THIS HAPPEN
 
-			if hasattr(hovering,"active"):
-				if hovering.active is False:
+			if hasattr(hover,"active"):
+				if hover.active is False:
 					if hover_type is ButtonContextOpen:
-						hovering.colour = hovering.context.colour
+						hover.colour = hover.context.colour
 					elif hover_type is Writer:
-						hovering.colour = C.TEXTBOX_LOOM
-					elif not str(hovering).endswith("Exit"):
-						hovering.colour = C.BUTTON_LOOM
+						hover.colour = C.TEXTBOX_LOOM
+					elif not str(hover).endswith("Exit"):
+						hover.colour = C.BUTTON_LOOM
 		else:
-			pygame.mouse.set_cursor(self.CURSOR_CALM)
+			try:
+				pygame.mouse.set_cursor(self.CURSOR_CALM)
+			except pygame.error as e:
+				print("ERROR:\t", e)  ### WHY DOES THIS HAPPEN
 
-
-		#####   #   LINE   #   #####
+	#####   #   LINE   #   #####
 		# x = C.PANE_WIDTH + C.BOARD_WIDTH + C.GAUGE_WIDTH + C.GRAVE_WIDTH + C.SHELF_WIDTH/2
 		# pygame.draw.line(self.screen,(0,0,0),(x,0),(x,C.WINDOW_HEIGHT),width=1)
 		#
@@ -375,8 +377,19 @@ class Coach:
 
 				### clock
 				for button in self.clock.buttons.values():
-					if button.rect.collidepoint(local_pos) and button.active is not None:   ### /None/ disables button
+					if button.rect.collidepoint(local_pos) and button.active is not None:
 						clicks.append(button)
+
+					### setters
+					elif button.dropdown and (button.dropdown.persist or button.dropdown.active):
+						for option in button.dropdown:
+							if option.rect.collidepoint(local_pos):
+								clicks.append(option)
+								break
+							elif type(option) is Writer:
+								option.kill()
+						else:
+							button.click()
 
 			# Board
 			elif event.pos[0] > C.PANE_WIDTH:
@@ -447,23 +460,31 @@ class Coach:
 		elif event.type == pygame.MOUSEWHEEL:
 			self.reader.scroll(event.y)
 
+		# Writers
 		elif event.type == pygame.KEYDOWN:
-			# Writers
-			### file i/o
+			writers = []
+			### file I/O
 			if self.settings.show:
-				for writer in self.settings.writers.values():
-					if writer.active:
-						writer.type(event)
-						break
+				writers.extend(self.settings.writers.values())
+			### time setters
+			if self.clock.buttons["WHITE_SET"].active:
+				writers.extend([option for option in self.clock.buttons["WHITE_SET"].dropdown if type(option) is Writer])
+			if self.clock.buttons["BLACK_SET"].active:
+				writers.extend([option for option in self.clock.buttons["BLACK_SET"].dropdown if type(option) is Writer])
+
+			for writer in writers:
+				if writer.active:
+					writer.type(event)
+					break
 
 		# Sliders
 		if (
-			event.type == pygame.MOUSEMOTION and event.buttons[0]
+			event.type == pygame.MOUSEMOTION and event.buttons[0]           ### hold
 		) or (
-			event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
+			event.type == pygame.MOUSEBUTTONDOWN and event.button == 1      ### click
 		):
 			for slider in Slider.all:
-				if slider.trigger.active and slider.rect.collidepoint(event.pos):
+				if slider.active and slider.rect.collidepoint(event.pos):
 					slider.hold(event.pos)
 
 
@@ -655,7 +676,7 @@ class Coach:
 
 
 	def exclude(self):
-		for code in E.BOT_EXCLUDE:
+		for code in E.BOT_EXCLUDE_ALL:
 			### engine
 			del self.engine.bots[code]
 

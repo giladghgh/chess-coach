@@ -17,7 +17,7 @@ class Bot:
 		return type(self).__name__[3:]
 
 	def __eq__(self , this):
-		return False if this is None else self.code == this.code
+		return False if this is None else self.code == (this if type(this) is str else this.code)
 
 	def load(self):
 		self.users += 1

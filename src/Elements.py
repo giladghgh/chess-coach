@@ -8,6 +8,27 @@ from src.Constants import C,E
 
 
 
+class Shape:
+	def __init__(self , display , x , y , w , h , colour):
+		self.display = display
+		self.x       = x
+		self.y       = y
+		self.w       = w
+		self.h       = h
+		self.colour  = colour
+
+		self.rect = pygame.Rect(self.x,self.y,self.w,self.h)
+		self.surf = pygame.Surface(self.rect.size,flags=pygame.SRCALPHA)
+
+	def render(self):
+		self.surf.fill(self.colour)
+		self.display.blit(self.surf,(self.x,self.y))
+
+	def click(self):
+		pass
+
+
+
 class Reader:
 	def __init__(self , coach):
 		self.coach 	= coach
@@ -212,9 +233,9 @@ class Reader:
 
 
 class Writer:
-	def __init__(self , context , display , x , y , w , h , pretext=None):
-		self.context = context
+	def __init__(self , display , family , x , y , w , h , pretext=None):
 		self.display = display
+		self.family  = family
 		self.x	     = x
 		self.y	     = y
 		self.w       = w
@@ -224,7 +245,7 @@ class Writer:
 		self.field   = ''
 
 		self.active = False
-		self.colour = C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK
+		self.colour = C.TEXTBOX_LIVE if self.active else C.TEXTBOX_IDLE
 
 		self.pre_font = pygame.font.SysFont("Consolas",13,italic=True)
 		self.font     = pygame.font.SysFont("Consolas",13)
@@ -257,9 +278,10 @@ class Writer:
 		)
 
 	def click(self):
-		for writer in self.context.writers.values():
-			writer.active = not self.active if writer is self else False
-			writer.colour = C.TEXTBOX_LIGHT if writer.active else C.TEXTBOX_DARK
+		for option in self.family:
+			if type(option) is Writer:
+				option.active = not self.active if option is self else False
+				option.colour = C.TEXTBOX_LIVE if option.active else C.TEXTBOX_IDLE
 
 	def type(self , event):
 		if event.key == pygame.K_BACKSPACE:
@@ -274,10 +296,10 @@ class Writer:
 
 	def kill(self):
 		self.active = False
-		self.colour = C.TEXTBOX_LIGHT if self.active else C.TEXTBOX_DARK
+		self.colour = C.TEXTBOX_LIVE if self.active else C.TEXTBOX_IDLE
 
 	def paint(self):
-		self.colour = C.TEXTBOX_LOOM if self.active else C.TEXTBOX_DARK
+		self.colour = C.TEXTBOX_LIVE if self.active else C.TEXTBOX_IDLE
 
 	@property
 	def text(self):
@@ -458,7 +480,7 @@ class Slider:
 
 
 	def render(self):
-		self.trackbed.fill(C.SLIDER_LIVE if self.trigger.active else C.SLIDER_DEAD)
+		self.trackbed.fill(C.SLIDER_LIVE if self.active else C.SLIDER_DEAD)
 		pygame.draw.rect(
 			self.trackbed,
 			(0,0,0,15),
@@ -523,10 +545,7 @@ class Slider:
 class Dropdown:
 	def __init__(self , options , trigger , persist=False):
 		self.options = options
-		if all([self.options[0].trigger == item.trigger for item in self.options]):
-			self.trigger = trigger
-		else:
-			raise Exception("All dropdown options must have identical .trigger and .persist!")
+		self.trigger = trigger          ### all options' triggers must match
 		self.persist = persist
 		self.active  = persist
 
@@ -847,7 +866,7 @@ class Button:
 
 
 	def render_tooltip(self , shift=(0,0)):
-		if self.tooltip and self.rect.collidepoint(local_pos := (
+		if self.rect.collidepoint(local_pos := (
 			self.coach.mouse_pos[0] + shift[0],
 			self.coach.mouse_pos[1] + shift[1],
 		)):
@@ -893,6 +912,8 @@ class ButtonBot(Button):
 
 		self.persist = True
 
+		self.font = pygame.font.SysFont("Consolas",12,bold=True)
+
 		# Mechanics
 		self.engine = self.coach.engine
 		self.bot    = self.engine.schema[self.player == "BLACK"]
@@ -906,10 +927,10 @@ class ButtonBot(Button):
 				C.TEXTBOX_WIDTH,
 				0.85*C.BUTTON_HEIGHT
 			),
-			metric="E.BOT_" + self.player.upper() + "_DEPTH",
+			metric="E." + self.player.upper() + "_DIFFICULTY",
 			txform=" = ",
-			domain=(1,4),
-			nrungs=4,
+			domain=(1,9),
+			nrungs=9,
 			trigger=self,
 		)
 
@@ -968,15 +989,25 @@ class ButtonBot(Button):
 
 
 	def render(self):
-		# Dropdown
-		self.dropdown.render()
-
 		# Slider
 		self.slider.render()
+
+		# Dropdown
+		self.dropdown.render()
 
 		# Myself
 		self.colour = self.COLOUR_LIVE if self.active else self.COLOUR_LOOM
 		super().render()
+		if self.slider.active:
+			self.display.blit(
+				self.font.render(
+					str(int( (E.WHITE_DIFFICULTY,E.BLACK_DIFFICULTY)[self.player == "BLACK"] )),
+					True,
+					(150,15,15)
+				),
+				(self.x + C.BUTTON_WIDTH - 10 , self.y + 3)
+			)
+
 
 
 
@@ -1009,12 +1040,13 @@ class ButtonBotOption(Button):
 			self.coach.buttons_bots["BOT_" + self.player],
 			self.coach.analysis.buttons_bots["BOT_" + self.player],
 		]:
-			trigger.active = (None,True)[bool(appointed)]
+			trigger.slider.active = appointed not in E.BOT_EXCLUDE_ENG if appointed else False
+			trigger.active        = (None,True)[bool(appointed)]
+			trigger.paint()
+
 			for option in trigger.dropdown:
 				if option.active is not None:
 					option.active = (False,not option.active)[self.doctrine == option.doctrine]
-
-			trigger.paint()
 
 			trigger.image  = pygame.transform.scale(
 				pygame.image.load(
@@ -1640,10 +1672,14 @@ class ButtonBoardFlip(Button):
 		b_clock = self.coach.clock.blackface
 		w_clock_elems = [
 			w_clock.timer,
+			w_clock.setter,
+			*w_clock.setter.dropdown,
 			w_clock.resetter,
 		]
 		b_clock_elems = [
 			b_clock.timer,
+			b_clock.setter,
+			*b_clock.setter.dropdown,
 			b_clock.resetter,
 		]
 
@@ -1658,22 +1694,20 @@ class ButtonBoardFlip(Button):
 		b_gauge = self.coach.gauge.b_rect
 
 		# Mechanics
-		### specialist
-		w_gauge.y = b_gauge.h - w_gauge.y
-		b_gauge.y = w_gauge.h - b_gauge.y
-
-		### generic
+		### general
 		for w,b in zip(
 			[ w_c_bot , *w_c_bot.dropdown , w_a_bot , *w_a_bot.dropdown , w_clock , *w_clock_elems , w_graves , w_plaque ],
 			[ b_c_bot , *b_c_bot.dropdown , b_a_bot , *b_a_bot.dropdown , b_clock , *b_clock_elems , b_graves , b_plaque ],
 		):
 			w.y , b.y = b.y , w.y
 
-			if all([
-				hasattr(w,"rect"),
-				hasattr(b,"rect"),
-			]):
+			if hasattr(w,"rect") and hasattr(b,"rect"):
 				w.rect , b.rect = b.rect , w.rect
+
+		### special
+		### gauge
+		w_gauge.y = b_gauge.h - w_gauge.y
+		b_gauge.y = w_gauge.h - b_gauge.y
 
 
 
@@ -2192,7 +2226,7 @@ class ButtonClock(Button):
 		# Mechanics
 		starter = (C.TIME_STARTER_WHITE,C.TIME_STARTER_BLACK)[self.p == "b"]
 		self.start_str = ":".join(str(s) for s in starter)
-		self.start_num = 60*(60*starter[0] + starter[1]) + starter[2]
+		self.start_num = 60*starter[0] + starter[1]
 		self.bonus = (C.TIME_BONUS_WHITE,C.TIME_BONUS_BLACK)[self.p == "b"]
 
 		# Interface
@@ -2215,7 +2249,7 @@ class ButtonClock(Button):
 			self.coach,
 			self.display,
 			self.x - C.BUTTON_WIDTH - C.GRID_GAP,
-			self.timer.y + 3,
+			self.timer.y + 5,
 			[2*L/3 for L in C.BUTTON_SIZE],
 			timer=self.timer
 		)
@@ -2433,19 +2467,116 @@ class ButtonClockSet(Button):
 
 		self.trigger = self.timer.trigger
 
+		self.dropdown = Dropdown(
+			options=[
+				Writer(
+					self.display,
+					None,
+					self.x,
+					(
+						self.y + 8*C.GRID_GAP
+					) if (C.BOARD_FLIPPED + (self.trigger.p == "w")) % 2 else (
+						self.y - 6.5*C.GRID_GAP
+					),
+					C.TEXTBOX_WIDTH/7,
+					C.TEXTBOX_HEIGHT - 1,
+					pretext="min",
+				),
+				Writer(
+					self.display,
+					None,
+					self.x,
+					(
+						self.y + 6*C.GRID_GAP
+					) if (C.BOARD_FLIPPED + (self.trigger.p == "w")) % 2 else (
+						self.y - 4.5*C.GRID_GAP
+					),
+					C.TEXTBOX_WIDTH/7,
+					C.TEXTBOX_HEIGHT - 1,
+					pretext="sec",
+				),
+				Writer(
+					self.display,
+					None,
+					self.x,
+					(
+						self.y + 4*C.GRID_GAP
+					) if (C.BOARD_FLIPPED + (self.trigger.p == "w")) % 2 else (
+						self.y - 2.5*C.GRID_GAP
+					),
+					C.TEXTBOX_WIDTH/7,
+					C.TEXTBOX_HEIGHT - 1,
+					pretext="inc",
+				),
+				Shape(                               ### background
+					self.display,
+					self.x - 3,
+					self.y + 4*C.GRID_GAP - 3,
+					C.TEXTBOX_WIDTH/7 + 6,
+					3*(C.TEXTBOX_HEIGHT - 1) + 2*C.GRID_GAP - 8,
+					(*C.BUTTON_IDLE,25),
+				) if (C.BOARD_FLIPPED + (self.trigger.p == "w")) % 2 else Shape(
+					self.display,
+					self.x - 3,
+					self.y - 6.5*C.GRID_GAP - 3,
+					C.TEXTBOX_WIDTH/7 + 6,
+					3*(C.TEXTBOX_HEIGHT - 1) + 2*C.GRID_GAP - 8,
+					(*C.BUTTON_IDLE,25),
+				),
+			],
+			trigger=self,
+		)
+		for option in self.dropdown:
+			if type(option) is Writer:
+				option.family = self.dropdown
+
 		self.tooltip = "Set clock"
 
 		self.image = pygame.transform.scale(pygame.image.load(C.DIR_ICONS + "clocks" + C.SEP + "btn_clock_set.png") , self.size)
 
 
 	def click(self):
-		print("testing123testing")
+		self.active          = not self.active
+		self.dropdown.active = not self.dropdown.active
+
+		if self.active:
+			for option in self.dropdown.options:
+				if type(option) is Writer:
+					option.field = ''
+		elif any([fields := [int(option.field or 0) for option in self.dropdown.options if type(option) is Writer]]):
+			if any(fields):
+				if self.coach.clock.linklock.linked:
+					for timer in (self.coach.clock.whiteface.timer,self.coach.clock.blackface.timer):
+						timer.start = 100*(60*fields[0] + fields[1])
+						timer.bonus = 100*fields[2]
+						timer.time  = self.timer.start + self.timer.bonus
+						timer.reset()
+				else:
+					self.timer.start = 100*(60*fields[0] + fields[1])
+					self.timer.bonus = 100*fields[2]
+					self.timer.time  = self.timer.start + self.timer.bonus
+					self.timer.reset()
 
 
 	def render(self):
 		self.display.blit(self.image,self.rect)
 
-		return self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+		h = self.render_tooltip(shift=(-C.TRAY_OFFSET,0))
+
+		if self.dropdown.active:
+			for option in self.dropdown:
+				option.render()
+
+				### hover mechanics
+				if type(option) is Writer:
+					option.paint()
+					if option.rect.collidepoint(
+						self.coach.mouse_pos[0] - C.TRAY_OFFSET,
+						self.coach.mouse_pos[1]
+					):
+						h = option
+
+		return h
 
 
 
@@ -2547,10 +2678,10 @@ class Timer:
 
 
 	def tick(self):
-		self.elapsed += 1
-
 		self.time -= 1
 		self.text  = self.trigger.clock.read(self.time,self.scramble)
+
+		self.elapsed += 1
 
 		if self.scramble and not (self.time % 50):
 			self.scramble_toggle = not self.scramble_toggle
@@ -2759,7 +2890,7 @@ class Gauge:
 
 	def update(self):
 		for bot in self.coach.engine.bots.values():
-			if bot.code in ("RM",):
+			if bot.code in E.BOT_EXCLUDE_ENG:
 				continue
 
 			bot.update()
@@ -2801,7 +2932,7 @@ class Gauge:
 
 
 
-class ButtonGaugeEngine(Button):
+class ButtonGaugeBot(Button):
 	def __init__(self , *args , doctrine):
 		super().__init__(*args)
 		self.doctrine = doctrine
@@ -2828,7 +2959,6 @@ class ButtonGaugeEngine(Button):
 		for button in self.coach.analysis.buttons_gauges.values():
 			button.active = not button.active if button.doctrine == E.BOT_GAUGE else False
 			button.base.fill(C.BUTTON_COUNTER_LIVE if button.active else C.BUTTON_COUNTER_DEAD)
-
 
 
 	def render(self):

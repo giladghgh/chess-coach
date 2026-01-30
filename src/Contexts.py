@@ -89,13 +89,8 @@ class Context:
 
 		# Elements
 		## shapes
-		for colour,x,y,w,h in self.shapes.values():
-			surf = pygame.Surface(
-				(w,h),
-				flags=pygame.SRCALPHA
-			)
-			surf.fill(colour)
-			self.pane.blit(surf,(x,y))
+		for shape in self.shapes.values():
+			shape.render()
 
 		### writers
 		for writer in self.writers.values():
@@ -157,8 +152,6 @@ class Context:
 					### so opening one dropdown closes all others, except constant-linked buttons:
 					if button.dropdown.active and not button.dropdown.persist:
 						button.click()
-					# button.active          = False
-					# button.dropdown.active = False
 
 		# Writers
 		for writer in self.writers.values():
@@ -171,9 +164,6 @@ class Context:
 		for counter in self.counters.values():
 			if counter.base.get_rect(topleft=(counter.x,counter.y)).collidepoint(event.pos):
 				clicks.append(counter)
-
-		# if not clicks:
-		# 	self.tidy()
 
 		return clicks
 
@@ -229,20 +219,21 @@ class Settings(Context):
 
 		# Shapes
 		self.shapes = {
-			"I/O FRAME"     : (
-				(*C.BUTTON_IDLE,100),
+			"I/O FRAME" : Shape(
+				self.pane,
 				self.banners["FILE I/O"].x,
 				self.banners["FILE I/O"].bottom + 1.5*C.GRID_GAP + C.BUTTON_HEIGHT,
 				C.TEXTBOX_WIDTH,
 				10*C.GRID_GAP + C.TEXTBOX_HEIGHT,
+				(*C.BUTTON_IDLE,25),
 			),
 		}
 
 		# Writers
 		self.writers = {
 			"EVENT" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 1*C.GRID_GAP,
 				C.TEXTBOX_WIDTH - C.GRID_GAP,
@@ -250,8 +241,8 @@ class Settings(Context):
 				"Event"
 			),
 			"SITE" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 4*C.GRID_GAP,
 				C.TEXTBOX_WIDTH - C.GRID_GAP,
@@ -259,8 +250,8 @@ class Settings(Context):
 				"Gilad's Bedroom, U.K."
 			),
 			"WHITE" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
 				(5/11)*C.TEXTBOX_WIDTH,
@@ -268,8 +259,8 @@ class Settings(Context):
 				"Jack White"
 			),
 			"BLACK" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + (5.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 7*C.GRID_GAP,
 				(5/11)*C.TEXTBOX_WIDTH,
@@ -277,8 +268,8 @@ class Settings(Context):
 				"Jack Black"
 			),
 			"DATE" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + C.GRID_GAP/2,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(4/11)*C.TEXTBOX_WIDTH,
@@ -286,8 +277,8 @@ class Settings(Context):
 				datetime.today().strftime("%Y-%m-%d")
 			),
 			"ROUND" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + (4.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(2.5/11)*C.TEXTBOX_WIDTH,
@@ -295,8 +286,8 @@ class Settings(Context):
 				"Round"
 			),
 			"MODE" : Writer(
-				self,
 				self.pane,
+				None,
 				C.X_MARGIN + (7.75/11)*C.TEXTBOX_WIDTH,
 				self.gridify("FILE I/O",2,1)[1] + C.BUTTON_HEIGHT + 10*C.GRID_GAP,
 				(3/11)*C.TEXTBOX_WIDTH,
@@ -304,6 +295,8 @@ class Settings(Context):
 				"LCP"
 			),
 		}
+		for writer in (family := self.writers.values()):
+			writer.family = family
 
 		# Buttons
 		self.buttons_gp = {
@@ -475,7 +468,7 @@ class Analysis(Context):
 			for i in range(3)
 		}
 		self.buttons_gauges = {
-			"GAUGE_H9" : ButtonGaugeEngine(
+			"GAUGE_H9" : ButtonGaugeBot(
 				self.coach,
 				self.pane,
 				self.counters["EVAL_H9"].x + self.counters["EVAL_H9"].size[0] + 13,
@@ -486,7 +479,7 @@ class Analysis(Context):
 				),
 				doctrine=self.coach.engine.bots["H9"]
 			),
-			"GAUGE_SF" : ButtonGaugeEngine(
+			"GAUGE_SF" : ButtonGaugeBot(
 				self.coach,
 				self.pane,
 				self.counters["EVAL_SF"].x + self.counters["EVAL_SF"].size[0] + 13,
