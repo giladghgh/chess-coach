@@ -2539,23 +2539,35 @@ class ButtonClockSet(Button):
 		self.active          = not self.active
 		self.dropdown.active = not self.dropdown.active
 
+		# Field validation
+		fields = []
+		for option in self.dropdown.options:
+			if type(option) is Writer:
+				try:
+					fields.append(int(option.field or 0))
+				except ValueError:
+					option.field = ''
+					return
+
+		# Function
 		if self.active:
+			### ### clear on setter open
 			for option in self.dropdown.options:
 				if type(option) is Writer:
 					option.field = ''
-		elif any([fields := [int(option.field or 0) for option in self.dropdown.options if type(option) is Writer]]):
-			if any(fields):
-				if self.coach.clock.linklock.linked:
-					for timer in (self.coach.clock.whiteface.timer,self.coach.clock.blackface.timer):
-						timer.start = 100*(60*fields[0] + fields[1])
-						timer.bonus = 100*fields[2]
-						timer.time  = self.timer.start + self.timer.bonus
-						timer.reset()
-				else:
-					self.timer.start = 100*(60*fields[0] + fields[1])
-					self.timer.bonus = 100*fields[2]
-					self.timer.time  = self.timer.start + self.timer.bonus
-					self.timer.reset()
+		elif any(fields):
+			### ### apply on setter close
+			if self.coach.clock.linklock.linked:
+				for timer in (self.coach.clock.whiteface.timer,self.coach.clock.blackface.timer):
+					timer.start = 100*(60*fields[0] + fields[1])
+					timer.bonus = 100*fields[2]
+					timer.time  = self.timer.start + self.timer.bonus
+					timer.reset()
+			else:
+				self.timer.start = 100*(60*fields[0] + fields[1])
+				self.timer.bonus = 100*fields[2]
+				self.timer.time  = self.timer.start + self.timer.bonus
+				self.timer.reset()
 
 
 	def render(self):
