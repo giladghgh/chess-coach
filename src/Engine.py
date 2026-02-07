@@ -26,9 +26,10 @@ class Engine:
 		self.coach = coach
 
 		# Mechanics
-		self.schema = E.INIT_SCHEMA
-
 		self.model = chess.Board(fen=C.INIT_FEN)
+		self.topls = [(None,None,None)]*3           ### (eval,move,arrow)
+
+		self.schema = E.INIT_SCHEMA
 
 		self.bots = {
 			"SF" : BotStockfish(self),
@@ -38,11 +39,8 @@ class Engine:
 
 
 	def play(self):
-		bot = self.schema[self.coach.board.ply == "b"]
-
-		bot.update()
-
-		self.coach.force_move( bot.play() )
+		self.bot.update()
+		self.coach.force_move( self.bot.calculate() )
 
 
 	def uci_to_move(self , uci):
@@ -74,8 +72,16 @@ class Engine:
 		move.origin = self.coach.board.tile( C.FILES.index(txt[0]) , int(txt[1]) )
 		move.target = self.coach.board.tile( C.FILES.index(txt[2]) , int(txt[3]) )
 
+		move.agent = move.origin.occupant
+
+		move.notate()
+
 		return move
 
+
+	@property
+	def bot(self):
+		return self.schema[self.coach.board.ply == "b"]
 
 	@property
 	def fen(self):

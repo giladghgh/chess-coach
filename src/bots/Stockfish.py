@@ -1,5 +1,7 @@
 from stockfish import Stockfish
 
+from src.Elements import Arrow
+
 from src.Constants import C,E
 
 from src.Bot import ExoticBot
@@ -37,8 +39,25 @@ class BotStockfish(ExoticBot):
 			case "mate":
 				self.eval = self.emax if score["value"]>0 else -self.emax
 
+		if self is E.BOT_GAUGE:             ### must run AFTER .get_evaluation() because it changes the eval
+			self.update_topls()
 
-	def play(self):
-		best = self.model.get_best_move()
 
-		return self.engine.txt_to_move(best)
+	def update_topls(self):
+		for rank,line in enumerate(self.model.get_top_moves(3)):
+			move = self.engine.txt_to_move(line.pop("Move"))
+
+			score = "M"+str(line["Mate"]) if line["Mate"] else line["Centipawn"]/100
+
+			arrow = Arrow(
+				self.engine.coach,
+				move.origin,
+				move.target,
+				C.ARROW_TOPLS_COLOUR[rank]
+			)
+
+			self.engine.topls[rank] = (score , move.text , arrow)
+
+
+	def calculate(self):
+		return self.engine.txt_to_move( self.model.get_best_move() )

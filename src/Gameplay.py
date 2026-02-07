@@ -154,7 +154,7 @@ class Board:
 				hovering = tile
 
 		# Annotations
-		for arrow in self.this_move.quiver:
+		for arrow in self.this_move.quiver_coach + self.this_move.quiver_gauge:
 			arrow.draw()
 
 		return hovering
@@ -259,15 +259,6 @@ class Board:
 
 		# Gauge
 		self.coach.gauge.update()
-
-		# Cursors
-		self.coach.CURSOR_CALM = pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_" + self.ply + ".png"))
-		self.coach.CURSOR_THIS = pygame.Cursor((10,3),pygame.image.load(C.DIR_CURSORS + "this_" + self.ply + ".png"))
-		self.coach.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.ply + ".png"))
-		self.coach.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.ply + ".png"))
-		self.coach.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.ply + ".png"))
-		self.coach.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.ply + ".png"))
-		self.coach.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.ply + ".png"))
 
 
 	def has_check(self , colour , movement=None):
@@ -419,16 +410,15 @@ class Move:
 
 		# Annotations
 		self.lights = []
-		self.quiver = []
+		self.quiver_coach = []
+		self.quiver_gauge = []
 
 		# Audio
 		### mixer.Music for mutually exclusive audio
-		self.audio_void    = C.DIR_AUDIO + "move_void.wav"
 		self.audio_quiet   = C.DIR_AUDIO + "move_quiet.wav"
 		self.audio_promo   = C.DIR_AUDIO + "move_promote.mp3"
 		self.audio_castle  = C.DIR_AUDIO + "move_castle.wav"
 		self.audio_silence = C.DIR_AUDIO + "silence.wav"
-
 
 		### mixer.Sound for simultaneous audio
 		self.audio_capture = pygame.mixer.Sound(C.DIR_AUDIO + "move_capture.wav")
@@ -492,7 +482,7 @@ class Move:
 				attackers = self.board.all_threats(self.target , self.agent.colour , self.agent.creed)
 				self.target.occupant = cache
 
-				if attackers:
+				if len(attackers) > 1:
 					### if another chessman of the same creed and colour contends for the target square
 					if not any([man.f == self.origin.f for man in attackers]):
 						self.text += self.origin.pgn[0]
@@ -610,9 +600,8 @@ class Move:
 						pygame.MOUSEBUTTONUP,
 						pygame.MOUSEMOTION,
 					):
-						cursor = (event.pos[0] - C.PANE_WIDTH , event.pos[1])
 						for creed,(_,rect) in promo_options.items():
-							if rect.collidepoint(cursor):
+							if rect.collidepoint((event.pos[0] - C.PANE_WIDTH , event.pos[1])):
 								### hover action
 								hovering = creed
 
@@ -631,10 +620,10 @@ class Move:
 
 				# Hover action
 				if hovering:
-					pygame.mouse.set_cursor(self.board.coach.CURSOR_THIS)
+					pygame.mouse.set_cursor(self.board.coach.CURSORS["THIS"][self.colour=="b"])
 					promo_options[hovering][0] = C.BUTTON_LIVE
 				else:
-					pygame.mouse.set_cursor(self.board.coach.CURSOR_CALM)
+					pygame.mouse.set_cursor(self.board.coach.CURSORS["CALM"][self.colour=="b"])
 
 				# Blit
 				for (fill,rect),img in zip(promo_options.values(),promo_images):
@@ -725,7 +714,7 @@ class Move:
 
 	def clean(self):
 		self.lights.clear()
-		self.quiver.clear()
+		self.quiver_coach.clear()
 
 
 
@@ -766,6 +755,140 @@ class Line(list):
 
 
 class Clock:
+	# Timer
+	class Timer:
+		def __init__(self , display , x , y , size , start , bonus , trigger):
+			self.display = display
+			self.x       = x
+			self.y       = y
+			self.size    = size
+			self.start   = 100*start
+			self.bonus   = 100*bonus
+			self.trigger = trigger
+
+			self.elapsed = 0
+
+			# Mechanics
+			self.time = self.start + self.bonus
+			self.TICK = pygame.event.Event(pygame.event.custom_type(),player=self.trigger.player)
+
+			self.scramble        = None
+			self.scramble_toggle = None
+
+			# Interface
+			self.body_colour = C.TIMER_DEAD
+			self.text_colour = C.TIMER_IDLE
+			self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
+
+			# self.font = pygame.font.Font(C.DIR_FONTS + "seven_segment.ttf",40)
+			self.text = self.trigger.clock.read(self.time)
+			self.font = pygame.font.SysFont("Consolas",28)
+
+			self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
+			self.case  = pygame.Rect(0,0,*self.size)
+			self.body  = pygame.Rect(
+				0.06*self.size[0],
+				0.09*self.size[1],
+				0.88*self.size[0],
+				0.85*self.size[1]
+			)
+
+		def reset(self):
+			pygame.time.set_timer(self.TICK,0)
+
+			self.time = self.start + self.bonus
+			self.text = self.trigger.clock.read(self.time)
+
+			self.scramble        = self.time <= 10          ### 00:00:11 -> 10:00
+			self.scramble_toggle = not self.time % 50
+
+			self.stop()
+
+		def render(self):
+			self.frame.fill((0,0,0,0))
+			if self.text.count(":") == 2:            ### redefined at render to respect turn control
+				self.x    = self.trigger.x - C.BUTTON_WIDTH
+				self.size = (
+					3*C.BUTTON_WIDTH,
+					(5/6)*C.BUTTON_HEIGHT
+				)
+			else:
+				self.x    = self.trigger.x - C.BUTTON_WIDTH/2
+				self.size = (
+					2*C.BUTTON_WIDTH,
+					(5/6)*C.BUTTON_HEIGHT
+				)
+
+			self.case = pygame.Rect(0,0,*self.size)
+			self.body = pygame.Rect(
+				0.06*self.size[0],
+				0.09*self.size[1],
+				0.88*self.size[0],
+				0.85*self.size[1]
+			)
+
+			# Case & body
+			pygame.draw.rect(
+				self.frame,
+				self.case_colour,
+				self.case,
+				border_radius=8
+			)
+			pygame.draw.rect(
+				self.frame,
+				self.body_colour,
+				self.body,
+				border_radius=5
+			)
+
+			# Text
+			reading = self.font.render(self.text,True,self.text_colour)
+			self.frame.blit(
+				reading,
+				reading.get_rect(center=[self.size[0]/2 , 2+self.size[1]/2])
+			)
+
+			self.display.blit(self.frame , (self.x,self.y))
+
+		def tick(self):
+			self.time -= 1
+			self.text  = self.trigger.clock.read(self.time,self.scramble)
+
+			self.elapsed += 1
+
+			if self.scramble and not (self.time % 50):
+				self.scramble_toggle = not self.scramble_toggle
+				self.body_colour = (
+					C.TIMER_SCRAMBLE,
+					C.TIMER_LIVE,
+				)[self.scramble_toggle]
+
+		def play(self):
+			pygame.time.set_timer(self.TICK,10)
+			self.text_colour = (255,255,255)
+			self.body_colour = C.TIMER_LIVE
+			self.case_colour = C.TIMER_CASE_LIVE
+
+		def wait(self):
+			pygame.time.set_timer(self.TICK,0)
+			self.text_colour = (255,255,255)
+			self.body_colour = C.TIMER_IDLE
+			self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
+
+		def stop(self):
+			pygame.time.set_timer(self.TICK,0)
+			self.text_colour = C.TIMER_IDLE
+			self.body_colour = C.TIMER_DEAD
+			self.case_colour = C.TIMER_CASE_IDLE
+
+		@property
+		def time_elapsed(self):
+			return self.start + self.bonus*(self.trigger.clock.coach.board.movenum + 1) - self.time
+
+		@property
+		def active(self):
+				return self.trigger.clock.coach.board.ply == self.trigger.p
+
 	def __init__(self , coach):
 		self.coach = coach
 

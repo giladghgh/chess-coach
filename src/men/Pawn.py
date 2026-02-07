@@ -22,6 +22,8 @@ class Pawn(Man):
 		# Unique pawn attribute
 		self.just_moved_double = False
 
+	def __repr__(self):
+		return ""
 
 	def stencil_moves(self):
 		stencil_moves = [

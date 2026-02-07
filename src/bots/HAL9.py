@@ -23,12 +23,15 @@ class BotHAL9(NativeBot):
 
 
 	def update(self):
-		super().update()
+		self.model.set_fen(self.engine.fen)
 
 		self.eval = min( max( self.score() , 0 ) , self.emax )
 
+		if self is E.BOT_GAUGE and any(E.BOT_LINES):
+			self.update_topls()
 
-	def play(self):
+
+	def calculate(self):
 		movetree = {}
 		for move in self.model.legal_moves:
 			self.model.push(move)

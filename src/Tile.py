@@ -66,7 +66,8 @@ class Tile:
 			if self.is_fresh:
 				self.veil.fill((*self.rgb_fresh,180))
 				self.display.blit(self.veil,self.rect)
-			elif self.is_focus:
+
+			if self.is_focus:
 				self.veil.fill((*self.rgb_focus,130))
 				self.display.blit(self.veil,self.rect)
 

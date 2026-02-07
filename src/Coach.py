@@ -153,14 +153,37 @@ class Coach:
 		### cursors
 		self.mouse_pos = None
 
-		self.CURSOR_TYPE = pygame.SYSTEM_CURSOR_IBEAM
-		self.CURSOR_CALM = pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_" + self.board.ply + ".png"))
-		self.CURSOR_THIS = pygame.Cursor((10,3),pygame.image.load(C.DIR_CURSORS + "this_" + self.board.ply + ".png"))
-		self.CURSOR_PALM = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_" + self.board.ply + ".png"))
-		self.CURSOR_FIST = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_" + self.board.ply + ".png"))
-		self.CURSOR_DENY = pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_" + self.board.ply + ".png"))
-		self.CURSOR_MOVE = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_" + self.board.ply + ".png"))
-		self.CURSOR_HOLD = pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_" + self.board.ply + ".png"))
+		self.CURSORS = {
+			"TYPE" : pygame.SYSTEM_CURSOR_IBEAM,
+			"CALM" : (          ### arrow
+				pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_w.png")),
+				pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "calm_b.png")),
+			),
+			"THIS" : (          ### point
+				pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "this_w.png")),
+				pygame.Cursor((5,3),pygame.image.load(C.DIR_CURSORS + "this_b.png")),
+			),
+			"PALM" : (          ### open hand
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_w.png")),
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "palm_b.png")),
+			),
+			"FIST" : (          ### closed fist
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_w.png")),
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "fist_b.png")),
+			),
+			"MOVE" : (          ### open pinch
+				pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_w.png")),
+				pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "move_b.png")),
+			),
+			"HOLD" : (          ### closed pinch
+				pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_w.png")),
+				pygame.Cursor((5,15),pygame.image.load(C.DIR_CURSORS + "hold_b.png")),
+			),
+			"DENY" : (          ### 🛇
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_w.png")),
+				pygame.Cursor((10,10),pygame.image.load(C.DIR_CURSORS + "deny_b.png")),
+			),
+		}
 
 		### file i/o
 		self.tags = {tag : self.settings.writers[tag.upper()].pretext for tag in (
@@ -189,7 +212,7 @@ class Coach:
 		self.board.movelog   = [self.board.this_move,]
 
 		self.mouse_pos = pygame.mouse.get_pos()
-		pygame.mouse.set_cursor(self.CURSOR_CALM)
+		pygame.mouse.set_cursor(self.CURSORS["CALM"][self.board.ply=="b"])
 
 		# For imports:
 		### ply agnostic
@@ -218,40 +241,35 @@ class Coach:
 		# Pane
 		### CONTEXT
 		if any(cntxt.show for cntxt in self.contexts):
-			### tabs
-			begin = [
-				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , 0 ),
-				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.1*C.TILE_HEIGHT ),
-				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.9*C.TILE_HEIGHT ),
-				( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , C.TILE_HEIGHT ),
-			]
-
 			for c,context in sorted( enumerate(self.contexts) , key=lambda cc:cc[1].show ):
-				if context.show:
-					if h := context.render():
-						hover = h
+				if context.show and (h := context.render()):
+					hover = h
 
-					### manila folder tabs
-					shift = [
-						(0 , c*0.9*C.TILE_HEIGHT),
-						(8 , c*0.9*C.TILE_HEIGHT),
-						(8 , c*0.9*C.TILE_HEIGHT),
-						(0 , c*0.9*C.TILE_HEIGHT),
-					]
-
-				else:
-					shift = [
-						(0 , c*0.9*C.TILE_HEIGHT),
-						(0 , c*0.9*C.TILE_HEIGHT),
-						(0 , c*0.9*C.TILE_HEIGHT),
-						(0 , c*0.9*C.TILE_HEIGHT),
-					]
-
-				### manila folder background
+				### manila folder tabs
 				pygame.draw.polygon(
 					self.screen,
 					context.colour,
-					[ (b[0]+s[0] , b[1]+s[1]) for b,s in zip(begin,shift) ]
+					[
+						(shape[0]+shift[0] , shape[1]+shift[1]) for shape,shift in zip(
+							[   ### tab shape
+								( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , 0 ),
+								( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.1*C.TILE_HEIGHT ),
+								( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP + 10 , 0.9*C.TILE_HEIGHT ),
+								( 2*C.X_MARGIN + C.TEXTBOX_WIDTH + C.GRID_GAP , C.TILE_HEIGHT ),
+							],
+							[   ### tab shift
+								(0 , c*0.9*C.TILE_HEIGHT),
+								(8 , c*0.9*C.TILE_HEIGHT),
+								(8 , c*0.9*C.TILE_HEIGHT),
+								(0 , c*0.9*C.TILE_HEIGHT),
+							] if context.show else [
+								(0 , c*0.9*C.TILE_HEIGHT),
+								(0 , c*0.9*C.TILE_HEIGHT),
+								(0 , c*0.9*C.TILE_HEIGHT),
+								(0 , c*0.9*C.TILE_HEIGHT),
+							]
+						)
+					]
 				)
 
 		### NO CONTEXT
@@ -301,8 +319,8 @@ class Coach:
 
 		# Tray
 		self.tray.fill((0,0,0,0))
-		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.GAUGE_WIDTH + C.GRAVE_WIDTH,0,C.SHELF_WIDTH,C.SHELF_HEIGHT))
 		self.tray.fill(C.BACKGR_GRAVE , (C.TRAY_GAP,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,C.GRAVE_HEIGHT))
+		self.tray.fill(C.BACKGR_SHELF , (C.TRAY_GAP + C.GAUGE_WIDTH + C.GRAVE_WIDTH,0,C.SHELF_WIDTH,C.SHELF_HEIGHT))
 
 		for element in [
 			self.clock,
@@ -316,48 +334,35 @@ class Coach:
 		self.screen.blit(self.tray , (C.PANE_WIDTH + C.BOARD_WIDTH - C.TRAY_GAP,0))
 
 		# Hover action
-		if hover:
+		try:
 			hover_type = type(hover)
+			hover_turn = self.board.ply == "b"
+			if hover:
+				if issubclass(hover_type,Button) and hover_type is not ButtonBot:
+					pygame.mouse.set_cursor(self.CURSORS["THIS"][hover_turn])
+				elif hover_type is Writer:
+					pygame.mouse.set_cursor(self.CURSORS["TYPE"])
+				elif hover_type is Slider and hover.active:
+					pygame.mouse.set_cursor(self.CURSORS["FIST"][hover_turn] if pygame.mouse.get_pressed()[0] else self.CURSORS["PALM"][hover_turn])
+				elif hover_type is Tile:
+					if hover.occupant and (hover.occupant.colour == self.board.ply):
+						pygame.mouse.set_cursor(self.CURSORS["HOLD"][hover_turn] if self.board.agent else self.CURSORS["MOVE"][hover_turn])
+					else:
+						pygame.mouse.set_cursor(self.CURSORS["HOLD"][hover_turn] if self.board.agent else self.CURSORS["DENY"][hover_turn])
 
-			if issubclass(hover_type,Button) and hover_type is not ButtonBot:
-				try:
-					pygame.mouse.set_cursor(self.CURSOR_THIS)
-				except pygame.error as e:
-					print("ERROR:\t",e)                         ### WHY DOES THIS HAPPEN
-			elif hover_type is Writer:
-				pygame.mouse.set_cursor(self.CURSOR_TYPE)
-			elif hover_type is Slider and hover.active:
-				pygame.mouse.set_cursor(self.CURSOR_FIST if pygame.mouse.get_pressed()[0] else self.CURSOR_PALM)
-			elif hover_type is Tile:
-				if hover.occupant and (hover.occupant.colour == self.board.ply):
-					pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_MOVE)
-				else:
-					try:
-						pygame.mouse.set_cursor(self.CURSOR_HOLD if self.board.agent else self.CURSOR_DENY)
-					except pygame.error as e:
-						print("ERROR:\t",e)                     ### WHY DOES THIS HAPPEN
+				if hasattr(hover,"active"):
+					if hover.active is False:
+						if hover_type is ButtonContextOpen:
+							hover.colour = hover.context.colour
+						elif hover_type is Writer:
+							hover.colour = C.TEXTBOX_LOOM
+						elif not str(hover).endswith("Exit"):
+							hover.colour = C.BUTTON_LOOM
+			else:
+				pygame.mouse.set_cursor(self.CURSORS["CALM"][hover_turn])
 
-			if hasattr(hover,"active"):
-				if hover.active is False:
-					if hover_type is ButtonContextOpen:
-						hover.colour = hover.context.colour
-					elif hover_type is Writer:
-						hover.colour = C.TEXTBOX_LOOM
-					elif not str(hover).endswith("Exit"):
-						hover.colour = C.BUTTON_LOOM
-		else:
-			try:
-				pygame.mouse.set_cursor(self.CURSOR_CALM)
-			except pygame.error as e:
-				print("ERROR:\t", e)  ### WHY DOES THIS HAPPEN
-
-	#####   #   LINE   #   #####
-		# x = C.PANE_WIDTH + C.BOARD_WIDTH + C.GAUGE_WIDTH + C.GRAVE_WIDTH + C.SHELF_WIDTH/2
-		# pygame.draw.line(self.screen,(0,0,0),(x,0),(x,C.WINDOW_HEIGHT),width=1)
-		#
-		# x2 = C.PANE_WIDTH + C.BOARD_WIDTH + C.GAUGE_WIDTH + C.GRAVE_WIDTH
-		# pygame.draw.line(self.screen,(0,0,0),(x2,0),(x2,C.WINDOW_HEIGHT),width=1)
-		####### # ######## # #######
+		except pygame.error:
+			pass        ### PYGAME CURSOR ERROR WHY ?!?!
 
 
 	def handle_click(self , event):
@@ -439,15 +444,15 @@ class Coach:
 					else:
 						self.board.this_move.lights.append(self.anchor)
 				else:
-					for arrow in self.board.this_move.quiver:
+					for arrow in self.board.this_move.quiver_coach:
 						if all([
 							arrow.base is self.anchor,
 							arrow.roof is header
 						]):
-							self.board.this_move.quiver.remove(arrow)
+							self.board.this_move.quiver_coach.remove(arrow)
 							break
 					else:
-						self.board.this_move.quiver.append(
+						self.board.this_move.quiver_coach.append(
 							Arrow(
 								self,
 								self.anchor,

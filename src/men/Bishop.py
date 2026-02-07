@@ -18,7 +18,6 @@ class Bishop(Man):
 			self.image_size
 		)
 
-
 	def stencil_moves(self):
 		moves_nw,moves_ne,moves_sw,moves_se = [],[],[],[]
 		for i in range(1,9):

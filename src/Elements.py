@@ -445,40 +445,6 @@ class Slider:
 			)
 
 
-	def hold(self , pos):
-		# Mechanics
-		if self.vertical:
-			self.ratio = round(
-				(self.nrungs-1) * (pos[1] - self.rect.bottom)
-				/
-				(self.rect.top - self.rect.bottom)
-			) / (self.nrungs-1)
-
-			for slider in Slider.all:
-				if slider.metric == self.metric:
-					slider.knob.centery = self.max_pos - self.ratio*(self.max_pos - self.min_pos)
-
-		else:
-			self.ratio = round(
-				(self.nrungs-1) * (pos[0] - self.rect.left)
-				/
-				(self.rect.right - self.rect.left)
-			) / (self.nrungs-1)
-
-			for slider in Slider.all:
-				if slider.metric == self.metric:
-					slider.knob.centerx = self.min_pos + self.ratio*(self.max_pos - self.min_pos)
-
-		for slider in Slider.all:
-			if slider.metric == self.metric:
-				slider.value = self.min_val + self.ratio*(self.max_val - self.min_val)
-
-		# Function
-		exec(
-			self.metric + self.txform + str(self.value)
-		)
-
-
 	def render(self):
 		self.trackbed.fill(C.SLIDER_LIVE if self.active else C.SLIDER_DEAD)
 		pygame.draw.rect(
@@ -528,13 +494,46 @@ class Slider:
 		self.display.blit(self.trackbed,(self.x,self.y))
 
 
-	def paint(self):
-		pass
+	def hold(self , pos):
+		# Mechanics
+		if self.vertical:
+			self.ratio = round(
+				(self.nrungs-1) * (pos[1] - self.rect.bottom)
+				/
+				(self.rect.top - self.rect.bottom)
+			) / (self.nrungs-1)
+
+			for slider in Slider.all:
+				if slider.metric == self.metric:
+					slider.knob.centery = self.max_pos - self.ratio*(self.max_pos - self.min_pos)
+
+		else:
+			self.ratio = round(
+				(self.nrungs-1) * (pos[0] - self.rect.left)
+				/
+				(self.rect.right - self.rect.left)
+			) / (self.nrungs-1)
+
+			for slider in Slider.all:
+				if slider.metric == self.metric:
+					slider.knob.centerx = self.min_pos + self.ratio*(self.max_pos - self.min_pos)
+
+		for slider in Slider.all:
+			if slider.metric == self.metric:
+				slider.value = self.min_val + self.ratio*(self.max_val - self.min_val)
+
+		# Function
+		exec(
+			self.metric + self.txform + str(self.value)
+		)
 
 
 	def click(self):
 		pass
 
+
+	def paint(self):
+		pass
 
 	@property
 	def value_nice(self):
@@ -632,8 +631,8 @@ class Arrow:
 		self.centre  = None
 
 		# Rendering
-		self.sprite = None
 		self.girth  = 25
+		self.sprite = None
 
 
 	def draw(self):
@@ -646,7 +645,6 @@ class Arrow:
 
 		self.midline = self.head - self.nock
 		self.centre  = (self.head + self.nock)/2
-
 
 		def draw_knight():
 			width  = abs(self.midline.x) + C.TILE_WIDTH
@@ -744,7 +742,6 @@ class Arrow:
 					self.midline.y > 0
 				)
 
-
 		def draw_direct():
 			height = self.midline.magnitude()
 
@@ -794,7 +791,6 @@ class Arrow:
 				self.midline.angle_to((0,-1))
 			)
 
-
 		if abs(self.midline.elementwise()) in [
 			(100,200),
 			(200,100)
@@ -810,8 +806,233 @@ class Arrow:
 
 
 
-# TODO: MORE ELEMENTS
-#   1) top engine line(s) arrows
+class Graveyard:
+	def __init__(self , coach):
+		self.coach = coach
+
+		self.font = pygame.font.SysFont("Consolas",12)
+
+		self.whites = {
+			""  : [],
+			"N" : [],
+			"B" : [],
+			"R" : [],
+			"Q" : [],
+		}
+		self.blacks = {
+			""  : [],
+			"N" : [],
+			"B" : [],
+			"R" : [],
+			"Q" : [],
+		}
+
+		# Rendering
+		self.h = 2*C.TILE_HEIGHT
+
+		self.w_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
+		self.b_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
+
+		self.w_rect = pygame.Rect(
+			C.TRAY_GAP,
+			0,
+			C.GRAVE_WIDTH + C.GAUGE_WIDTH,
+			self.h
+		)
+		self.b_rect = pygame.Rect(
+			C.TRAY_GAP,
+			C.WINDOW_HEIGHT - self.h,
+			C.GRAVE_WIDTH,
+			self.h
+		)
+
+		# Plaque
+		self.mat_bal = 0
+		self.w_plaque = pygame.Rect(
+			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
+			self.h + C.GRID_GAP,
+			0,0						### auto sizes with text
+		)
+		self.b_plaque = pygame.Rect(
+			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
+			C.WINDOW_HEIGHT - self.h - self.font.size("-")[1] - C.GRID_GAP,
+			0,0
+		)
+
+
+	def render(self):
+		for is_white,graveyard,afterlife in [
+			(True  , self.whites , self.w_afterlife),
+			(False , self.blacks , self.b_afterlife),
+		]:
+			r = 0
+			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (0,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,self.h) )
+			for graves in graveyard.values():
+				for c,fallen in enumerate(graves):
+					if c < 4:
+						afterlife.blit(
+							pygame.transform.scale(fallen.image , [L/4 for L in C.TILE_SIZE]),
+							(
+								(23 +  8*c),
+								( 8 + 35*r) if is_white else (self.h - 35*(r+1)),
+							)
+						)
+					else:
+						if c == 4:      ### nudge the rest
+							r += 0.25
+
+						afterlife.blit(
+							pygame.transform.scale(fallen.image , (25,25)),
+							(
+								(28 +  8*(c-4)),
+								(10 + 35*r) if is_white else (self.h - 35*(r+1)),
+							)
+						)
+				r += 1
+
+		self.coach.tray.blits([
+			(self.w_afterlife,self.w_rect),
+			(self.b_afterlife,self.b_rect),
+		])
+
+		# Material balance
+		if self.mat_bal:
+			self.coach.tray.blit(
+				self.font.render("+"+str(abs(self.mat_bal)) , True , (185,185,185)),
+				self.w_plaque if self.mat_bal < 0 else self.b_plaque
+			)
+
+
+	def bury(self , fallen):
+		if fallen.colour == "w":
+			self.whites[fallen.creed].append(fallen)
+			self.mat_bal -= E.SCOREBOARD_MATERIAL[fallen.creed or "P"]
+		else:
+			self.blacks[fallen.creed].append(fallen)
+			self.mat_bal += E.SCOREBOARD_MATERIAL[fallen.creed or "P"]
+
+
+	def update(self):
+		self.mat_bal = 0
+		for graveyard in (self.whites,self.blacks):
+			for creed,graves in graveyard.items():
+				graveyard[creed].clear()
+
+		for move in self.coach.board.movelog[:self.coach.board.halfmovenum - 1]:
+			if move.capture:
+				self.bury(move.capture)
+
+
+
+class Gauge:
+	def __init__(self , coach):
+		self.coach = coach
+
+		# Mechanics
+		self.emax = 15
+
+		# Interface
+		self.font  = pygame.font.SysFont("Consolas",15)
+		self.label = None
+
+		self.bg_rect = pygame.Rect(C.TRAY_GAP,0,C.GAUGE_WIDTH,C.WINDOW_HEIGHT)
+		self.w_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
+		self.b_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
+
+		self.bg_bar = pygame.Surface(self.bg_rect.size,pygame.SRCALPHA)
+		self.w_bar  = None
+		self.b_bar  = None
+
+
+	def render(self):
+		# Bars
+		if bool(E.BOT_GAUGE):
+			self.coach.tray.blits([
+				(self.w_bar,self.w_rect),
+				(self.b_bar,self.b_rect),
+			])
+
+		# Label
+		if self.bg_rect.collidepoint(
+			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
+			self.coach.mouse_pos[1]
+		):
+			if bool(E.BOT_GAUGE):
+				label_size = self.font.size(self.label)
+				self.coach.tray.blit(
+					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
+					(
+						C.TRAY_GAP + C.GAUGE_WIDTH/2 - label_size[0]/2,
+						C.WINDOW_HEIGHT/2 - label_size[1]/2
+					)
+				)
+
+
+	def update(self):
+		for bot in self.coach.engine.bots.values():
+			if bot.code in E.BOT_EXCLUDE_ENG:
+				continue
+
+			bot.update()
+			self.coach.analysis.counters["EVAL_" + bot.code].value = bot.eval
+
+		# Arrows
+		for r,counter in enumerate(self.coach.analysis.counters_topls.values()):
+			quiver = self.coach.board.this_move.quiver_gauge
+			arrow  = self.coach.engine.topls[r][2]
+			if E.BOT_GAUGE:
+				counter.value = self.coach.engine.topls[r][0]
+				counter.label = self.coach.engine.topls[r][1]
+				if E.BOT_LINES[r]:
+					quiver.append(arrow)
+			else:
+				counter.value = None
+				counter.label = None
+				if arrow in quiver:
+					quiver.remove(arrow)
+
+		# Gauge
+		if E.BOT_GAUGE:
+			### gauge bars
+			self.w_rect.h = (1 + E.BOT_GAUGE.eval/self.emax)*C.WINDOW_HEIGHT/2
+			self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
+
+			### label
+			if E.BOT_GAUGE.eval > 0:
+				self.label = "+"
+			elif E.BOT_GAUGE.eval < 0:
+				self.label = "-"
+			else:
+				self.label = "±"
+			self.label += f'{abs(E.BOT_GAUGE.eval):.2f}'
+
+		else:
+			### gauge bars
+			self.w_rect.h = C.WINDOW_HEIGHT/2
+			self.b_rect.h = C.WINDOW_HEIGHT/2
+
+			### label
+			self.label = None
+
+			### top lines
+			self.coach.engine.topls = [(None,None,None)]*3
+
+		if C.BOARD_FLIPPED:
+			self.w_rect.y = 0
+			self.b_rect.y = self.w_rect.h
+		else:
+			self.w_rect.y = self.b_rect.h
+			self.b_rect.y = 0
+
+		# Interface
+		# TODO: still getting "pygame.error: Invalid resolution for Surface" occasionally
+		self.w_bar = pygame.Surface(self.w_rect.size)
+		self.b_bar = pygame.Surface(self.b_rect.size)
+		self.w_bar.fill((255,255,255))
+		self.b_bar.fill((  0,  0,  0))
+
+
+
 class Button:
 	def __init__(self , coach , display , x , y , size=C.BUTTON_SIZE):
 		self.coach   = coach
@@ -902,6 +1123,85 @@ class Button:
 			False : self.COLOUR_IDLE,
 			True  : self.COLOUR_LIVE
 		}[self.active]
+
+
+
+class ButtonGaugeBot(Button):
+	def __init__(self , *args , doctrine):
+		super().__init__(*args)
+		self.doctrine = doctrine
+
+		self.active = self.doctrine == E.BOT_GAUGE
+
+		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
+		self.base.fill(C.BUTTON_COUNTER_LIVE if self.active else C.BUTTON_COUNTER_IDLE)
+
+
+	def click(self):
+		# Function
+		incumbent = E.BOT_GAUGE
+		candidate = self.doctrine
+
+		appointed = None if candidate == incumbent else candidate
+
+		### apply
+		E.BOT_GAUGE = appointed
+		self.coach.gauge.update()
+
+		# Mechanics
+		for button in self.coach.analysis.buttons_gauges.values():
+			button.active = not button.active if button.doctrine == E.BOT_GAUGE else False
+			button.base.fill(C.BUTTON_COUNTER_LIVE if button.active else C.BUTTON_COUNTER_IDLE)
+
+
+	def render(self):
+		self.display.blit(self.base,(self.x,self.y))
+
+
+
+class ButtonTopLine(Button):
+	def __init__(self , *args , rank):
+		super().__init__(*args)
+		self.rank = rank
+
+		self.active = E.BOT_LINES[self.rank-1]
+
+		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
+		self.base.fill(C.ARROW_TOPLS_COLOUR[self.rank-1] if self.active else C.BUTTON_COUNTER_IDLE)
+
+
+	def click(self):
+		# Function
+		E.BOT_LINES[self.rank-1] = not E.BOT_LINES[self.rank-1]
+
+		# Mechanics
+		for counter,button in zip(
+			self.coach.analysis.counters_topls.values(),
+			self.coach.analysis.buttons_topls.values(),
+		):
+			button.active = E.BOT_LINES[button.rank-1]
+
+			if button.active:
+				counter.value = self.coach.engine.topls[button.rank-1][0]
+				counter.label = self.coach.engine.topls[button.rank-1][1]
+				button.base.fill(C.ARROW_TOPLS_COLOUR[button.rank-1])
+
+			else:
+				### doesn't Noneify counter on deselection, only on turnover
+				button.base.fill(C.BUTTON_COUNTER_IDLE)
+
+		### arrows
+		if E.BOT_GAUGE:
+			arrow = self.coach.engine.topls[self.rank-1][2]
+			quiver = self.coach.board.this_move.quiver_gauge
+			if arrow not in quiver and self.active:
+				quiver.append(arrow)
+			elif arrow in quiver:
+				quiver.remove(arrow)
+
+
+	def render(self):
+		self.display.blit(self.base,(self.x,self.y))
 
 
 
@@ -1007,7 +1307,6 @@ class ButtonBot(Button):
 				),
 				(self.x + C.BUTTON_WIDTH - 10 , self.y + 3)
 			)
-
 
 
 
@@ -2150,26 +2449,6 @@ class ButtonDrillOption(Button):
 
 
 
-class ButtonTopLine(Button):
-	def __init__(self , *args , i):
-		super().__init__(*args)
-		self.i = i
-
-		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
-		self.base.fill(C.BUTTON_COUNTER_DEAD)
-
-		self.label = f'Line {i}'
-
-
-	def click(self):
-		print(f'top line {self.i}')
-
-
-	def render(self):
-		self.display.blit(self.base,(self.x,self.y))
-
-
-
 class ButtonToggleTray(Button):
 	def __init__(self , *args):
 		super().__init__(*args)
@@ -2233,7 +2512,7 @@ class ButtonClock(Button):
 		### HH:MM:SS or MM:SS
 		hour_plus = self.start_num + self.bonus >= 60*60
 
-		self.timer = Timer(
+		self.timer = self.clock.Timer(
 			self.display,
 			x=(self.x - C.BUTTON_WIDTH) if hour_plus else self.x - C.BUTTON_WIDTH/2,
 			y=(
@@ -2589,389 +2868,3 @@ class ButtonClockSet(Button):
 						h = option
 
 		return h
-
-
-
-class Timer:
-	def __init__(self , display , x , y , size , start , bonus , trigger):
-		self.display = display
-		self.x       = x
-		self.y       = y
-		self.size    = size
-		self.start   = 100*start
-		self.bonus   = 100*bonus
-		self.trigger = trigger
-
-		self.elapsed = 0
-
-		# Mechanics
-		self.time = self.start + self.bonus
-		self.TICK = pygame.event.Event(pygame.event.custom_type(),player=self.trigger.player)
-
-		self.scramble        = None
-		self.scramble_toggle = None
-
-		# Interface
-		self.body_colour = C.TIMER_DEAD
-		self.text_colour = C.TIMER_IDLE
-		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
-
-		# self.font = pygame.font.Font(C.DIR_FONTS + "seven_segment.ttf",40)
-		self.text = self.trigger.clock.read(self.time)
-		self.font = pygame.font.SysFont("Consolas",28)
-
-		self.frame = pygame.Surface(self.size,pygame.SRCALPHA)
-		self.case  = pygame.Rect(0,0,*self.size)
-		self.body  = pygame.Rect(
-			0.06*self.size[0],
-			0.09*self.size[1],
-			0.88*self.size[0],
-			0.85*self.size[1]
-		)
-
-
-	def reset(self):
-		pygame.time.set_timer(self.TICK,0)
-
-		self.time = self.start + self.bonus
-		self.text = self.trigger.clock.read(self.time)
-
-		self.scramble        = self.time <= 10          ### 00:00:11 -> 10:00
-		self.scramble_toggle = not self.time % 50
-
-		self.stop()
-
-
-	def render(self):
-		self.frame.fill((0,0,0,0))
-		if self.text.count(":") == 2:            ### redefined at render to respect turn control
-			self.x    = self.trigger.x - C.BUTTON_WIDTH
-			self.size = (
-				3*C.BUTTON_WIDTH,
-				(5/6)*C.BUTTON_HEIGHT
-			)
-		else:
-			self.x    = self.trigger.x - C.BUTTON_WIDTH/2
-			self.size = (
-				2*C.BUTTON_WIDTH,
-				(5/6)*C.BUTTON_HEIGHT
-			)
-
-		self.case = pygame.Rect(0,0,*self.size)
-		self.body = pygame.Rect(
-			0.06*self.size[0],
-			0.09*self.size[1],
-			0.88*self.size[0],
-			0.85*self.size[1]
-		)
-
-		# Case & body
-		pygame.draw.rect(
-			self.frame,
-			self.case_colour,
-			self.case,
-			border_radius=8
-		)
-		pygame.draw.rect(
-			self.frame,
-			self.body_colour,
-			self.body,
-			border_radius=5
-		)
-
-		# Text
-		reading = self.font.render(self.text,True,self.text_colour)
-		self.frame.blit(
-			reading,
-			reading.get_rect(center=[self.size[0]/2 , 2+self.size[1]/2])
-		)
-
-		self.display.blit(self.frame , (self.x,self.y))
-
-
-	def tick(self):
-		self.time -= 1
-		self.text  = self.trigger.clock.read(self.time,self.scramble)
-
-		self.elapsed += 1
-
-		if self.scramble and not (self.time % 50):
-			self.scramble_toggle = not self.scramble_toggle
-			self.body_colour = (
-				C.TIMER_SCRAMBLE,
-				C.TIMER_LIVE,
-			)[self.scramble_toggle]
-
-
-	def play(self):
-		pygame.time.set_timer(self.TICK,10)
-		self.text_colour = (255,255,255)
-		self.body_colour = C.TIMER_LIVE
-		self.case_colour = C.TIMER_CASE_LIVE
-
-
-	def wait(self):
-		pygame.time.set_timer(self.TICK,0)
-		self.text_colour = (255,255,255)
-		self.body_colour = C.TIMER_IDLE
-		self.case_colour = C.TIMER_CASE_LIVE if self.active else C.TIMER_CASE_IDLE
-
-
-	def stop(self):
-		pygame.time.set_timer(self.TICK,0)
-		self.text_colour = C.TIMER_IDLE
-		self.body_colour = C.TIMER_DEAD
-		self.case_colour = C.TIMER_CASE_IDLE
-
-
-	@property
-	def time_elapsed(self):
-		return self.start + self.bonus*(self.trigger.clock.coach.board.movenum + 1) - self.time
-
-	@property
-	def active(self):
-		return self.trigger.clock.coach.board.ply == self.trigger.p
-
-
-
-class Graveyard:
-	def __init__(self , coach):
-		self.coach = coach
-
-		self.font = pygame.font.SysFont("Consolas",12)
-
-		self.whites = {
-			""  : [],
-			"N" : [],
-			"B" : [],
-			"R" : [],
-			"Q" : [],
-		}
-		self.blacks = {
-			""  : [],
-			"N" : [],
-			"B" : [],
-			"R" : [],
-			"Q" : [],
-		}
-
-		# Rendering
-		self.h = 2*C.TILE_HEIGHT
-
-		self.w_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
-		self.b_afterlife = pygame.Surface((C.GAUGE_WIDTH + C.GRAVE_WIDTH , self.h),pygame.SRCALPHA)
-
-		self.w_rect = pygame.Rect(
-			C.TRAY_GAP,
-			0,
-			C.GRAVE_WIDTH + C.GAUGE_WIDTH,
-			self.h
-		)
-		self.b_rect = pygame.Rect(
-			C.TRAY_GAP,
-			C.WINDOW_HEIGHT - self.h,
-			C.GRAVE_WIDTH,
-			self.h
-		)
-
-		# Plaque
-		self.mat_bal = 0
-		self.w_plaque = pygame.Rect(
-			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
-			self.h + C.GRID_GAP,
-			0,0						### auto sizes with text
-		)
-		self.b_plaque = pygame.Rect(
-			self.w_rect.left + C.GAUGE_WIDTH + C.GRID_GAP,
-			C.WINDOW_HEIGHT - self.h - self.font.size("-")[1] - C.GRID_GAP,
-			0,0
-		)
-
-
-	def render(self):
-		for is_white,graveyard,afterlife in [
-			(True  , self.whites , self.w_afterlife),
-			(False , self.blacks , self.b_afterlife),
-		]:
-			r = 0
-			afterlife.fill( (30,25,25,115) if is_white else (75,70,70,115) , (0,0,C.GAUGE_WIDTH + C.GRAVE_WIDTH,self.h) )
-			for graves in graveyard.values():
-				for c,fallen in enumerate(graves):
-					if c < 4:
-						afterlife.blit(
-							pygame.transform.scale(fallen.image , [L/4 for L in C.TILE_SIZE]),
-							(
-								(23 +  8*c),
-								( 8 + 35*r) if is_white else (self.h - 35*(r+1)),
-							)
-						)
-					else:
-						if c == 4:      ### nudge the rest
-							r += 0.25
-
-						afterlife.blit(
-							pygame.transform.scale(fallen.image , (25,25)),
-							(
-								(28 +  8*(c-4)),
-								(10 + 35*r) if is_white else (self.h - 35*(r+1)),
-							)
-						)
-				r += 1
-
-		self.coach.tray.blits([
-			(self.w_afterlife,self.w_rect),
-			(self.b_afterlife,self.b_rect),
-		])
-
-		# Material balance
-		if self.mat_bal:
-			self.coach.tray.blit(
-				self.font.render("+"+str(abs(self.mat_bal)) , True , (185,185,185)),
-				self.w_plaque if self.mat_bal < 0 else self.b_plaque
-			)
-
-
-	def bury(self , fallen):
-		if fallen.colour == "w":
-			self.whites[fallen.creed].append(fallen)
-			self.mat_bal -= E.SCOREBOARD_MATERIAL[fallen.creed or "P"]
-		else:
-			self.blacks[fallen.creed].append(fallen)
-			self.mat_bal += E.SCOREBOARD_MATERIAL[fallen.creed or "P"]
-
-
-	def update(self):
-		self.mat_bal = 0
-		for graveyard in (self.whites,self.blacks):
-			for creed,graves in graveyard.items():
-				graveyard[creed].clear()
-
-		for move in self.coach.board.movelog[:self.coach.board.halfmovenum - 1]:
-			if move.capture:
-				self.bury(move.capture)
-
-
-
-class Gauge:
-	def __init__(self , coach):
-		self.coach = coach
-
-		# Mechanics
-		self.emax = 15
-
-		# Interface
-		self.font  = pygame.font.SysFont("Consolas",15)
-		self.label = None
-
-		self.bg_rect = pygame.Rect(C.TRAY_GAP,0,C.GAUGE_WIDTH,C.WINDOW_HEIGHT)
-		self.w_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
-		self.b_rect  = pygame.Rect(C.TRAY_GAP,C.WINDOW_HEIGHT/2,C.GAUGE_WIDTH,C.WINDOW_HEIGHT/2)
-
-		self.bg_bar = pygame.Surface(self.bg_rect.size,pygame.SRCALPHA)
-		self.w_bar  = None
-		self.b_bar  = None
-
-
-	def render(self):
-		# Bars
-		if bool(E.BOT_GAUGE):
-			self.coach.tray.blits([
-				(self.w_bar,self.w_rect),
-				(self.b_bar,self.b_rect),
-			])
-		else:
-			pass
-			# self.bg_bar.fill((*C.BACKGR_GRAVE,135))
-			# self.coach.tray.blit(self.bg_bar,self.bg_rect)
-
-		# Label
-		if self.bg_rect.collidepoint(
-			self.coach.mouse_pos[0] - C.TRAY_OFFSET,
-			self.coach.mouse_pos[1]
-		):
-			if bool(E.BOT_GAUGE):
-				label_size = self.font.size(self.label)
-				self.coach.tray.blit(
-					self.font.render(self.label , True , (0,0,0) , (200,200,200)),
-					(
-						C.TRAY_GAP + C.GAUGE_WIDTH/2 - label_size[0]/2,
-						C.WINDOW_HEIGHT/2 - label_size[1]/2
-					)
-				)
-
-
-	def update(self):
-		for bot in self.coach.engine.bots.values():
-			if bot.code in E.BOT_EXCLUDE_ENG:
-				continue
-
-			bot.update()
-			self.coach.analysis.counters["EVAL_" + bot.code].value = bot.eval
-
-		# Mechanics
-		if E.BOT_GAUGE is None:
-			self.w_rect.h = C.WINDOW_HEIGHT/2
-			self.b_rect.h = C.WINDOW_HEIGHT/2
-
-			### label
-			self.label = None
-
-		else:
-			self.w_rect.h = (1 + E.BOT_GAUGE.eval/self.emax)*C.WINDOW_HEIGHT/2
-			self.b_rect.h = C.WINDOW_HEIGHT - self.w_rect.h
-
-			### label
-			if E.BOT_GAUGE.eval > 0:
-				self.label = "+"
-			elif E.BOT_GAUGE.eval < 0:
-				self.label = "-"
-			else:
-				self.label = "±"
-			self.label += f'{abs(E.BOT_GAUGE.eval):.2f}'
-
-		if C.BOARD_FLIPPED:
-			self.w_rect.y = 0
-			self.b_rect.y = self.w_rect.h
-		else:
-			self.w_rect.y = self.b_rect.h
-			self.b_rect.y = 0
-
-		# Interface
-		self.w_bar = pygame.Surface(self.w_rect.size)
-		self.b_bar = pygame.Surface(self.b_rect.size)
-		self.w_bar.fill((255,255,255))
-		self.b_bar.fill((  0,  0,  0))
-
-
-
-class ButtonGaugeBot(Button):
-	def __init__(self , *args , doctrine):
-		super().__init__(*args)
-		self.doctrine = doctrine
-
-		self.active = self.doctrine == E.BOT_GAUGE
-
-		self.base = pygame.Surface(self.size,pygame.SRCALPHA)
-		self.base.fill(C.BUTTON_COUNTER_LIVE if self.active else C.BUTTON_COUNTER_DEAD)
-
-
-	def click(self):
-		# Function
-		incumbent = E.BOT_GAUGE
-		candidate = self.doctrine
-
-		appointed = None if candidate == incumbent else candidate
-
-		### apply
-		E.BOT_GAUGE = appointed
-		self.coach.gauge.update()
-
-		# Mechanics
-		### buttons
-		for button in self.coach.analysis.buttons_gauges.values():
-			button.active = not button.active if button.doctrine == E.BOT_GAUGE else False
-			button.base.fill(C.BUTTON_COUNTER_LIVE if button.active else C.BUTTON_COUNTER_DEAD)
-
-
-	def render(self):
-		self.display.blit(self.base,(self.x,self.y))

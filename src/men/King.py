@@ -18,7 +18,6 @@ class King(Man):
 			self.image_size
 		)
 
-
 	def stencil_moves(self):
 		moves = [
 			[(0 , -1)],
@@ -32,7 +31,6 @@ class King(Man):
 		]
 
 		return self.confine(moves)
-
 
 	def can_castle(self , board):
 		castles = ''
@@ -68,7 +66,6 @@ class King(Man):
 						castles += "q"
 
 		return castles
-
 
 	def legal_moves(self):
 		out = []

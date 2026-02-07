@@ -25,7 +25,10 @@ class Bot:
 	def drop(self):
 		self.users -= 1
 
-	def play(self):
+	def update(self):
+		pass
+
+	def calculate(self):
 		pass
 
 
@@ -38,9 +41,6 @@ class NativeBot(Bot):
 
 		self.model = self.engine.model
 
-	def update(self):
-		self.model.set_fen(self.engine.fen)
-
 
 
 class ExoticBot(Bot):
@@ -50,6 +50,3 @@ class ExoticBot(Bot):
 		super().__init__(engine)
 
 		self.model = None
-
-	def update(self):
-		pass

@@ -20,6 +20,10 @@ class Man:
 		self.has_moved = False
 
 
+	def __repr__(self):
+		return self.creed
+
+
 	def send(self , tile):
 		self.position = tile.position
 		self.f = tile.f

@@ -102,10 +102,6 @@ class Context:
 				if writer.rect.collidepoint(self.coach.mouse_pos):
 					hovering = writer
 
-		### counters
-		for counter in self.counters.values():
-			counter.render()
-
 		### buttons
 		for button in self.buttons.values():
 			button.render()
@@ -129,6 +125,10 @@ class Context:
 			if hasattr(button,"slider"):
 				if button.active and button.slider.rect.collidepoint(self.coach.mouse_pos):
 					hovering = button.slider
+
+		### counters
+		for counter in self.counters.values():
+			counter.render()
 
 		self.coach.screen.blit(self.pane,(0,0))
 
@@ -381,14 +381,14 @@ class Analysis(Context):
 
 		# Banners
 		self.banners = {
-			"TOP LINES"	    : pygame.Rect(
+			"EVALUATION"    : pygame.Rect(
 				C.X_MARGIN,
 				C.Y_MARGIN + 1*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
-			"EVALUATION"    : pygame.Rect(
+			"TOP LINES"	    : pygame.Rect(
 				C.X_MARGIN,
-				C.Y_MARGIN + 2.75*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
+				C.Y_MARGIN + 5.5*(C.BUTTON_HEIGHT + 3*C.GRID_GAP) + C.GRID_GAP,
 				*C.TEXTBOX_SIZE
 			),
 			"DRAW CRITERIA" : pygame.Rect(
@@ -399,21 +399,30 @@ class Analysis(Context):
 		}
 
 		# Counters
-		self.counters = {
-			### rule counts
-			"RULECOUNT_FIFTYMOVS" : Counter(
+		self.counters_topls  = {
+			"TOPLINE1" : Counter(
 				self,
-				self.banners["DRAW CRITERIA"].left,
-				self.banners["DRAW CRITERIA"].bottom + 1*C.GRID_GAP,
-				"Fifty Move Rule"
+				self.banners["TOP LINES"].left,
+				self.banners["TOP LINES"].bottom + 1*C.GRID_GAP,
+				"",
+				polar=True
 			),
-			"RULECOUNT_THREEREPS" : Counter(
+			"TOPLINE2" : Counter(
 				self,
-				self.banners["DRAW CRITERIA"].left,
-				self.banners["DRAW CRITERIA"].bottom + 4*C.GRID_GAP,
-				"Threefold Repetition Rule"
+				self.banners["TOP LINES"].left,
+				self.banners["TOP LINES"].bottom + 4*C.GRID_GAP,
+				"",
+				polar=True
 			),
-			### evaluators
+			"TOPLINE3" : Counter(
+				self,
+				self.banners["TOP LINES"].left,
+				self.banners["TOP LINES"].bottom + 7*C.GRID_GAP,
+				"",
+				polar=True
+			),
+		}
+		self.counters_gauges = {
 			"EVAL_H9" : Counter(
 				self,
 				self.banners["EVALUATION"].left,
@@ -428,44 +437,41 @@ class Analysis(Context):
 				"Stockfish",
 				polar=True
 			),
-			### top lines
-			"TOPLINE1" : Counter(
+		}
+		self.counters_rules  = {
+			"RULECOUNT_FIFTYMOVS" : Counter(
 				self,
-				self.banners["TOP LINES"].left,
-				self.banners["TOP LINES"].bottom + 1*C.GRID_GAP,
-				"L1",
-				polar=True
+				self.banners["DRAW CRITERIA"].left,
+				self.banners["DRAW CRITERIA"].bottom + 1*C.GRID_GAP,
+				"Fifty Move Rule"
 			),
-			"TOPLINE2" : Counter(
+			"RULECOUNT_THREEREPS" : Counter(
 				self,
-				self.banners["TOP LINES"].left,
-				self.banners["TOP LINES"].bottom + 4*C.GRID_GAP,
-				"L2",
-				polar=True
+				self.banners["DRAW CRITERIA"].left,
+				self.banners["DRAW CRITERIA"].bottom + 4*C.GRID_GAP,
+				"Threefold Repetition Rule"
 			),
-			"TOPLINE3" : Counter(
-				self,
-				self.banners["TOP LINES"].left,
-				self.banners["TOP LINES"].bottom + 7*C.GRID_GAP,
-				"L3",
-				polar=True
-			),
+		}
+		self.counters = {
+			**self.counters_topls,
+			**self.counters_gauges,
+			**self.counters_rules,
 		}
 
 		# Buttons
 		self.buttons_topls  = {
-			f'TOPLINE{i+1}' : ButtonTopLine(
+			f'TOPLINE{r+1}' : ButtonTopLine(
 				self.coach,
 				self.pane,
-				self.counters[f'TOPLINE{i+1}'].x + self.counters[f'TOPLINE{i+1}'].size[0] + 13,
-				self.counters[f'TOPLINE{i+1}'].y,
+				self.counters[f'TOPLINE{r+1}'].x + self.counters[f'TOPLINE{r+1}'].size[0] + 13,
+				self.counters[f'TOPLINE{r+1}'].y,
 				(
-					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{i+1}'].x - self.counters[f'TOPLINE{i+1}'].size[0],
+					C.TEXTBOX_WIDTH - self.counters[f'TOPLINE{r+1}'].x - self.counters[f'TOPLINE{r+1}'].size[0],
 					C.TEXTBOX_HEIGHT + 1
 				),
-				i=i+1
+				rank=r+1
 			)
-			for i in range(3)
+			for r in range(3)
 		}
 		self.buttons_gauges = {
 			"GAUGE_H9" : ButtonGaugeBot(
@@ -551,4 +557,3 @@ class Coaching(Context):
 		self.buttons.update(
 			**self.buttons_drills,
 		)
-

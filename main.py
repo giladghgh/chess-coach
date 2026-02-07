@@ -60,10 +60,9 @@ if __name__ == "__main__":
 			):
 				coach.handle_click(event)
 
-		if playing:
-			if board.is_game_over():
-				coach.wrap()
-				playing = False
+		if playing and board.is_game_over():
+			coach.wrap()
+			playing = False
 
 		coach.screen.fill(C.BACKGR_PANE)
 		coach.render()
