@@ -372,14 +372,17 @@ class Counter:
 		if self.value is None:
 			return " -.--"
 
+		prefix = "±"
+		number = str(self.value)
 		if self.polar:
-			sign = "±"
-			if float(self.value) > 0:
-				sign = "+"
-			elif float(self.value) < 0:
-				sign = "-"
+			if number[0] == "M":
+				prefix = "M"
+				number = str(abs(int(number[1:])))
+			else:
+				prefix = "-" if float(number) < 0 else "+"
+				number = f'{abs(float(number)):.2f}'
 
-			return sign + f'{abs(self.value):.2f}'
+			return prefix + number.ljust(4)
 
 		elif int(self.value) == self.value:
 			return str(self.value)
@@ -1025,7 +1028,6 @@ class Gauge:
 			self.b_rect.y = 0
 
 		# Interface
-		# TODO: still getting "pygame.error: Invalid resolution for Surface" occasionally
 		self.w_bar = pygame.Surface(self.w_rect.size)
 		self.b_bar = pygame.Surface(self.b_rect.size)
 		self.w_bar.fill((255,255,255))

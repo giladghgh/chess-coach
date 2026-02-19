@@ -31,6 +31,11 @@ class BotHAL9(NativeBot):
 			self.update_topls()
 
 
+	# TODO: HAL9 TOPL
+	def update_topls(self):
+		return
+
+
 	def calculate(self):
 		movetree = {}
 		for move in self.model.legal_moves:

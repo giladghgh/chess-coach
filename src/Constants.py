@@ -6,8 +6,8 @@ import sys,os
 
 class C:
 	# INITIAL CONDITIONS
-	INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	# INIT_FEN = "k6n/6P1/8/8/8/8/2Q5/K7 w - - 0 1"
+	# INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	INIT_FEN = "k6n/6P1/8/8/8/7q/2Q5/K7 w - - 0 1"
 	# INIT_FEN = "kp6/1p6/1p6/8/8/8/5P1R/7K w - - 3 18"
 
 	PIECE_DESIGN = (
