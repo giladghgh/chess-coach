@@ -1,8 +1,7 @@
 import pygame,time
 
 from src.Constants import C,E
-from src.Gameplay import Board,Move,Clock
-from src.Tile import Tile
+from src.Gameplay import Board,Tile,Move,Clock
 from src.Engine import Engine
 from src.Contexts import *
 from src.Elements import *
@@ -728,11 +727,11 @@ class Coach:
 		self.board.ply = None
 
 		# Topple the king
-		corpse = self.board.all_men(
-			colour=("w","b")[who == "White"],
-			creed="K"
-		)[0]
-		corpse.image = pygame.transform.rotate(corpse.image,90)
+		if who != "Draw":
+			self.board.all_men(
+				colour=("w","b")[who == "White"],
+				creed="K"
+			)[0].toppled = True
 
 
 	@staticmethod

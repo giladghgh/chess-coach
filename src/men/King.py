@@ -18,6 +18,12 @@ class King(Man):
 			self.image_size
 		)
 
+		self.toppled = False
+		self.image_toppled = pygame.transform.scale(
+			pygame.transform.rotate(pygame.image.load(C.DIR_SET + self.colour + "k.png"),90),
+			self.image_size
+		)
+
 	def stencil_moves(self):
 		moves = [
 			[(0 , -1)],
