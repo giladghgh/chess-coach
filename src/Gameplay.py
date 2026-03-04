@@ -153,7 +153,7 @@ class Board:
 				hovering = tile
 
 		# Annotations
-		for arrow in self.this_move.quiver_coach + self.this_move.quiver_gauge:
+		for arrow in reversed(self.this_move.quiver):           ### reversed so TOPL1 drawn over TOPL2 drawn over TOPL3
 			arrow.draw()
 
 		return hovering
@@ -525,8 +525,7 @@ class Move:
 
 		# Annotations
 		self.lights = []
-		self.quiver_coach = []
-		self.quiver_gauge = []
+		self.quiver = []
 
 		# Audio
 		### mixer.Music for mutually exclusive audio
@@ -837,7 +836,9 @@ class Move:
 
 	def clean(self):
 		self.lights.clear()
-		self.quiver_coach.clear()
+		for arrow in self.quiver[:]:
+			if arrow.source == "COACH":
+				self.quiver.remove(arrow)
 
 
 

@@ -370,7 +370,7 @@ class Counter:
 	@property
 	def field(self):
 		if self.value is None:
-			return " -.--"
+			return "  -.--"
 
 		prefix = "±"
 		number = str(self.value)
@@ -382,7 +382,7 @@ class Counter:
 				prefix = "-" if float(number) < 0 else "+"
 				number = f'{abs(float(number)):.2f}'
 
-			return prefix + number.ljust(4)
+			return prefix + number.ljust(4).rjust(5)
 
 		elif int(self.value) == self.value:
 			return str(self.value)
@@ -619,8 +619,9 @@ class Dilemma(tk.Toplevel):
 
 
 class Arrow:
-	def __init__(self , coach , base , roof , colour):
+	def __init__(self , coach , source , base , roof , colour):
 		self.coach  = coach
+		self.source = source
 		self.base   = base
 		self.roof   = roof
 		self.colour = colour
@@ -973,7 +974,7 @@ class Gauge:
 
 	def update(self):
 		for bot in self.coach.engine.bots.values():
-			if bot.code in E.BOT_EXCLUDE_ENG:
+			if bot.code in E.BOT_EXCLUDE_ENG:           ### e.g. Random bot cannot evaluate
 				continue
 
 			bot.update()
@@ -981,8 +982,8 @@ class Gauge:
 
 		# Arrows
 		for r,counter in enumerate(self.coach.analysis.counters_topls.values()):
-			quiver = self.coach.board.this_move.quiver_gauge
-			arrow  = self.coach.engine.topls[r][2]
+			arrow = self.coach.engine.topls[r][2]
+			quiver = self.coach.board.this_move.quiver
 			if E.BOT_GAUGE:
 				counter.value = self.coach.engine.topls[r][0]
 				counter.label = self.coach.engine.topls[r][1]
@@ -1195,7 +1196,7 @@ class ButtonTopLine(Button):
 		### arrows
 		if E.BOT_GAUGE:
 			arrow = self.coach.engine.topls[self.rank-1][2]
-			quiver = self.coach.board.this_move.quiver_gauge
+			quiver = self.coach.board.this_move.quiver
 			if arrow not in quiver and self.active:
 				quiver.append(arrow)
 			elif arrow in quiver:

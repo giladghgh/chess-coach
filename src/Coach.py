@@ -443,17 +443,19 @@ class Coach:
 					else:
 						self.board.this_move.lights.append(self.anchor)
 				else:
-					for arrow in self.board.this_move.quiver_coach:
+					for arrow in self.board.this_move.quiver:
 						if all([
+							arrow.source == "COACH",
 							arrow.base is self.anchor,
-							arrow.roof is header
+							arrow.roof is header,
 						]):
-							self.board.this_move.quiver_coach.remove(arrow)
+							self.board.this_move.quiver.remove(arrow)
 							break
 					else:
-						self.board.this_move.quiver_coach.append(
+						self.board.this_move.quiver.append(
 							Arrow(
 								self,
+								"COACH",
 								self.anchor,
 								header,
 								C.ARROW_COACH_COLOUR

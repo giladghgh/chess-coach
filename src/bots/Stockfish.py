@@ -51,6 +51,7 @@ class BotStockfish(ExoticBot):
 
 			arrow = Arrow(
 				self.engine.coach,
+				"SF",
 				move.origin,
 				move.target,
 				C.ARROW_TOPLS_COLOUR[rank]

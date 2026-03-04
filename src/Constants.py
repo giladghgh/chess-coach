@@ -5,6 +5,9 @@ import sys,os
 
 
 class C:
+	# WINDOW_POS = (250,100)
+	WINDOW_POS = (350,100)
+
 	# INITIAL CONDITIONS
 	# INIT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	INIT_FEN = "k6n/6P1/8/8/8/8/2Q5/K7 w - - 0 1"
@@ -93,9 +96,6 @@ class C:
 	WINDOW_HEIGHT = BOARD_HEIGHT
 	WINDOW_SIZE   = (WINDOW_WIDTH , WINDOW_HEIGHT)
 
-	# WINDOW_POS = (250,100)
-	WINDOW_POS = (525,100)
-
 
 	# COACH COLOURS
 	BACKGR_PANE     = (165,165,165)
@@ -130,9 +130,9 @@ class C:
 
 	ARROW_COACH_COLOUR = (250,175, 35,215)
 	ARROW_TOPLS_COLOUR = (
-		(  0,109,119,150),      ### TOPL1
-		(118,175,170,165),      ### TOPL2
-		(126,145,138, 85),      ### TOPL3
+		(  0, 50,125,150),      ### TOPL1
+		(  0,115,185,125),      ### TOPL2
+		(  0,180,215,100),      ### TOPL3
 	)
 
 	BANNER_COLOUR = (75,75,75)
